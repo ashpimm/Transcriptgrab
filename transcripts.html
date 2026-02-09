@@ -525,7 +525,7 @@ function switchTab(t){
 // ============================================
 function rv(n){return document.querySelector(`input[name="${n}"]:checked`)?.value;}
 function extractVideoId(u){for(const p of[/(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,/(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/]){const m=u.match(p);if(m)return m[1];}return null;}
-function ss(id,t,m){const e=document.getElementById(id);e.className=`status show ${t}`;e.innerHTML=m;}
+function ss(id,t,m){const e=document.getElementById(id);e.className=`status show ${t}`;e.textContent=m;}
 function hs(id){document.getElementById(id).className='status';}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 

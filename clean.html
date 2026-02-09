@@ -347,7 +347,7 @@ async function fetchFromUrl(){
     if(!r.ok)throw new Error(d.error||'Failed to fetch transcript');
     var text=d.segments.map(function(s){return s.text;}).join('\n');
     document.getElementById('transcript-input').value=text;
-    ss('clean-status','success','Loaded transcript: '+esc(d.title||vidMatch[1]));
+    ss('clean-status','success','Loaded transcript: '+(d.title||vidMatch[1]));
     // Switch to paste view
     document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
     document.querySelector('[data-mode="paste"]').classList.add('active');
@@ -464,7 +464,7 @@ function copyCleaned(){
 // ============================================
 // HELPERS
 // ============================================
-function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.innerHTML=m;}
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.textContent=m;}
 function hs(id){document.getElementById(id).className='status';}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>

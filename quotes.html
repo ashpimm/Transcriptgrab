@@ -351,7 +351,7 @@ function downloadQuotes(){
 // ============================================
 // HELPERS
 // ============================================
-function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.innerHTML=m;}
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.textContent=m;}
 function hs(id){document.getElementById(id).className='status';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>

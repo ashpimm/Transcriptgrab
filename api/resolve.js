@@ -11,15 +11,40 @@ export const config = {
   maxDuration: 30,
 };
 
+// Rate limiter — 5 requests per minute per IP
+const rateMap = new Map();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 60000;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
 export default async function handler(req, res) {
   // CORS — restrict to same origin
   const origin = req.headers.origin || '';
   const host = req.headers.host || '';
-  const allowed = !origin || origin.includes(host);
-  res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
+  const allowed = !origin || (function() { try { return new URL(origin).host === host; } catch { return false; } })();
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Rate limit
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.headers['x-real-ip']
+    || req.socket?.remoteAddress
+    || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment.' });
+  }
 
   const url = req.query.url;
   if (!url) {

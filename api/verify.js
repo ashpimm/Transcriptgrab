@@ -28,8 +28,8 @@ export default async function handler(req, res) {
   // CORS
   const origin = req.headers.origin || '';
   const host = req.headers.host || '';
-  const allowed = !origin || origin.includes(host);
-  res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
+  const allowed = !origin || (function() { try { return new URL(origin).host === host; } catch { return false; } })();
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
   if (req.method === 'OPTIONS') return res.status(200).end();

@@ -108,8 +108,8 @@ export const config = {
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
   const host = req.headers.host || '';
-  const allowed = !origin || origin.includes(host);
-  res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
+  const allowed = !origin || (function() { try { return new URL(origin).host === host; } catch { return false; } })();
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -141,8 +141,15 @@ export default async function handler(req, res) {
   }
 
   if (!GEMINI_KEY) {
-    return res.status(500).json({ error: 'AI service not configured. Set GEMINI_API_KEY in environment variables.' });
+    return res.status(500).json({ error: 'AI service is not available.' });
   }
+
+  const ALLOWED_TONES = { professional: 'professional', casual: 'casual', bold: 'bold' };
+  const ALLOWED_LENGTHS = {
+    short: 'Keep it concise and brief — roughly half the normal length.',
+    medium: 'Use a moderate, standard length.',
+    long: 'Be comprehensive and detailed — roughly 50% longer than normal.',
+  };
 
   try {
     let text = transcript.trim();
@@ -152,18 +159,11 @@ export default async function handler(req, res) {
 
     let systemPrompt = FORMAT_PROMPTS[format];
 
-    if (tone) {
-      systemPrompt += '\n\nTone: Write in a ' + tone + ' tone.';
+    if (tone && ALLOWED_TONES[tone]) {
+      systemPrompt += '\n\nTone: Write in a ' + ALLOWED_TONES[tone] + ' tone.';
     }
-    if (length) {
-      const lengthGuide = {
-        short: 'Keep it concise and brief — roughly half the normal length.',
-        medium: 'Use a moderate, standard length.',
-        long: 'Be comprehensive and detailed — roughly 50% longer than normal.',
-      };
-      if (lengthGuide[length]) {
-        systemPrompt += '\n\nLength: ' + lengthGuide[length];
-      }
+    if (length && ALLOWED_LENGTHS[length]) {
+      systemPrompt += '\n\nLength: ' + ALLOWED_LENGTHS[length];
     }
 
     const response = await fetch(
