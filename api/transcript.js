@@ -156,65 +156,102 @@ export default async function handler(req, res) {
 // YOUTUBE CAPTIONS (FREE — multi-strategy approach)
 // =============================================================
 async function tryYouTubeCaptions(videoId) {
-  // Strategy 1: Try YouTube's timedtext list API (most direct)
-  const listResult = await tryTimedTextAPI(videoId);
-  if (listResult.success) return listResult;
+  // Strategy 1: Innertube get_transcript endpoint (what transcript libraries use)
+  const transcriptResult = await tryGetTranscript(videoId);
+  if (transcriptResult.success) return transcriptResult;
+  console.log(`get_transcript failed for ${videoId}: ${transcriptResult.error}`);
 
-  // Strategy 2: Try Innertube player API with ANDROID client
+  // Strategy 2: Innertube player API with ANDROID client
   const innertubeResult = await tryInnertubeCaption(videoId);
   if (innertubeResult.success) return innertubeResult;
+  console.log(`Innertube failed for ${videoId}: ${innertubeResult.error}`);
 
-  // Strategy 3: Try scraping the watch page as fallback
+  // Strategy 3: Scrape watch page as fallback
   const scrapeResult = await tryScrapeCaption(videoId);
   if (scrapeResult.success) return scrapeResult;
+  console.log(`Scrape failed for ${videoId}: ${scrapeResult.error}`);
 
   return { success: false, error: 'No caption tracks found via any method' };
 }
 
-// --- Strategy 1: Direct timedtext API ---
-async function tryTimedTextAPI(videoId) {
+// --- Strategy 1: Innertube get_transcript (most reliable from servers) ---
+async function tryGetTranscript(videoId) {
   try {
-    // First get the list of available tracks
-    const listRes = await fetch(
-      `https://www.youtube.com/api/timedtext?v=${videoId}&type=list`,
-      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } }
-    );
-    if (!listRes.ok) return { success: false, error: 'Timedtext list failed' };
+    // Build protobuf-encoded params for the video ID
+    // Structure: field 1 { field 1 { videoId } }
+    const innerBytes = Buffer.from(`\x0a\x0b${videoId}`);
+    const params = Buffer.concat([
+      Buffer.from([0x0a, innerBytes.length]),
+      innerBytes
+    ]).toString('base64');
 
-    const listXml = await listRes.text();
+    const response = await fetch('https://www.youtube.com/youtubei/v1/get_transcript', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20250101.00.00',
+            hl: 'en',
+            gl: 'US',
+          }
+        },
+        params,
+      }),
+    });
 
-    // Parse track info from XML
-    const tracks = [];
-    const trackRegex = /<track\s+([^>]+)>/g;
-    let match;
-    while ((match = trackRegex.exec(listXml)) !== null) {
-      const attrs = match[1];
-      const lang = attrs.match(/lang_code="([^"]+)"/)?.[1];
-      const kind = attrs.match(/kind="([^"]+)"/)?.[1] || '';
-      const name = attrs.match(/name="([^"]*)"/)?.[1] || '';
-      if (lang) tracks.push({ lang, kind, name });
+    if (!response.ok) {
+      return { success: false, error: `get_transcript HTTP ${response.status}` };
     }
 
-    if (tracks.length === 0) return { success: false, error: 'No tracks in timedtext list' };
+    const data = await response.json();
 
-    // Prefer: manual English → auto English → first available
-    let track = tracks.find(t => t.lang === 'en' && t.kind !== 'asr');
-    if (!track) track = tracks.find(t => t.lang === 'en');
-    if (!track) track = tracks[0];
+    // Navigate the response structure to find cue groups
+    const actions = data?.actions;
+    if (!actions || actions.length === 0) {
+      return { success: false, error: 'No actions in get_transcript response' };
+    }
 
-    // Fetch the actual captions
-    let captionUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${track.lang}&fmt=json3`;
-    if (track.kind) captionUrl += `&kind=${track.kind}`;
-    if (track.name) captionUrl += `&name=${encodeURIComponent(track.name)}`;
+    // Find the transcript renderer in the response
+    let cueGroups = null;
+    for (const action of actions) {
+      const panel = action?.updateEngagementPanelAction?.content
+        ?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups;
+      if (panel) { cueGroups = panel; break; }
+    }
 
-    const captionRes = await fetch(captionUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-    });
-    if (!captionRes.ok) return { success: false, error: 'Timedtext caption fetch failed' };
+    if (!cueGroups || cueGroups.length === 0) {
+      return { success: false, error: 'No cue groups found in transcript response' };
+    }
 
-    const captionData = await captionRes.json();
-    const segments = parseJson3Events(captionData);
-    if (segments.length === 0) return { success: false, error: 'Timedtext returned empty' };
+    // Parse cue groups into segments
+    const segments = [];
+    for (const group of cueGroups) {
+      const cues = group?.transcriptCueGroupRenderer?.cues;
+      if (!cues) continue;
+      for (const cue of cues) {
+        const renderer = cue?.transcriptCueRenderer;
+        if (!renderer) continue;
+        const text = renderer.cue?.simpleText || '';
+        const startMs = parseInt(renderer.startOffsetMs || '0');
+        const durationMs = parseInt(renderer.durationMs || '0');
+        if (text.trim()) {
+          segments.push({
+            start: startMs / 1000,
+            duration: durationMs / 1000,
+            text: text.trim(),
+          });
+        }
+      }
+    }
+
+    if (segments.length === 0) {
+      return { success: false, error: 'Transcript cues were empty' };
+    }
 
     // Get title via oEmbed
     const title = await getVideoTitle(videoId) || `Video ${videoId}`;
@@ -224,16 +261,15 @@ async function tryTimedTextAPI(videoId) {
       data: {
         title,
         videoId,
-        language: track.lang,
-        isAutoGenerated: track.kind === 'asr',
+        language: 'en',
+        isAutoGenerated: true, // get_transcript doesn't distinguish, assume auto
         durationSeconds: null,
         segments,
         totalSegments: segments.length,
       }
     };
   } catch (err) {
-    console.log(`Timedtext strategy failed for ${videoId}:`, err.message);
-    return { success: false, error: err.message };
+    return { success: false, error: `get_transcript error: ${err.message}` };
   }
 }
 
@@ -262,7 +298,7 @@ async function tryInnertubeCaption(videoId) {
       }),
     });
 
-    if (!response.ok) return { success: false, error: 'Innertube request failed' };
+    if (!response.ok) return { success: false, error: `Innertube HTTP ${response.status}` };
 
     const data = await response.json();
     const title = data?.videoDetails?.title || `Video ${videoId}`;
@@ -296,8 +332,7 @@ async function tryInnertubeCaption(videoId) {
       }
     };
   } catch (err) {
-    console.log(`Innertube strategy failed for ${videoId}:`, err.message);
-    return { success: false, error: err.message };
+    return { success: false, error: `Innertube error: ${err.message}` };
   }
 }
 
@@ -312,8 +347,9 @@ async function tryScrapeCaption(videoId) {
       }
     });
 
-    if (!videoPageRes.ok) return { success: false, error: 'Watch page fetch failed' };
+    if (!videoPageRes.ok) return { success: false, error: `Watch page HTTP ${videoPageRes.status}` };
     const html = await videoPageRes.text();
+    console.log(`Scrape: page size=${html.length}, hasCaptionTracks=${html.includes('captionTracks')}, title=${html.match(/<title>(.*?)<\/title>/)?.[1]?.substring(0, 50)}`);
 
     const titleMatch = html.match(/<title>(.*?)<\/title>/);
     const title = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : `Video ${videoId}`;
@@ -364,8 +400,7 @@ async function tryScrapeCaption(videoId) {
       }
     };
   } catch (err) {
-    console.log(`Scrape strategy failed for ${videoId}:`, err.message);
-    return { success: false, error: err.message };
+    return { success: false, error: `Scrape error: ${err.message}` };
   }
 }
 
