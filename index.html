@@ -162,14 +162,14 @@
       </div>
       <p class="tool-desc">Search across multiple transcript files. Find any moment fast.</p>
     </a>
-    <a href="/analyze" class="tool-card">
+    <a href="/analyze" class="tool-card" id="tool-analyze">
       <div class="tool-top">
         <span class="tool-name">Analyze</span>
         <span class="tool-pill pill-pro">Pro</span>
       </div>
       <p class="tool-desc">Clean up transcripts or get AI summaries, takeaways, and chapters.</p>
     </a>
-    <a href="/create" class="tool-card">
+    <a href="/create" class="tool-card" id="tool-create">
       <div class="tool-top">
         <span class="tool-name">Create</span>
         <span class="tool-pill pill-pro">Pro</span>
@@ -225,12 +225,12 @@
       <div class="price-card-sub">per month</div>
       <ul class="price-features">
         <li>Everything in Free</li>
-        <li>Analyze: AI summaries & deep cleaning</li>
-        <li>Create: quotes, blogs, tweets & more</li>
-        <li>8 content formats</li>
+        <li>Dashboard: summarize, quotes & repurpose</li>
+        <li>7 content formats (blog, tweets, LinkedIn & more)</li>
+        <li>Filler word cleaning built into downloads</li>
         <li>Bulk downloads (up to 500)</li>
       </ul>
-      <button class="price-card-cta" onclick="TGPro.showUpgradeModal()">Upgrade to Pro</button>
+      <button class="price-card-cta" id="pro-cta" onclick="TGPro.showUpgradeModal()">Upgrade to Pro</button>
     </div>
   </div>
 </div>
@@ -254,6 +254,19 @@
     if(progress<1)requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
+})();
+
+// Pro users: rewrite tool card links and pricing CTA
+(function(){
+  setTimeout(function(){
+    if(!window.TGPro||!TGPro.isPro())return;
+    var analyze=document.getElementById('tool-analyze');
+    var create=document.getElementById('tool-create');
+    if(analyze)analyze.href='/dashboard';
+    if(create)create.href='/dashboard?mode=repurpose';
+    var cta=document.getElementById('pro-cta');
+    if(cta){cta.textContent='Go to Dashboard';cta.onclick=function(){window.location.href='/dashboard';};}
+  },100);
 })();
 </script>
 </body>

@@ -1,10 +1,20 @@
 (function(){
-  var items=[
-    {label:'Transcripts',href:'/transcripts'},
-    {label:'Analyze',href:'/analyze',pro:true},
-    {label:'Create',href:'/create',pro:true},
-    {label:'Search',href:'/search'}
-  ];
+  // Check Pro status from localStorage (before pro.js loads)
+  var _isPro=false;
+  try{var pd=JSON.parse(localStorage.getItem('tg_pro')||'null');if(pd&&pd.subscriptionId&&pd.verifiedAt&&(Date.now()-pd.verifiedAt)<1800000)_isPro=true;}catch(e){}
+
+  var items=_isPro
+    ? [
+        {label:'Dashboard',href:'/dashboard'},
+        {label:'Transcripts',href:'/transcripts'},
+        {label:'Search',href:'/search'}
+      ]
+    : [
+        {label:'Transcripts',href:'/transcripts'},
+        {label:'Analyze',href:'/analyze',pro:true},
+        {label:'Create',href:'/create',pro:true},
+        {label:'Search',href:'/search'}
+      ];
 
   var path=window.location.pathname.split('?')[0].split('#')[0].replace(/\.html$/,'');
   if(path.endsWith('/')&&path.length>1)path=path.slice(0,-1);

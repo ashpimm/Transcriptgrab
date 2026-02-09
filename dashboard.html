@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — TranscriptGrab Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #ffffff; --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8; --border-light: #f0f0f0;
+    --text: #111111; --text-2: #333333; --text-3: #666666; --text-4: #999999; --text-5: #bbbbbb;
+    --accent: #111111; --accent-hover: #333333; --accent-subtle: #f5f5f5;
+    --cta: #0071e3; --cta-hover: #0077ED;
+    --success: #34c759; --error: #ff3b30;
+    --radius: 16px; --radius-sm: 10px; --radius-xs: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  .header { padding: 48px 0 40px; text-align: center; }
+  .hero-title { font-size: clamp(36px, 6vw, 56px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: var(--text); margin-bottom: 16px; }
+  .hero-subtitle { font-size: 17px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 480px; margin: 0 auto; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 14px; display: block; }
+
+  .text-input { width: 100%; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; transition: all var(--transition); }
+  .text-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .text-input::placeholder { color: var(--text-5); }
+  textarea.text-input { min-height: 160px; resize: vertical; line-height: 1.8; }
+  .input-hint { font-size: 12px; color: var(--text-4); margin-top: 10px; line-height: 1.5; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); width: 100%; letter-spacing: -0.01em; }
+  .btn-dark { background: var(--accent); color: var(--white); }
+  .btn-dark:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  .btn-sm { padding: 11px 24px; font-size: 13px; width: auto; }
+  .btn:active { transform: translateY(0); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .option-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 10px; margin-top: 24px; }
+  .option-group-label:first-child { margin-top: 0; }
+  .radio-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .radio-group-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .radio-opt { position: relative; cursor: pointer; display: block; }
+  .radio-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background: var(--white); transition: all 0.2s ease; }
+  .radio-opt:hover .radio-card { border-color: var(--border); }
+  .radio-opt input:checked + .radio-card { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .r-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .radio-opt input:checked + .radio-card .r-dot { border-color: var(--text); }
+  .radio-opt input:checked + .radio-card .r-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+  .r-label { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .r-desc { font-size: 12px; color: var(--text-4); margin-top: 1px; }
+
+  .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+  .status.show { display: block; animation: reveal 0.3s ease; }
+  .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
+  .status.success { background: #34c75910; border: 1px solid #34c75933; color: #1a8a38; }
+  .status.info { background: #0071e310; border: 1px solid #0071e333; color: var(--cta); }
+
+  .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes reveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Mode tabs (pill segmented control) */
+  .mode-tabs { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 32px; max-width: 420px; margin-left: auto; margin-right: auto; }
+  .mode-tab { flex: 1; padding: 10px 24px; border: none; background: transparent; color: var(--text-3); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 100px; transition: all var(--transition); text-align: center; }
+  .mode-tab:hover { color: var(--text); }
+  .mode-tab.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+
+  /* Input modes */
+  .input-modes { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 20px; }
+  .input-mode { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-3); font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 100px; transition: all var(--transition); text-align: center; }
+  .input-mode:hover { color: var(--text); }
+  .input-mode.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+  .input-area { display: none; }
+  .input-area.active { display: block; }
+
+  .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--text-4); background: var(--accent-subtle); }
+  .drop-zone p { font-size: 14px; color: var(--text-3); margin-bottom: 4px; font-weight: 500; }
+  .drop-zone span { font-size: 12px; color: var(--text-5); }
+  .drop-zone input { display: none; }
+  .url-row { display: flex; gap: 8px; }
+  .url-row .text-input { flex: 1; }
+
+  /* Repurpose options */
+  #repurpose-options { transition: opacity 0.2s; }
+  #repurpose-options.hidden { display: none; }
+
+  /* Summary results */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; margin-top: 28px; }
+  .section-header:first-child { margin-top: 0; }
+  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); }
+  .section-copy { background: none; border: 1px solid var(--border-light); padding: 4px 12px; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-4); cursor: pointer; transition: all 0.2s; }
+  .section-copy:hover { border-color: var(--border); color: var(--text-3); }
+
+  .summary-text { font-size: 15px; line-height: 1.8; color: var(--text-2); }
+  .summary-text p { margin-bottom: 12px; }
+  .summary-text p:last-child { margin-bottom: 0; }
+
+  .takeaway-list { list-style: none; }
+  .takeaway-item { padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; line-height: 1.6; color: var(--text-2); display: flex; gap: 12px; }
+  .takeaway-item:last-child { border-bottom: none; }
+  .takeaway-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cta); flex-shrink: 0; margin-top: 8px; }
+
+  .chapter-item { padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+  .chapter-item:last-child { border-bottom: none; }
+  .chapter-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .chapter-ts { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--cta); font-weight: 500; flex-shrink: 0; }
+  .chapter-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .chapter-summary { font-size: 13px; color: var(--text-3); line-height: 1.6; padding-left: 58px; }
+
+  .quote-block { padding: 16px 0; border-bottom: 1px solid var(--border-light); }
+  .quote-block:last-child { border-bottom: none; }
+  .quote-text-sm { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.6; font-style: italic; }
+  .quote-ts { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-top: 6px; }
+
+  /* Quote cards (from Create) */
+  .quote-card { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 24px; margin-bottom: 12px; transition: all 0.2s; animation: reveal 0.4s ease; }
+  .quote-card:hover { border-color: var(--border); box-shadow: var(--shadow-sm); }
+  .quote-text { font-size: 16px; font-weight: 500; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+  .quote-text::before { content: '\201C'; color: var(--cta); font-size: 24px; font-weight: 800; line-height: 0; position: relative; top: 6px; margin-right: 4px; }
+  .quote-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .quote-btn { background: none; border: 1px solid var(--border-light); padding: 6px 14px; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-3); cursor: pointer; transition: all 0.2s; }
+  .quote-btn:hover { border-color: var(--border); color: var(--text); background: var(--white); }
+  .quote-btn.copied { border-color: var(--success); color: #1a8a38; background: #34c75910; }
+
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  .result-count { font-size: 13px; color: var(--text-3); font-weight: 500; }
+
+  /* Repurpose result content */
+  .result-content { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 24px; max-height: 500px; overflow-y: auto; font-size: 14px; line-height: 1.8; color: var(--text-2); white-space: pre-wrap; word-break: break-word; }
+  .result-content::-webkit-scrollbar { width: 4px; }
+  .result-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Tweet thread */
+  .tweet-thread { display: flex; flex-direction: column; gap: 0; }
+  .tweet-item { padding: 16px 20px; border: 1px solid var(--border-light); border-bottom: none; background: var(--white); font-size: 14px; line-height: 1.6; color: var(--text-2); position: relative; }
+  .tweet-item:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .tweet-item:last-child { border-bottom: 1px solid var(--border-light); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+  .tweet-item:only-child { border-radius: var(--radius-sm); border-bottom: 1px solid var(--border-light); }
+  .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-bottom: 6px; }
+  .tweet-chars { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-5); position: absolute; top: 16px; right: 16px; }
+
+  .result-card { animation: reveal 0.5s ease; }
+
+  footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--text-5); }
+  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 32px; }
+    .header { padding: 32px 0 32px; }
+    .card { padding: 24px; }
+    .radio-group-grid { grid-template-columns: 1fr; }
+    .radio-group-grid-3 { grid-template-columns: 1fr; }
+    .quote-card { padding: 20px; }
+    .chapter-summary { padding-left: 0; margin-top: 4px; }
+    .input-modes { flex-wrap: wrap; }
+    .mode-tabs { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="container">
+  <header class="header">
+    <h1 class="hero-title">Dashboard.</h1>
+    <p class="hero-subtitle">Summarize, extract quotes, or repurpose any transcript with AI.</p>
+  </header>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="summarize">Summarize</button>
+    <button class="mode-tab" data-mode="quotes">Quotes</button>
+    <button class="mode-tab" data-mode="repurpose">Repurpose</button>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <span class="card-label">Transcript</span>
+    <div class="input-modes">
+      <button class="input-mode active" data-input="paste">Paste Text</button>
+      <button class="input-mode" data-input="upload">Upload File</button>
+      <button class="input-mode" data-input="url">YouTube URL</button>
+    </div>
+    <div class="input-area active" id="input-paste">
+      <textarea class="text-input" id="transcript-input" placeholder="Paste your transcript here..."></textarea>
+    </div>
+    <div class="input-area" id="input-upload">
+      <div class="drop-zone" id="drop-zone">
+        <p>Drop a transcript file here or click to browse</p>
+        <span>.txt, .srt, .json, .csv</span>
+        <input type="file" id="file-input" accept=".txt,.srt,.json,.csv">
+      </div>
+      <p class="input-hint" id="file-name" style="display:none;"></p>
+    </div>
+    <div class="input-area" id="input-url">
+      <div class="url-row">
+        <input type="text" class="text-input" id="url-input" placeholder="https://youtube.com/watch?v=...">
+        <button class="btn btn-ghost btn-sm" id="btn-fetch" onclick="fetchFromUrl()">Fetch</button>
+      </div>
+      <p class="input-hint">We'll download the transcript for you.</p>
+    </div>
+  </div>
+
+  <!-- Repurpose Options (shown in repurpose mode only) -->
+  <div class="card hidden" id="repurpose-options">
+    <div class="option-group-label" style="margin-top:0;">Output Format</div>
+    <div class="radio-group-grid" id="format-grid">
+      <label class="radio-opt"><input type="radio" name="format" value="blog" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Blog Post</div><div class="r-desc">Article with headings</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="twitter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">X / Twitter</div><div class="r-desc">Numbered thread</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="facebook"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Facebook Post</div><div class="r-desc">Engagement-optimized</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="linkedin"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">LinkedIn Post</div><div class="r-desc">Professional format</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="newsletter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Email Newsletter</div><div class="r-desc">Subject + body</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="youtube"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">YouTube Description</div><div class="r-desc">SEO-optimized</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="shownotes"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Show Notes</div><div class="r-desc">Podcast-style notes</div></div></div></label>
+    </div>
+
+    <div class="option-group-label">Tone</div>
+    <div class="radio-group-grid-3">
+      <label class="radio-opt"><input type="radio" name="tone" value="professional" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Professional</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="tone" value="casual"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Casual</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="tone" value="bold"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Bold</div></div></div></label>
+    </div>
+
+    <div class="option-group-label">Length</div>
+    <div class="radio-group-grid-3">
+      <label class="radio-opt"><input type="radio" name="length" value="short"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Short</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="length" value="medium" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Medium</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="length" value="long"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Long</div></div></div></label>
+    </div>
+  </div>
+
+  <button class="btn btn-dark" id="btn-action" onclick="handleAction()">Summarize</button>
+  <div id="main-status" class="status"></div>
+
+  <!-- Summary Results -->
+  <div id="summary-result" style="display:none;">
+    <div class="card result-card">
+      <div class="section-header" style="margin-top:0;">
+        <span class="section-title">Summary</span>
+        <button class="section-copy" onclick="copySection('summary')">Copy</button>
+      </div>
+      <div class="summary-text" id="result-summary"></div>
+
+      <div class="section-header">
+        <span class="section-title">Key Takeaways</span>
+        <button class="section-copy" onclick="copySection('takeaways')">Copy</button>
+      </div>
+      <ul class="takeaway-list" id="result-takeaways"></ul>
+
+      <div class="section-header">
+        <span class="section-title">Chapters</span>
+        <button class="section-copy" onclick="copySection('chapters')">Copy</button>
+      </div>
+      <div id="result-chapters"></div>
+
+      <div class="section-header">
+        <span class="section-title">Notable Quotes</span>
+        <button class="section-copy" onclick="copySection('quotes')">Copy</button>
+      </div>
+      <div id="result-quotes-summary"></div>
+
+      <div style="margin-top:28px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="downloadSummary()">Download All</button>
+          <button class="btn btn-ghost btn-sm" onclick="copySummaryAll()">Copy All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quotes Results -->
+  <div id="quotes-result" style="display:none;">
+    <div class="card result-card">
+      <div class="result-header">
+        <span class="card-label" style="margin-bottom:0;">Quotable Moments</span>
+        <span class="result-count" id="result-count"></span>
+      </div>
+      <div id="quotes-list"></div>
+      <div style="margin-top:16px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="handleAction()">Regenerate</button>
+          <button class="btn btn-ghost btn-sm" onclick="downloadQuotes()">Download All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Repurpose Results -->
+  <div id="repurpose-result" style="display:none;">
+    <div class="card result-card">
+      <span class="card-label" id="result-label">Result</span>
+      <div id="result-body"></div>
+      <div style="margin-top:20px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="downloadResult()">Download</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyResult()">Copy to Clipboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/#pricing">Pricing</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p style="margin-top:8px;">Powered by AI. Results are generated and may not be perfectly accurate.</p>
+  </footer>
+</div>
+
+<script src="/pro.js"></script>
+<script>
+var _mode='summarize';
+var _summaryData=null;
+var _quotes=[];
+var _resultText='';
+var _resultFormat='';
+
+var FORMAT_LABELS={blog:'Blog Post',twitter:'X / Twitter Thread',facebook:'Facebook Post',linkedin:'LinkedIn Post',newsletter:'Email Newsletter',youtube:'YouTube Description',shownotes:'Show Notes'};
+
+// ============================================
+// PRO GATE — redirect non-Pro users
+// ============================================
+(function(){
+  setTimeout(function(){
+    if(window.TGPro && !TGPro.isPro()){
+      TGPro.showUpgradeModal();
+    }
+  }, 200);
+})();
+
+// ============================================
+// DEEP LINK: ?mode=quotes or ?mode=repurpose
+// ============================================
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var m=params.get('mode');
+  if(m==='quotes'||m==='repurpose') switchMode(m);
+})();
+
+// ============================================
+// MODE SWITCHING
+// ============================================
+document.querySelectorAll('.mode-tab').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    switchMode(this.dataset.mode);
+  });
+});
+
+function switchMode(mode){
+  _mode=mode;
+  document.querySelectorAll('.mode-tab').forEach(function(b){b.classList.remove('active');});
+  var tab=document.querySelector('.mode-tab[data-mode="'+mode+'"]');
+  if(tab) tab.classList.add('active');
+
+  // Toggle repurpose options
+  document.getElementById('repurpose-options').classList.toggle('hidden',mode!=='repurpose');
+
+  // Update button text
+  if(mode==='summarize') document.getElementById('btn-action').textContent='Summarize';
+  else if(mode==='quotes') document.getElementById('btn-action').textContent='Find Quotes';
+  else{
+    var fmt=document.querySelector('input[name="format"]:checked').value;
+    document.getElementById('btn-action').textContent='Generate '+(FORMAT_LABELS[fmt]||'Content');
+  }
+
+  // Hide all results when switching
+  hideAllResults();
+  hs('main-status');
+}
+
+function hideAllResults(){
+  document.getElementById('summary-result').style.display='none';
+  document.getElementById('quotes-result').style.display='none';
+  document.getElementById('repurpose-result').style.display='none';
+}
+
+// Update button text when repurpose format changes
+document.querySelectorAll('input[name="format"]').forEach(function(r){
+  r.addEventListener('change',function(){
+    if(_mode==='repurpose'){
+      document.getElementById('btn-action').textContent='Generate '+(FORMAT_LABELS[this.value]||'Content');
+    }
+  });
+});
+
+// ============================================
+// ACTION HANDLER
+// ============================================
+function handleAction(){
+  TGPro.checkGate(function(){
+    if(_mode==='summarize') summarize();
+    else if(_mode==='quotes') findQuotes();
+    else repurpose();
+  });
+}
+
+// ============================================
+// INPUT MODE SWITCHING
+// ============================================
+document.querySelectorAll('.input-mode').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+    document.getElementById('input-'+this.dataset.input).classList.add('active');
+  });
+});
+
+function switchToTab(mode){
+  document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('[data-input="'+mode+'"]').classList.add('active');
+  document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+  document.getElementById('input-'+mode).classList.add('active');
+}
+
+// ============================================
+// FILE UPLOAD
+// ============================================
+var dropZone=document.getElementById('drop-zone');
+var fileInput=document.getElementById('file-input');
+dropZone.addEventListener('click',function(){fileInput.click();});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('over');});
+dropZone.addEventListener('dragleave',function(){this.classList.remove('over');});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();this.classList.remove('over');
+  if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',function(){if(this.files.length)handleFile(this.files[0]);});
+
+function handleFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var parsed=parseFile(e.target.result,file.name);
+    document.getElementById('transcript-input').value=parsed;
+    document.getElementById('file-name').style.display='block';
+    document.getElementById('file-name').textContent='Loaded: '+file.name+' ('+parsed.split(/\s+/).length+' words)';
+    switchToTab('paste');
+  };
+  reader.readAsText(file);
+}
+
+// ============================================
+// FILE PARSERS
+// ============================================
+function parseFile(content,filename){
+  var ext=(filename||'').split('.').pop().toLowerCase();
+  if(ext==='srt'){
+    return content.trim().split(/\n\n+/).map(function(b){
+      var l=b.split('\n');return l.length>=3?l.slice(2).join(' ').trim():'';
+    }).filter(Boolean).join('\n');
+  }
+  if(ext==='json'){
+    try{var d=JSON.parse(content);if(d.segments)return d.segments.map(function(s){return s.text;}).join('\n');return content;}catch(e){return content;}
+  }
+  if(ext==='csv'){
+    var lines=content.trim().split('\n'),texts=[];
+    for(var i=1;i<lines.length;i++){
+      var line=lines[i].trim();if(!line)continue;
+      var match=line.match(/"([^"]*(?:""[^"]*)*)"/);
+      if(match){texts.push(match[1].replace(/""/g,'"'));}
+      else{var parts=line.split(',');var text=parts.length>2?parts.slice(2).join(',').trim():parts[parts.length-1].trim();if(text)texts.push(text);}
+    }
+    return texts.length?texts.join('\n'):content;
+  }
+  return content;
+}
+
+// ============================================
+// YOUTUBE URL FETCH
+// ============================================
+async function fetchFromUrl(){
+  var url=document.getElementById('url-input').value.trim();
+  if(!url){ss('main-status','error','Enter a YouTube URL.');return;}
+  var vidMatch=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  if(!vidMatch){ss('main-status','error','Invalid YouTube URL.');return;}
+
+  var btn=document.getElementById('btn-fetch');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{
+    var r=await fetch('/api/transcript?v='+vidMatch[1]+'&mode=single');
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed to fetch transcript');
+    var text=d.segments.map(function(s){
+      var m=Math.floor(s.start/60),sec=Math.floor(s.start%60);
+      return'['+m+':'+String(sec).padStart(2,'0')+'] '+s.text;
+    }).join('\n');
+    document.getElementById('transcript-input').value=text;
+    switchToTab('paste');
+    ss('main-status','success','Loaded: '+(d.title||vidMatch[1]));
+    setTimeout(function(){hs('main-status');},2000);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Fetch';}
+}
+
+// ============================================
+// SUMMARIZE
+// ============================================
+async function summarize(){
+  var text=document.getElementById('transcript-input').value.trim();
+  if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
+  if(text.length<50){ss('main-status','error','Transcript is too short to summarize.');return;}
+
+  var btn=document.getElementById('btn-action');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Summarizing...';
+  hs('main-status');
+  hideAllResults();
+
+  try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
+    var r=await fetch('/api/summarize',{method:'POST',headers:headers,body:JSON.stringify({transcript:text})});
+    var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
+    if(!r.ok)throw new Error(d.error||'Summarization failed');
+    _summaryData=d;
+    renderSummary(d);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Summarize';}
+}
+
+function renderSummary(data){
+  var summaryEl=document.getElementById('result-summary');
+  summaryEl.innerHTML=(data.summary||'').split('\n\n').map(function(p){return'<p>'+esc(p.trim())+'</p>';}).join('');
+
+  var takeawaysEl=document.getElementById('result-takeaways');
+  takeawaysEl.innerHTML=(data.takeaways||[]).map(function(t){
+    return'<li class="takeaway-item"><div class="takeaway-dot"></div><span>'+esc(t)+'</span></li>';
+  }).join('');
+
+  var chaptersEl=document.getElementById('result-chapters');
+  chaptersEl.innerHTML=(data.chapters||[]).map(function(c){
+    return'<div class="chapter-item"><div class="chapter-top"><span class="chapter-ts">'+esc(c.timestamp||'')+'</span><span class="chapter-title">'+esc(c.title||'')+'</span></div>'+(c.summary?'<div class="chapter-summary">'+esc(c.summary)+'</div>':'')+'</div>';
+  }).join('');
+
+  var quotesEl=document.getElementById('result-quotes-summary');
+  quotesEl.innerHTML=(data.quotes||[]).map(function(q){
+    var text=typeof q==='string'?q:(q.text||'');
+    var ts=typeof q==='object'?(q.timestamp||''):'';
+    return'<div class="quote-block"><div class="quote-text-sm">"'+esc(text)+'"</div>'+(ts?'<div class="quote-ts">'+esc(ts)+'</div>':'')+'</div>';
+  }).join('');
+
+  document.getElementById('summary-result').style.display='block';
+  document.getElementById('summary-result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ============================================
+// SUMMARY COPY / DOWNLOAD
+// ============================================
+function copySection(section){
+  if(!_summaryData)return;
+  var text='';
+  if(section==='summary')text=_summaryData.summary||'';
+  else if(section==='takeaways')text=(_summaryData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n');
+  else if(section==='chapters')text=(_summaryData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'')+'\n'+(c.summary||'');}).join('\n\n');
+  else if(section==='quotes')text=(_summaryData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n\n');
+  navigator.clipboard.writeText(text).then(function(){
+    ss('main-status','success','Copied to clipboard');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function copySummaryAll(){
+  if(!_summaryData)return;
+  var parts=[];
+  parts.push('SUMMARY\n'+(_summaryData.summary||''));
+  parts.push('KEY TAKEAWAYS\n'+(_summaryData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n'));
+  parts.push('CHAPTERS\n'+(_summaryData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'');}).join('\n'));
+  parts.push('NOTABLE QUOTES\n'+(_summaryData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n'));
+  navigator.clipboard.writeText(parts.join('\n\n---\n\n')).then(function(){
+    ss('main-status','success','Copied all sections');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function downloadSummary(){
+  if(!_summaryData)return;
+  var parts=[];
+  parts.push('SUMMARY\n\n'+(_summaryData.summary||''));
+  parts.push('KEY TAKEAWAYS\n\n'+(_summaryData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n'));
+  parts.push('CHAPTERS\n\n'+(_summaryData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'')+'\n'+(c.summary||'');}).join('\n\n'));
+  parts.push('NOTABLE QUOTES\n\n'+(_summaryData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n\n'));
+  var blob=new Blob([parts.join('\n\n========================================\n\n')],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='summary.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ============================================
+// FIND QUOTES
+// ============================================
+async function findQuotes(){
+  var text=document.getElementById('transcript-input').value.trim();
+  if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
+  if(text.length<50){ss('main-status','error','Transcript is too short.');return;}
+
+  var btn=document.getElementById('btn-action');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Finding quotes...';
+  hs('main-status');
+  hideAllResults();
+
+  try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
+    var r=await fetch('/api/quotes',{method:'POST',headers:headers,body:JSON.stringify({transcript:text})});
+    var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
+    if(!r.ok)throw new Error(d.error||'Failed to find quotes');
+    _quotes=d.quotes||[];
+    renderQuotes(_quotes);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Find Quotes';}
+}
+
+function renderQuotes(quotes){
+  if(!quotes.length){ss('main-status','info','No quotable moments found in this transcript.');return;}
+  document.getElementById('result-count').textContent=quotes.length+' quote'+(quotes.length!==1?'s':'');
+
+  var html='';
+  for(var i=0;i<quotes.length;i++){
+    var q=quotes[i];
+    html+='<div class="quote-card">'+
+      '<div class="quote-text">'+esc(q.text||'')+'</div>'+
+      (q.timestamp?'<div class="quote-ts">'+esc(q.timestamp)+'</div>':'')+
+      '<div class="quote-actions">'+
+        '<button class="quote-btn" onclick="copyQuote(this,'+i+',\'text\')">Copy Quote</button>'+
+        (q.twitter?'<button class="quote-btn" onclick="copyQuote(this,'+i+',\'twitter\')">Copy as Tweet</button>':'')+
+        (q.linkedin?'<button class="quote-btn" onclick="copyQuote(this,'+i+',\'linkedin\')">Copy for LinkedIn</button>':'')+
+      '</div></div>';
+  }
+  document.getElementById('quotes-list').innerHTML=html;
+  document.getElementById('quotes-result').style.display='block';
+  document.getElementById('quotes-result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyQuote(btn,idx,type){
+  var q=_quotes[idx];if(!q)return;
+  var text='';
+  if(type==='text')text=q.text||'';
+  else if(type==='twitter')text=q.twitter||q.text||'';
+  else if(type==='linkedin')text=q.linkedin||q.text||'';
+  navigator.clipboard.writeText(text).then(function(){
+    btn.classList.add('copied');btn.textContent='Copied!';
+    setTimeout(function(){
+      btn.classList.remove('copied');
+      if(type==='text')btn.textContent='Copy Quote';
+      else if(type==='twitter')btn.textContent='Copy as Tweet';
+      else btn.textContent='Copy for LinkedIn';
+    },2000);
+  });
+}
+
+function downloadQuotes(){
+  if(!_quotes.length)return;
+  var lines=_quotes.map(function(q,i){
+    var parts=[(i+1)+'. "'+q.text+'"'];
+    if(q.timestamp)parts.push('   Timestamp: '+q.timestamp);
+    if(q.twitter)parts.push('   Tweet: '+q.twitter);
+    if(q.linkedin)parts.push('   LinkedIn: '+q.linkedin);
+    return parts.join('\n');
+  });
+  var blob=new Blob([lines.join('\n\n')],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='quotes.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ============================================
+// REPURPOSE
+// ============================================
+async function repurpose(){
+  var text=document.getElementById('transcript-input').value.trim();
+  if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
+  if(text.length<50){ss('main-status','error','Transcript is too short.');return;}
+
+  var format=document.querySelector('input[name="format"]:checked').value;
+  var tone=document.querySelector('input[name="tone"]:checked').value;
+  var length=document.querySelector('input[name="length"]:checked').value;
+
+  var btn=document.getElementById('btn-action');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating '+(FORMAT_LABELS[format]||'Content')+'...';
+  hs('main-status');
+  hideAllResults();
+
+  try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
+    var r=await fetch('/api/repurpose',{method:'POST',headers:headers,body:JSON.stringify({transcript:text,format:format,tone:tone,length:length})});
+    var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
+    if(!r.ok)throw new Error(d.error||'Generation failed');
+    _resultFormat=format;
+    renderRepurpose(format,d);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Generate '+(FORMAT_LABELS[format]||'Content');}
+}
+
+function renderRepurpose(format,data){
+  document.getElementById('result-label').textContent=FORMAT_LABELS[format]||'Result';
+  var bodyEl=document.getElementById('result-body');
+
+  if(format==='twitter'&&data.tweets&&Array.isArray(data.tweets)){
+    _resultText=data.tweets.join('\n\n');
+    var html='<div class="tweet-thread">';
+    for(var i=0;i<data.tweets.length;i++){
+      html+='<div class="tweet-item"><div class="tweet-num">'+(i+1)+'/'+data.tweets.length+'</div><div class="tweet-chars">'+data.tweets[i].length+'/280</div>'+esc(data.tweets[i])+'</div>';
+    }
+    html+='</div>';
+    bodyEl.innerHTML=html;
+  } else if(format==='newsletter'&&data.subject){
+    _resultText='Subject: '+data.subject+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Subject Line</span><div style="font-size:15px;font-weight:600;color:var(--text);">'+esc(data.subject)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else if(format==='blog'&&data.title){
+    _resultText=data.title+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Headline</span><div style="font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.02em;">'+esc(data.title)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else {
+    var content=data.content||data.description||JSON.stringify(data,null,2);
+    _resultText=content;
+    bodyEl.innerHTML='<div class="result-content">'+esc(content)+'</div>';
+  }
+
+  document.getElementById('repurpose-result').style.display='block';
+  document.getElementById('repurpose-result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyResult(){
+  if(!_resultText)return;
+  navigator.clipboard.writeText(_resultText).then(function(){
+    ss('main-status','success','Copied to clipboard');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function downloadResult(){
+  if(!_resultText)return;
+  var ext=_resultFormat==='blog'?'md':'txt';
+  var blob=new Blob([_resultText],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=(_resultFormat||'content')+'.'+ext;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.textContent=m;}
+function hs(id){document.getElementById(id).className='status';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

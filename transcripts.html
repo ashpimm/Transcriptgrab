@@ -594,11 +594,57 @@ async function fetchSingleTranscript(){
   }catch(e){document.getElementById('single-processing').style.display='none';ss('single-status','error',e.message);}finally{btn.disabled=false;btn.innerHTML='Get Transcript';}
 }
 
+// ============================================
+// LIGHT CLEANING (client-side filler word removal)
+// ============================================
+function lightClean(text){
+  var cleaned=text;
+  var patterns=[
+    /\b(um+|uh+|uhh+|hmm+|mmm+|er+)\b[,.]?\s*/gi,
+    /\b(you know)\b[,.]?\s*/gi,
+    /\b(sort of|kind of)\b\s+(?=\w)/gi,
+    /\b(I mean)\b[,.]?\s*/gi,
+    /\blike[,]\s+/gi,
+    /\bright[,]\s+/gi,
+  ];
+  for(var i=0;i<patterns.length;i++) cleaned=cleaned.replace(patterns[i],'');
+  cleaned=cleaned.replace(/\s{2,}/g,' ');
+  cleaned=cleaned.replace(/,\s*,/g,',');
+  cleaned=cleaned.replace(/^\s*,\s*/gm,'');
+  cleaned=cleaned.replace(/\s+([.,!?])/g,'$1');
+  return cleaned.trim();
+}
+
+function getDisplayText(){
+  return window._cleanToggle ? lightClean(window._lt) : window._lt;
+}
+
+function toggleClean(checked){
+  window._cleanToggle=checked;
+  var text=getDisplayText();
+  var prev=text.substring(0,1500)+(text.length>1500?'\n\n...':'');
+  document.getElementById('single-preview').textContent=prev;
+  var wc=text.split(/\s+/).length;
+  document.getElementById('single-word-count').textContent=wc.toLocaleString()+' words';
+}
+
+function dlSingle(){
+  dlFile(getDisplayText(),window._fn,mime(window._ff));
+}
+
+function copySingle(){
+  navigator.clipboard.writeText(getDisplayText()).then(()=>{
+    ss('single-status','success','Copied to clipboard');
+    setTimeout(()=>hs('single-status'),2000);
+  });
+}
+
 function showSingleResult(d,f,format,fn,vid){
+  window._cleanToggle=false;
   const prev=f.substring(0,1500)+(f.length>1500?'\n\n...':''),wc=f.split(/\s+/).length;
   const tag=d.source==='assemblyai'||d.isSpeechToText?'<span class="source-tag tag-ai">AI</span>':'<span class="source-tag tag-captions">Captions</span>';
   const el=document.getElementById('single-result');el.style.display='block';
-  el.innerHTML=`<div class="card result-card"><div class="result-header"><div class="result-title">${esc(d.title||'Transcript')} ${tag}</div><div class="result-meta">${d.totalSegments||0} segments · ${wc.toLocaleString()} words</div></div><div class="preview-box">${esc(prev)}</div><div class="btn-row"><button class="btn btn-dark btn-sm" onclick="dlFile(window._lt,window._fn,'${mime(format)}')">Download .${format}</button><button class="btn btn-ghost btn-sm" onclick="copyClip()">Copy to Clipboard</button></div></div>`;
+  el.innerHTML=`<div class="card result-card"><div class="result-header"><div class="result-title">${esc(d.title||'Transcript')} ${tag}</div><div class="result-meta">${d.totalSegments||0} segments · <span id="single-word-count">${wc.toLocaleString()} words</span></div></div><div class="preview-box" id="single-preview">${esc(prev)}</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 0;border-top:1px solid var(--border-light);"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text-3);"><input type="checkbox" id="clean-toggle" onchange="toggleClean(this.checked)" style="width:16px;height:16px;accent-color:var(--text);cursor:pointer;"> Remove filler words (um, uh, like, you know)</label></div><div class="btn-row"><button class="btn btn-dark btn-sm" onclick="dlSingle()">Download .${format}</button><button class="btn btn-ghost btn-sm" onclick="copySingle()">Copy to Clipboard</button></div></div>`;
 }
 
 // ============================================

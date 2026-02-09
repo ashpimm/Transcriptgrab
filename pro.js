@@ -72,9 +72,9 @@
           '<div class="tg-modal-label">PRO</div>' +
           '<h3 class="tg-modal-title">Unlock all AI tools</h3>' +
           '<ul class="tg-modal-features">' +
-            '<li>Analyze: AI summaries & deep cleaning</li>' +
-            '<li>Create: quotes, blogs, tweets & more</li>' +
-            '<li>8 content formats</li>' +
+            '<li>Dashboard: summarize, quotes & repurpose</li>' +
+            '<li>7 content formats (blog, tweets, LinkedIn & more)</li>' +
+            '<li>Filler word cleaning built into downloads</li>' +
             '<li>Bulk transcript downloads (up to 500)</li>' +
           '</ul>' +
           '<div class="tg-modal-price">$9.99<span>/month</span></div>' +
@@ -139,6 +139,7 @@
           TGPro.hideRestoreModal();
           TGPro.renderProStatus();
           TGPro._showToast('Pro access restored!');
+          setTimeout(function(){ window.location.href = '/dashboard'; }, 1500);
         } else {
           statusEl.textContent = d.error || 'No active subscription found for this email.';
           statusEl.className = 'tg-modal-status error';
@@ -169,6 +170,7 @@
           setProData({ subscriptionId: d.subscriptionId, customerEmail: d.customerEmail || '', verifiedAt: Date.now() });
           TGPro.renderProStatus();
           TGPro._showToast('Welcome to Pro!');
+          setTimeout(function(){ window.location.href = '/dashboard'; }, 1500);
           return true;
         }
       } catch(e) {

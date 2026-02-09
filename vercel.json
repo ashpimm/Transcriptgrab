@@ -17,6 +17,7 @@
     { "source": "/transcripts", "destination": "/transcripts.html" },
     { "source": "/analyze", "destination": "/analyze.html" },
     { "source": "/create", "destination": "/create.html" },
-    { "source": "/search", "destination": "/search.html" }
+    { "source": "/search", "destination": "/search.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
   ]
 }
