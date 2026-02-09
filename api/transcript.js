@@ -113,16 +113,9 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`No captions for ${videoId}: ${captionResult.error}.`);
+    console.log(`No captions for ${videoId}: ${captionResult.error}. Falling back to AssemblyAI.`);
 
-    // ===== STEP 2: Fallback to AssemblyAI (bulk/paid only) =====
-    if (mode !== 'bulk') {
-      return res.status(404).json({
-        error: 'No captions available for this video. Bulk mode includes AI transcription for videos without captions.',
-        source: 'none',
-      });
-    }
-
+    // ===== STEP 2: Fallback to AssemblyAI (all modes) =====
     if (!ASSEMBLYAI_KEY) {
       return res.status(404).json({
         error: 'No captions available and speech-to-text is not configured.',
