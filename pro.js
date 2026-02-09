@@ -72,10 +72,9 @@
           '<div class="tg-modal-label">PRO</div>' +
           '<h3 class="tg-modal-title">Unlock all AI tools</h3>' +
           '<ul class="tg-modal-features">' +
-            '<li>AI Transcript Summary</li>' +
-            '<li>AI Quote Finder</li>' +
-            '<li>Content Repurposer (6 formats)</li>' +
-            '<li>AI Transcript Cleaner</li>' +
+            '<li>Analyze: AI summaries & deep cleaning</li>' +
+            '<li>Create: quotes, blogs, tweets & more</li>' +
+            '<li>7 content formats</li>' +
             '<li>Bulk transcript downloads (up to 500)</li>' +
           '</ul>' +
           '<div class="tg-modal-price">$9.99<span>/month</span></div>' +

@@ -1,10 +1,8 @@
 (function(){
   var items=[
     {label:'Transcripts',href:'/transcripts'},
-    {label:'Clean',href:'/clean',pro:true},
-    {label:'Summary',href:'/summary',pro:true},
-    {label:'Quotes',href:'/quotes',pro:true},
-    {label:'Repurpose',href:'/repurpose',pro:true},
+    {label:'Analyze',href:'/analyze',pro:true},
+    {label:'Create',href:'/create',pro:true},
     {label:'Search',href:'/search'}
   ];
 

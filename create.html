@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quote Finder — TranscriptGrab</title>
+<title>Create — TranscriptGrab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -46,6 +46,21 @@
   .btn:active { transform: translateY(0); }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
+  .option-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 10px; margin-top: 24px; }
+  .option-group-label:first-child { margin-top: 0; }
+  .radio-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .radio-group-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .radio-opt { position: relative; cursor: pointer; display: block; }
+  .radio-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background: var(--white); transition: all 0.2s ease; }
+  .radio-opt:hover .radio-card { border-color: var(--border); }
+  .radio-opt input:checked + .radio-card { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .r-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .radio-opt input:checked + .radio-card .r-dot { border-color: var(--text); }
+  .radio-opt input:checked + .radio-card .r-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+  .r-label { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .r-desc { font-size: 12px; color: var(--text-4); margin-top: 1px; }
+
   .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
   .status.show { display: block; animation: reveal 0.3s ease; }
   .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
@@ -72,6 +87,10 @@
   .url-row { display: flex; gap: 8px; }
   .url-row .text-input { flex: 1; }
 
+  /* Tone/Length options */
+  #tone-length-options { transition: opacity 0.2s; }
+  #tone-length-options.hidden { display: none; }
+
   /* Quote cards */
   .quote-card { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 24px; margin-bottom: 12px; transition: all 0.2s; animation: reveal 0.4s ease; }
   .quote-card:hover { border-color: var(--border); box-shadow: var(--shadow-sm); }
@@ -85,6 +104,21 @@
 
   .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
   .result-count { font-size: 13px; color: var(--text-3); font-weight: 500; }
+
+  /* Repurpose result content */
+  .result-content { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 24px; max-height: 500px; overflow-y: auto; font-size: 14px; line-height: 1.8; color: var(--text-2); white-space: pre-wrap; word-break: break-word; }
+  .result-content::-webkit-scrollbar { width: 4px; }
+  .result-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Tweet thread */
+  .tweet-thread { display: flex; flex-direction: column; gap: 0; }
+  .tweet-item { padding: 16px 20px; border: 1px solid var(--border-light); border-bottom: none; background: var(--white); font-size: 14px; line-height: 1.6; color: var(--text-2); position: relative; }
+  .tweet-item:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .tweet-item:last-child { border-bottom: 1px solid var(--border-light); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+  .tweet-item:only-child { border-radius: var(--radius-sm); border-bottom: 1px solid var(--border-light); }
+  .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-bottom: 6px; }
+  .tweet-chars { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-5); position: absolute; top: 16px; right: 16px; }
+
   .result-card { animation: reveal 0.5s ease; }
 
   footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
@@ -96,6 +130,8 @@
     .hero-title { font-size: 32px; }
     .header { padding: 32px 0 32px; }
     .card { padding: 24px; }
+    .radio-group-grid { grid-template-columns: 1fr; }
+    .radio-group-grid-3 { grid-template-columns: 1fr; }
     .quote-card { padding: 20px; }
     .input-modes { flex-wrap: wrap; }
   }
@@ -106,17 +142,17 @@
 
 <div class="container">
   <header class="header">
-    <h1 class="hero-title">Find the<br>best quotes.</h1>
-    <p class="hero-subtitle">Extract the most shareable, impactful moments from any transcript — formatted for social media.</p>
+    <h1 class="hero-title">Create from<br>any video.</h1>
+    <p class="hero-subtitle">Extract quotes or transform transcripts into blog posts, tweets, newsletters, and more.</p>
   </header>
 
   <!-- Input -->
   <div class="card">
     <span class="card-label">Transcript</span>
     <div class="input-modes">
-      <button class="input-mode active" data-mode="paste">Paste Text</button>
-      <button class="input-mode" data-mode="upload">Upload File</button>
-      <button class="input-mode" data-mode="url">YouTube URL</button>
+      <button class="input-mode active" data-input="paste">Paste Text</button>
+      <button class="input-mode" data-input="upload">Upload File</button>
+      <button class="input-mode" data-input="url">YouTube URL</button>
     </div>
     <div class="input-area active" id="input-paste">
       <textarea class="text-input" id="transcript-input" placeholder="Paste your transcript here..."></textarea>
@@ -133,16 +169,46 @@
         <input type="text" class="text-input" id="url-input" placeholder="https://youtube.com/watch?v=...">
         <button class="btn btn-ghost btn-sm" id="btn-fetch" onclick="fetchFromUrl()">Fetch</button>
       </div>
-      <p class="input-hint">We'll download the transcript and find the best quotes.</p>
+      <p class="input-hint">We'll download the transcript and transform it.</p>
     </div>
   </div>
 
-  <button class="btn btn-dark" id="btn-find" onclick="TGPro.checkGate(findQuotes)">Find Quotes</button>
+  <!-- Options -->
+  <div class="card">
+    <div class="option-group-label" style="margin-top:0;">Output Format</div>
+    <div class="radio-group-grid" id="format-grid">
+      <label class="radio-opt"><input type="radio" name="format" value="quotes" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Quotes</div><div class="r-desc">Shareable moments</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="blog"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Blog Post</div><div class="r-desc">Article with headings</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="twitter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Twitter Thread</div><div class="r-desc">Numbered tweets</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="linkedin"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">LinkedIn Post</div><div class="r-desc">Professional format</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="newsletter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Email Newsletter</div><div class="r-desc">Subject + body</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="youtube"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">YouTube Description</div><div class="r-desc">SEO-optimized</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="shownotes"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Show Notes</div><div class="r-desc">Podcast-style notes</div></div></div></label>
+    </div>
+
+    <div id="tone-length-options">
+      <div class="option-group-label">Tone</div>
+      <div class="radio-group-grid-3">
+        <label class="radio-opt"><input type="radio" name="tone" value="professional" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Professional</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="tone" value="casual"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Casual</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="tone" value="bold"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Bold</div></div></div></label>
+      </div>
+
+      <div class="option-group-label">Length</div>
+      <div class="radio-group-grid-3">
+        <label class="radio-opt"><input type="radio" name="length" value="short"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Short</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="length" value="medium" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Medium</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="length" value="long"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Long</div></div></div></label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-dark" id="btn-generate" onclick="TGPro.checkGate(generate)">Find Quotes</button>
   <div class="pro-required-tag" id="pro-tag">Pro subscription required</div>
   <div id="main-status" class="status"></div>
 
-  <!-- Results -->
-  <div id="result-section" style="display:none;">
+  <!-- Quotes Results -->
+  <div id="quotes-result" style="display:none;">
     <div class="card result-card">
       <div class="result-header">
         <span class="card-label" style="margin-bottom:0;">Quotable Moments</span>
@@ -151,8 +217,22 @@
       <div id="quotes-list"></div>
       <div style="margin-top:16px;">
         <div class="btn-row">
-          <button class="btn btn-dark btn-sm" onclick="findQuotes()">Regenerate</button>
+          <button class="btn btn-dark btn-sm" onclick="TGPro.checkGate(generate)">Regenerate</button>
           <button class="btn btn-ghost btn-sm" onclick="downloadQuotes()">Download All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Repurpose Results -->
+  <div id="repurpose-result" style="display:none;">
+    <div class="card result-card">
+      <span class="card-label" id="result-label">Result</span>
+      <div id="result-body"></div>
+      <div style="margin-top:20px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="downloadResult()">Download</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyResult()">Copy to Clipboard</button>
         </div>
       </div>
     </div>
@@ -160,19 +240,51 @@
 
   <footer>
     <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/#pricing">Pricing</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
-    <p style="margin-top:8px;">Powered by AI. Quotes are extracted and formatted automatically.</p>
+    <p style="margin-top:8px;">Powered by AI. Generated content should be reviewed before publishing.</p>
   </footer>
 </div>
 
 <script src="/pro.js"></script>
 <script>
 var _quotes=[];
+var _resultText='';
+var _resultFormat='';
+
+var FORMAT_LABELS={quotes:'Quotes',blog:'Blog Post',twitter:'Twitter Thread',linkedin:'LinkedIn Post',newsletter:'Email Newsletter',youtube:'YouTube Description',shownotes:'Show Notes'};
+
+// ============================================
+// DEEP LINK: ?mode=quotes
+// ============================================
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var m=params.get('mode');
+  if(m && FORMAT_LABELS[m]){
+    var radio=document.querySelector('input[name="format"][value="'+m+'"]');
+    if(radio) radio.checked=true;
+    updateFormatUI();
+  }
+})();
 
 // Update pro tag visibility
 setTimeout(function(){
   var tag=document.getElementById('pro-tag');
   if(tag && window.TGPro && TGPro.isPro()) tag.style.display='none';
 },100);
+
+// ============================================
+// FORMAT CHANGE — toggle tone/length, update button text
+// ============================================
+document.querySelectorAll('input[name="format"]').forEach(function(r){
+  r.addEventListener('change',updateFormatUI);
+});
+
+function updateFormatUI(){
+  var format=document.querySelector('input[name="format"]:checked').value;
+  var opts=document.getElementById('tone-length-options');
+  opts.classList.toggle('hidden',format==='quotes');
+  document.getElementById('btn-generate').textContent=format==='quotes'?'Find Quotes':'Generate '+FORMAT_LABELS[format];
+}
+updateFormatUI();
 
 // ============================================
 // INPUT MODE SWITCHING
@@ -182,9 +294,16 @@ document.querySelectorAll('.input-mode').forEach(function(btn){
     document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
     this.classList.add('active');
     document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
-    document.getElementById('input-'+this.dataset.mode).classList.add('active');
+    document.getElementById('input-'+this.dataset.input).classList.add('active');
   });
 });
+
+function switchToTab(mode){
+  document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('[data-input="'+mode+'"]').classList.add('active');
+  document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+  document.getElementById('input-'+mode).classList.add('active');
+}
 
 // ============================================
 // FILE UPLOAD
@@ -220,13 +339,6 @@ function parseFile(content,filename){
   return content;
 }
 
-function switchToTab(mode){
-  document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
-  document.querySelector('[data-mode="'+mode+'"]').classList.add('active');
-  document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
-  document.getElementById('input-'+mode).classList.add('active');
-}
-
 // ============================================
 // YOUTUBE URL FETCH
 // ============================================
@@ -254,43 +366,43 @@ async function fetchFromUrl(){
 }
 
 // ============================================
-// FIND QUOTES
+// GENERATE — routes to quotes or repurpose API
 // ============================================
-async function findQuotes(){
+async function generate(){
   var text=document.getElementById('transcript-input').value.trim();
   if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
   if(text.length<50){ss('main-status','error','Transcript is too short.');return;}
 
-  var btn=document.getElementById('btn-find');
+  var format=document.querySelector('input[name="format"]:checked').value;
+
+  if(format==='quotes') return findQuotes(text);
+  return repurpose(text,format);
+}
+
+// ============================================
+// FIND QUOTES
+// ============================================
+async function findQuotes(text){
+  var btn=document.getElementById('btn-generate');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Finding quotes...';
   hs('main-status');
-  document.getElementById('result-section').style.display='none';
+  document.getElementById('quotes-result').style.display='none';
+  document.getElementById('repurpose-result').style.display='none';
 
   try{
     var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
-    var r=await fetch('/api/quotes',{
-      method:'POST',
-      headers:headers,
-      body:JSON.stringify({transcript:text})
-    });
+    var r=await fetch('/api/quotes',{method:'POST',headers:headers,body:JSON.stringify({transcript:text})});
     var d=await r.json();
     if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
     if(!r.ok)throw new Error(d.error||'Failed to find quotes');
     _quotes=d.quotes||[];
     renderQuotes(_quotes);
-  }catch(e){
-    ss('main-status','error',e.message);
-  }finally{
-    btn.disabled=false;btn.textContent='Find Quotes';
-  }
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Find Quotes';}
 }
 
 function renderQuotes(quotes){
-  if(!quotes.length){
-    ss('main-status','info','No quotable moments found in this transcript.');
-    return;
-  }
-
+  if(!quotes.length){ss('main-status','info','No quotable moments found in this transcript.');return;}
   document.getElementById('result-count').textContent=quotes.length+' quote'+(quotes.length!==1?'s':'');
 
   var html='';
@@ -303,26 +415,21 @@ function renderQuotes(quotes){
         '<button class="quote-btn" onclick="copyQuote(this,'+i+',\'text\')">Copy Quote</button>'+
         (q.twitter?'<button class="quote-btn" onclick="copyQuote(this,'+i+',\'twitter\')">Copy as Tweet</button>':'')+
         (q.linkedin?'<button class="quote-btn" onclick="copyQuote(this,'+i+',\'linkedin\')">Copy for LinkedIn</button>':'')+
-      '</div>'+
-    '</div>';
+      '</div></div>';
   }
-
   document.getElementById('quotes-list').innerHTML=html;
-  document.getElementById('result-section').style.display='block';
-  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('quotes-result').style.display='block';
+  document.getElementById('quotes-result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function copyQuote(btn,idx,type){
-  var q=_quotes[idx];
-  if(!q)return;
+  var q=_quotes[idx];if(!q)return;
   var text='';
   if(type==='text')text=q.text||'';
   else if(type==='twitter')text=q.twitter||q.text||'';
   else if(type==='linkedin')text=q.linkedin||q.text||'';
-
   navigator.clipboard.writeText(text).then(function(){
-    btn.classList.add('copied');
-    btn.textContent='Copied!';
+    btn.classList.add('copied');btn.textContent='Copied!';
     setTimeout(function(){
       btn.classList.remove('copied');
       if(type==='text')btn.textContent='Copy Quote';
@@ -344,8 +451,77 @@ function downloadQuotes(){
   var blob=new Blob([lines.join('\n\n')],{type:'text/plain'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');a.href=url;a.download='quotes.txt';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ============================================
+// REPURPOSE
+// ============================================
+async function repurpose(text,format){
+  var tone=document.querySelector('input[name="tone"]:checked').value;
+  var length=document.querySelector('input[name="length"]:checked').value;
+
+  var btn=document.getElementById('btn-generate');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating '+FORMAT_LABELS[format]+'...';
+  hs('main-status');
+  document.getElementById('quotes-result').style.display='none';
+  document.getElementById('repurpose-result').style.display='none';
+
+  try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
+    var r=await fetch('/api/repurpose',{method:'POST',headers:headers,body:JSON.stringify({transcript:text,format:format,tone:tone,length:length})});
+    var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
+    if(!r.ok)throw new Error(d.error||'Generation failed');
+    _resultFormat=format;
+    renderRepurpose(format,d);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Generate '+FORMAT_LABELS[format];}
+}
+
+function renderRepurpose(format,data){
+  document.getElementById('result-label').textContent=FORMAT_LABELS[format]||'Result';
+  var bodyEl=document.getElementById('result-body');
+
+  if(format==='twitter'&&data.tweets&&Array.isArray(data.tweets)){
+    _resultText=data.tweets.join('\n\n');
+    var html='<div class="tweet-thread">';
+    for(var i=0;i<data.tweets.length;i++){
+      html+='<div class="tweet-item"><div class="tweet-num">'+(i+1)+'/'+data.tweets.length+'</div><div class="tweet-chars">'+data.tweets[i].length+'/280</div>'+esc(data.tweets[i])+'</div>';
+    }
+    html+='</div>';
+    bodyEl.innerHTML=html;
+  } else if(format==='newsletter'&&data.subject){
+    _resultText='Subject: '+data.subject+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Subject Line</span><div style="font-size:15px;font-weight:600;color:var(--text);">'+esc(data.subject)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else if(format==='blog'&&data.title){
+    _resultText=data.title+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Headline</span><div style="font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.02em;">'+esc(data.title)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else {
+    var content=data.content||data.description||JSON.stringify(data,null,2);
+    _resultText=content;
+    bodyEl.innerHTML='<div class="result-content">'+esc(content)+'</div>';
+  }
+
+  document.getElementById('repurpose-result').style.display='block';
+  document.getElementById('repurpose-result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyResult(){
+  if(!_resultText)return;
+  navigator.clipboard.writeText(_resultText).then(function(){
+    ss('main-status','success','Copied to clipboard');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function downloadResult(){
+  if(!_resultText)return;
+  var ext=_resultFormat==='blog'?'md':'txt';
+  var blob=new Blob([_resultText],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=(_resultFormat||'content')+'.'+ext;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 
 // ============================================

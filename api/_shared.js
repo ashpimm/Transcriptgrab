@@ -1,0 +1,96 @@
+// api/_shared.js — Shared helpers for all AI API endpoints.
+// Vercel ignores _-prefixed files in api/ as endpoints.
+
+import Stripe from 'stripe';
+
+const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+// In-memory subscription cache (shared across all endpoints in same cold-start)
+const subCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000;
+
+/**
+ * Set CORS headers and handle OPTIONS preflight.
+ * Returns true if the request was an OPTIONS preflight (already handled).
+ */
+export function handleCors(req, res) {
+  const origin = req.headers.origin || '';
+  const host = req.headers.host || '';
+  const allowed = !origin || (function () { try { return new URL(origin).host === host; } catch { return false; } })();
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
+  if (req.method === 'OPTIONS') { res.status(200).end(); return true; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return true; }
+  return false;
+}
+
+/**
+ * Verify a Stripe subscription ID. Returns true if active/trialing.
+ */
+export async function verifySubscription(subId) {
+  if (!subId || !stripe) return false;
+  const cached = subCache.get(subId);
+  if (cached && (Date.now() - cached.at) < CACHE_TTL) return cached.active;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId);
+    const active = sub.status === 'active' || sub.status === 'trialing';
+    subCache.set(subId, { active, at: Date.now() });
+    return active;
+  } catch { return false; }
+}
+
+/**
+ * Require a valid Pro subscription. Returns true if the request was blocked (402 sent).
+ */
+export async function requirePro(req, res) {
+  const subId = req.headers['x-subscription-id'];
+  if (!subId) {
+    res.status(402).json({ error: 'Pro subscription required', upgrade: true });
+    return true;
+  }
+  const isActive = await verifySubscription(subId);
+  if (!isActive) {
+    res.status(402).json({ error: 'Subscription expired or invalid', upgrade: true });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Call Gemini Flash Lite and return parsed JSON.
+ * Truncates input text to 120k chars, sends prompt + text to Gemini.
+ */
+export async function callGemini(prompt, text, temperature = 0.7) {
+  if (!GEMINI_KEY) throw new Error('AI service is not available.');
+
+  let input = text.trim();
+  if (input.length > 120000) {
+    input = input.substring(0, 120000) + '\n\n[Transcript truncated]';
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt + '\n\nTranscript:\n' + input }] }],
+        generationConfig: { temperature, responseMimeType: 'application/json' },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    console.error('Gemini API error:', response.status, err);
+    throw new Error('AI service error. Please try again.');
+  }
+
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) throw new Error('Empty response from AI service.');
+
+  return JSON.parse(content);
+}
