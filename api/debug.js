@@ -1,22 +1,67 @@
-// api/debug.js — TEMPORARY debug endpoint to diagnose YouTube responses
-// DELETE THIS FILE after debugging is complete
+// api/debug.js — TEMPORARY debug endpoint
+// Tests cookie-based + embedded player approaches
+// DELETE after debugging
+
+export const config = { maxDuration: 30 };
 
 export default async function handler(req, res) {
   const videoId = req.query.v || 'ojttMNOW6zM';
   const results = {};
 
-  // Test 1: get_transcript
+  // Test 1: Cookie-based — visit YouTube first, get cookies, then use them
   try {
-    const innerBytes = Buffer.from(`\x0a\x0b${videoId}`);
-    const params = Buffer.concat([
-      Buffer.from([0x0a, innerBytes.length]),
-      innerBytes
-    ]).toString('base64');
+    // Step A: Visit YouTube homepage to get visitor cookies
+    const homeRes = await fetch('https://www.youtube.com/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
 
-    const r = await fetch('https://www.youtube.com/youtubei/v1/get_transcript', {
+    const setCookies = homeRes.headers.getSetCookie?.() || [];
+    const cookieStr = setCookies.map(c => c.split(';')[0]).join('; ');
+
+    results.step1_cookies = {
+      homeStatus: homeRes.status,
+      cookieCount: setCookies.length,
+      cookieNames: setCookies.map(c => c.split('=')[0]).join(', '),
+      hasVisitorInfo: cookieStr.includes('VISITOR_INFO1_LIVE'),
+    };
+
+    // Step B: Use cookies with Innertube player API
+    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': cookieStr,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      body: JSON.stringify({
+        videoId,
+        context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'en', gl: 'US' } },
+      }),
+    });
+    const playerData = await playerRes.json();
+    results.step2_cookie_player = {
+      status: playerRes.status,
+      hasVideoDetails: !!playerData?.videoDetails,
+      title: playerData?.videoDetails?.title?.substring(0, 60),
+      hasCaptions: !!playerData?.captions,
+      captionTrackCount: playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks?.length || 0,
+      playabilityStatus: playerData?.playabilityStatus?.status,
+      playabilityReason: playerData?.playabilityStatus?.reason?.substring(0, 100),
+    };
+
+    // Step C: Use cookies with get_transcript
+    const innerBytes = Buffer.from(`\x0a\x0b${videoId}`);
+    const params = Buffer.concat([Buffer.from([0x0a, innerBytes.length]), innerBytes]).toString('base64');
+
+    const transcriptRes = await fetch('https://www.youtube.com/youtubei/v1/get_transcript', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieStr,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
       body: JSON.stringify({
@@ -24,46 +69,37 @@ export default async function handler(req, res) {
         params,
       }),
     });
-    const text = await r.text();
-    results.get_transcript = {
-      status: r.status,
-      size: text.length,
-      snippet: text.substring(0, 500),
-      hasActions: text.includes('actions'),
-      hasCueGroups: text.includes('cueGroups'),
+    const transcriptText = await transcriptRes.text();
+    results.step3_cookie_transcript = {
+      status: transcriptRes.status,
+      size: transcriptText.length,
+      hasActions: transcriptText.includes('actions'),
+      hasCueGroups: transcriptText.includes('cueGroups'),
+      snippet: transcriptText.substring(0, 300),
     };
-  } catch (e) {
-    results.get_transcript = { error: e.message };
-  }
 
-  // Test 2: Innertube player (ANDROID)
-  try {
-    const r = await fetch('https://www.youtube.com/youtubei/v1/player', {
-      method: 'POST',
+    // Step D: Use cookies to scrape watch page
+    const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 12)',
+        'Cookie': cookieStr,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
       },
-      body: JSON.stringify({
-        videoId,
-        context: { client: { clientName: 'ANDROID', clientVersion: '19.09.37', androidSdkVersion: 31, hl: 'en', gl: 'US' } },
-        contentCheckOk: true, racyCheckOk: true,
-      }),
     });
-    const data = await r.json();
-    results.innertube_android = {
-      status: r.status,
-      hasVideoDetails: !!data?.videoDetails,
-      title: data?.videoDetails?.title?.substring(0, 60),
-      hasCaptions: !!data?.captions,
-      captionTrackCount: data?.captions?.playerCaptionsTracklistRenderer?.captionTracks?.length || 0,
-      playabilityStatus: data?.playabilityStatus?.status,
+    const watchHtml = await watchRes.text();
+    results.step4_cookie_scrape = {
+      status: watchRes.status,
+      pageSize: watchHtml.length,
+      title: watchHtml.match(/<title>(.*?)<\/title>/)?.[1]?.substring(0, 60),
+      hasCaptionTracks: watchHtml.includes('captionTracks'),
+      hasSignInPage: watchHtml.includes('accounts.google.com'),
     };
+
   } catch (e) {
-    results.innertube_android = { error: e.message };
+    results.cookie_error = e.message;
   }
 
-  // Test 3: Innertube player (WEB)
+  // Test 2: Embedded player clients
   try {
     const r = await fetch('https://www.youtube.com/youtubei/v1/player', {
       method: 'POST',
@@ -73,13 +109,15 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         videoId,
-        context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'en', gl: 'US' } },
+        context: {
+          client: { clientName: 'WEB_EMBEDDED_PLAYER', clientVersion: '1.20250101.00.00', hl: 'en', gl: 'US' },
+          thirdParty: { embedUrl: 'https://www.google.com' },
+        },
       }),
     });
     const data = await r.json();
-    results.innertube_web = {
+    results.embedded_player = {
       status: r.status,
-      hasVideoDetails: !!data?.videoDetails,
       title: data?.videoDetails?.title?.substring(0, 60),
       hasCaptions: !!data?.captions,
       captionTrackCount: data?.captions?.playerCaptionsTracklistRenderer?.captionTracks?.length || 0,
@@ -87,44 +125,35 @@ export default async function handler(req, res) {
       playabilityReason: data?.playabilityStatus?.reason?.substring(0, 100),
     };
   } catch (e) {
-    results.innertube_web = { error: e.message };
+    results.embedded_player = { error: e.message };
   }
 
-  // Test 4: Watch page scrape
+  // Test 3: TVHTML5 embedded
   try {
-    const r = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    const r = await fetch('https://www.youtube.com/youtubei/v1/player', {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
+      },
+      body: JSON.stringify({
+        videoId,
+        context: {
+          client: { clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', clientVersion: '2.0', hl: 'en', gl: 'US' },
+          thirdParty: { embedUrl: 'https://www.google.com' },
+        },
+      }),
     });
-    const html = await r.text();
-    results.scrape = {
+    const data = await r.json();
+    results.tvhtml5 = {
       status: r.status,
-      pageSize: html.length,
-      title: html.match(/<title>(.*?)<\/title>/)?.[1]?.substring(0, 60),
-      hasCaptionTracks: html.includes('captionTracks'),
-      hasPlayerResponse: html.includes('playerResponse'),
-      hasConsentPage: html.includes('consent.youtube.com') || html.includes('Before you continue'),
-      hasSignInPage: html.includes('accounts.google.com'),
+      title: data?.videoDetails?.title?.substring(0, 60),
+      hasCaptions: !!data?.captions,
+      captionTrackCount: data?.captions?.playerCaptionsTracklistRenderer?.captionTracks?.length || 0,
+      playabilityStatus: data?.playabilityStatus?.status,
     };
   } catch (e) {
-    results.scrape = { error: e.message };
-  }
-
-  // Test 5: Timedtext list
-  try {
-    const r = await fetch(`https://www.youtube.com/api/timedtext?v=${videoId}&type=list`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    });
-    const text = await r.text();
-    results.timedtext = {
-      status: r.status,
-      size: text.length,
-      content: text.substring(0, 500),
-    };
-  } catch (e) {
-    results.timedtext = { error: e.message };
+    results.tvhtml5 = { error: e.message };
   }
 
   return res.status(200).json(results);
