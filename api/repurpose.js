@@ -77,6 +77,20 @@ Rules:
 - Clean, well-organized markdown format
 
 Return JSON with: "content" (string — the show notes in markdown)`,
+
+  facebook: `You are a social media expert specializing in Facebook engagement. Transform the given video transcript into a Facebook post.
+
+Rules:
+- Start with a scroll-stopping hook or question
+- Write in a warm, conversational tone that invites comments
+- Use short paragraphs with line breaks for mobile readability
+- Include a personal angle or story element when possible
+- Add 2-3 relevant emoji sparingly for visual breaks
+- End with a clear call to action or question to drive engagement
+- Keep between 300-800 words (Facebook rewards longer, meaningful posts)
+- Do NOT use hashtags excessively — 0 to 3 max at the end
+
+Return JSON with: "content" (string — the full Facebook post)`,
 };
 
 const ALLOWED_TONES = { professional: 'professional', casual: 'casual', bold: 'bold' };

@@ -74,7 +74,7 @@
           '<ul class="tg-modal-features">' +
             '<li>Analyze: AI summaries & deep cleaning</li>' +
             '<li>Create: quotes, blogs, tweets & more</li>' +
-            '<li>7 content formats</li>' +
+            '<li>8 content formats</li>' +
             '<li>Bulk transcript downloads (up to 500)</li>' +
           '</ul>' +
           '<div class="tg-modal-price">$9.99<span>/month</span></div>' +
