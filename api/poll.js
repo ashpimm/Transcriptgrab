@@ -8,7 +8,11 @@
 const ASSEMBLYAI_KEY = process.env.ASSEMBLYAI_API_KEY || '';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — restrict to same origin
+  const origin = req.headers.origin || '';
+  const host = req.headers.host || '';
+  const allowed = !origin || origin.includes(host);
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -16,6 +20,10 @@ export default async function handler(req, res) {
   const transcriptId = req.query.id;
   if (!transcriptId || !ASSEMBLYAI_KEY) {
     return res.status(400).json({ error: 'Missing transcript ID or API key' });
+  }
+  // Validate transcript ID format (AssemblyAI IDs are alphanumeric)
+  if (!/^[a-zA-Z0-9_-]+$/.test(transcriptId) || transcriptId.length > 64) {
+    return res.status(400).json({ error: 'Invalid transcript ID format' });
   }
 
   try {

@@ -1,14 +1,17 @@
 {
   "rewrites": [
-    { "source": "/api/transcript", "destination": "/api/transcript" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" }
-      ]
-    }
+    { "source": "/api/transcript", "destination": "/api/transcript" },
+    { "source": "/api/verify", "destination": "/api/verify" },
+    { "source": "/api/resolve", "destination": "/api/resolve" },
+    { "source": "/api/poll", "destination": "/api/poll" },
+    { "source": "/api/summarize", "destination": "/api/summarize" },
+    { "source": "/api/quotes", "destination": "/api/quotes" },
+    { "source": "/api/repurpose", "destination": "/api/repurpose" },
+    { "source": "/api/clean", "destination": "/api/clean" },
+    { "source": "/clean", "destination": "/clean.html" },
+    { "source": "/search", "destination": "/search.html" },
+    { "source": "/summary", "destination": "/summary.html" },
+    { "source": "/quotes", "destination": "/quotes.html" },
+    { "source": "/repurpose", "destination": "/repurpose.html" }
   ]
 }

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Repurposer — TranscriptGrab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #ffffff; --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8; --border-light: #f0f0f0;
+    --text: #111111; --text-2: #333333; --text-3: #666666; --text-4: #999999; --text-5: #bbbbbb;
+    --accent: #111111; --accent-hover: #333333; --accent-subtle: #f5f5f5;
+    --cta: #0071e3; --cta-hover: #0077ED;
+    --success: #34c759; --error: #ff3b30;
+    --radius: 16px; --radius-sm: 10px; --radius-xs: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  .header { padding: 48px 0 40px; text-align: center; }
+  .hero-title { font-size: clamp(36px, 6vw, 56px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: var(--text); margin-bottom: 16px; }
+  .hero-subtitle { font-size: 17px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 480px; margin: 0 auto; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 14px; display: block; }
+
+  .text-input { width: 100%; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; transition: all var(--transition); }
+  .text-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .text-input::placeholder { color: var(--text-5); }
+  textarea.text-input { min-height: 160px; resize: vertical; line-height: 1.8; }
+  .input-hint { font-size: 12px; color: var(--text-4); margin-top: 10px; line-height: 1.5; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); width: 100%; letter-spacing: -0.01em; }
+  .btn-dark { background: var(--accent); color: var(--white); }
+  .btn-dark:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  .btn-sm { padding: 11px 24px; font-size: 13px; width: auto; }
+  .btn:active { transform: translateY(0); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .option-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 10px; margin-top: 24px; }
+  .option-group-label:first-child { margin-top: 0; }
+  .radio-group { display: flex; flex-direction: column; gap: 6px; }
+  .radio-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .radio-group-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .radio-opt { position: relative; cursor: pointer; display: block; }
+  .radio-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background: var(--white); transition: all 0.2s ease; }
+  .radio-opt:hover .radio-card { border-color: var(--border); }
+  .radio-opt input:checked + .radio-card { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .r-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .radio-opt input:checked + .radio-card .r-dot { border-color: var(--text); }
+  .radio-opt input:checked + .radio-card .r-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+  .r-label { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .r-desc { font-size: 12px; color: var(--text-4); margin-top: 1px; }
+
+  .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+  .status.show { display: block; animation: reveal 0.3s ease; }
+  .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
+  .status.success { background: #34c75910; border: 1px solid #34c75933; color: #1a8a38; }
+  .status.info { background: #0071e310; border: 1px solid #0071e333; color: var(--cta); }
+
+  .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes reveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Input modes */
+  .input-modes { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 20px; }
+  .input-mode { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-3); font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 100px; transition: all var(--transition); text-align: center; }
+  .input-mode:hover { color: var(--text); }
+  .input-mode.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+  .input-area { display: none; }
+  .input-area.active { display: block; }
+
+  .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--text-4); background: var(--accent-subtle); }
+  .drop-zone p { font-size: 14px; color: var(--text-3); margin-bottom: 4px; font-weight: 500; }
+  .drop-zone span { font-size: 12px; color: var(--text-5); }
+  .drop-zone input { display: none; }
+  .url-row { display: flex; gap: 8px; }
+  .url-row .text-input { flex: 1; }
+
+  /* Result content */
+  .result-card { animation: reveal 0.5s ease; }
+  .result-content { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 24px; max-height: 500px; overflow-y: auto; font-size: 14px; line-height: 1.8; color: var(--text-2); white-space: pre-wrap; word-break: break-word; }
+  .result-content::-webkit-scrollbar { width: 4px; }
+  .result-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Tweet thread */
+  .tweet-thread { display: flex; flex-direction: column; gap: 0; }
+  .tweet-item { padding: 16px 20px; border: 1px solid var(--border-light); border-bottom: none; background: var(--white); font-size: 14px; line-height: 1.6; color: var(--text-2); position: relative; }
+  .tweet-item:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .tweet-item:last-child { border-bottom: 1px solid var(--border-light); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+  .tweet-item:only-child { border-radius: var(--radius-sm); border-bottom: 1px solid var(--border-light); }
+  .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-bottom: 6px; }
+  .tweet-chars { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-5); position: absolute; top: 16px; right: 16px; }
+
+  footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--text-5); }
+  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 32px; }
+    .header { padding: 32px 0 32px; }
+    .card { padding: 24px; }
+    .radio-group-grid { grid-template-columns: 1fr; }
+    .radio-group-grid-3 { grid-template-columns: 1fr; }
+    .input-modes { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="container">
+  <header class="header">
+    <h1 class="hero-title">Repurpose<br>any video.</h1>
+    <p class="hero-subtitle">Transform a transcript into a blog post, Twitter thread, LinkedIn article, newsletter, and more.</p>
+  </header>
+
+  <!-- Input -->
+  <div class="card">
+    <span class="card-label">Transcript</span>
+    <div class="input-modes">
+      <button class="input-mode active" data-mode="paste">Paste Text</button>
+      <button class="input-mode" data-mode="upload">Upload File</button>
+      <button class="input-mode" data-mode="url">YouTube URL</button>
+    </div>
+    <div class="input-area active" id="input-paste">
+      <textarea class="text-input" id="transcript-input" placeholder="Paste your transcript here..."></textarea>
+    </div>
+    <div class="input-area" id="input-upload">
+      <div class="drop-zone" id="drop-zone">
+        <p>Drop a transcript file here or click to browse</p>
+        <span>.txt, .srt, .json, .csv</span>
+        <input type="file" id="file-input" accept=".txt,.srt,.json,.csv">
+      </div>
+    </div>
+    <div class="input-area" id="input-url">
+      <div class="url-row">
+        <input type="text" class="text-input" id="url-input" placeholder="https://youtube.com/watch?v=...">
+        <button class="btn btn-ghost btn-sm" id="btn-fetch" onclick="fetchFromUrl()">Fetch</button>
+      </div>
+      <p class="input-hint">We'll download the transcript and transform it.</p>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="card">
+    <div class="option-group-label" style="margin-top:0;">Output Format</div>
+    <div class="radio-group radio-group-grid">
+      <label class="radio-opt"><input type="radio" name="format" value="blog" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Blog Post</div><div class="r-desc">Article with headings</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="twitter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Twitter Thread</div><div class="r-desc">Numbered tweets</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="linkedin"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">LinkedIn Post</div><div class="r-desc">Professional format</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="newsletter"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Email Newsletter</div><div class="r-desc">Subject + body</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="youtube"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">YouTube Description</div><div class="r-desc">SEO-optimized</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="format" value="shownotes"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Show Notes</div><div class="r-desc">Podcast-style notes</div></div></div></label>
+    </div>
+
+    <div class="option-group-label">Tone</div>
+    <div class="radio-group radio-group-grid-3">
+      <label class="radio-opt"><input type="radio" name="tone" value="professional" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Professional</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="tone" value="casual"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Casual</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="tone" value="bold"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Bold</div></div></div></label>
+    </div>
+
+    <div class="option-group-label">Length</div>
+    <div class="radio-group radio-group-grid-3">
+      <label class="radio-opt"><input type="radio" name="length" value="short"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Short</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="length" value="medium" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Medium</div></div></div></label>
+      <label class="radio-opt"><input type="radio" name="length" value="long"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Long</div></div></div></label>
+    </div>
+  </div>
+
+  <button class="btn btn-dark" id="btn-generate" onclick="generate()">Generate</button>
+  <div id="main-status" class="status"></div>
+
+  <!-- Results -->
+  <div id="result-section" style="display:none;">
+    <div class="card result-card">
+      <span class="card-label" id="result-label">Result</span>
+      <div id="result-body"></div>
+      <div style="margin-top:20px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="downloadResult()">Download</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyResult()">Copy to Clipboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p style="margin-top:8px;">Powered by AI. Generated content should be reviewed before publishing.</p>
+  </footer>
+</div>
+
+<script>
+var _resultText='';
+var _resultFormat='';
+
+// ============================================
+// INPUT MODE SWITCHING
+// ============================================
+document.querySelectorAll('.input-mode').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+    document.getElementById('input-'+this.dataset.mode).classList.add('active');
+  });
+});
+
+// ============================================
+// FILE UPLOAD
+// ============================================
+var dropZone=document.getElementById('drop-zone');
+var fileInput=document.getElementById('file-input');
+dropZone.addEventListener('click',function(){fileInput.click();});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('over');});
+dropZone.addEventListener('dragleave',function(){this.classList.remove('over');});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();this.classList.remove('over');
+  if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',function(){if(this.files.length)handleFile(this.files[0]);});
+
+function handleFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var parsed=parseFile(e.target.result,file.name);
+    document.getElementById('transcript-input').value=parsed;
+    switchToTab('paste');
+    ss('main-status','success','Loaded: '+file.name);
+    setTimeout(function(){hs('main-status');},2000);
+  };
+  reader.readAsText(file);
+}
+
+function parseFile(content,filename){
+  var ext=(filename||'').split('.').pop().toLowerCase();
+  if(ext==='srt'){return content.trim().split(/\n\n+/).map(function(b){var l=b.split('\n');return l.length>=3?l.slice(2).join(' ').trim():'';}).filter(Boolean).join('\n');}
+  if(ext==='json'){try{var d=JSON.parse(content);if(d.segments)return d.segments.map(function(s){return s.text;}).join('\n');return content;}catch(e){return content;}}
+  if(ext==='csv'){var lines=content.trim().split('\n'),texts=[];for(var i=1;i<lines.length;i++){var m=lines[i].match(/"([^"]*(?:""[^"]*)*)"/);if(m)texts.push(m[1].replace(/""/g,'"'));}return texts.length?texts.join('\n'):content;}
+  return content;
+}
+
+function switchToTab(mode){
+  document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('[data-mode="'+mode+'"]').classList.add('active');
+  document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+  document.getElementById('input-'+mode).classList.add('active');
+}
+
+// ============================================
+// YOUTUBE URL FETCH
+// ============================================
+async function fetchFromUrl(){
+  var url=document.getElementById('url-input').value.trim();
+  if(!url){ss('main-status','error','Enter a YouTube URL.');return;}
+  var vidMatch=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  if(!vidMatch){ss('main-status','error','Invalid YouTube URL.');return;}
+  var btn=document.getElementById('btn-fetch');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{
+    var r=await fetch('/api/transcript?v='+vidMatch[1]+'&mode=single');
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed to fetch transcript');
+    var text=d.segments.map(function(s){return s.text;}).join('\n');
+    document.getElementById('transcript-input').value=text;
+    switchToTab('paste');
+    ss('main-status','success','Loaded: '+(d.title||vidMatch[1]));
+    setTimeout(function(){hs('main-status');},2000);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Fetch';}
+}
+
+// ============================================
+// GENERATE
+// ============================================
+var FORMAT_LABELS={blog:'Blog Post',twitter:'Twitter Thread',linkedin:'LinkedIn Post',newsletter:'Email Newsletter',youtube:'YouTube Description',shownotes:'Show Notes'};
+
+async function generate(){
+  var text=document.getElementById('transcript-input').value.trim();
+  if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
+  if(text.length<50){ss('main-status','error','Transcript is too short.');return;}
+
+  var format=document.querySelector('input[name="format"]:checked').value;
+  var tone=document.querySelector('input[name="tone"]:checked').value;
+  var length=document.querySelector('input[name="length"]:checked').value;
+
+  var btn=document.getElementById('btn-generate');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating '+FORMAT_LABELS[format]+'...';
+  hs('main-status');
+  document.getElementById('result-section').style.display='none';
+
+  try{
+    var r=await fetch('/api/repurpose',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({transcript:text,format:format,tone:tone,length:length})
+    });
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Generation failed');
+    _resultFormat=format;
+    renderResult(format,d);
+  }catch(e){
+    ss('main-status','error',e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='Generate';
+  }
+}
+
+function renderResult(format,data){
+  document.getElementById('result-label').textContent=FORMAT_LABELS[format]||'Result';
+  var bodyEl=document.getElementById('result-body');
+
+  if(format==='twitter'&&data.tweets&&Array.isArray(data.tweets)){
+    // Special rendering for tweets
+    _resultText=data.tweets.join('\n\n');
+    var html='<div class="tweet-thread">';
+    for(var i=0;i<data.tweets.length;i++){
+      html+='<div class="tweet-item"><div class="tweet-num">'+(i+1)+'/'+data.tweets.length+'</div><div class="tweet-chars">'+data.tweets[i].length+'/280</div>'+esc(data.tweets[i])+'</div>';
+    }
+    html+='</div>';
+    bodyEl.innerHTML=html;
+  } else if(format==='newsletter'&&data.subject){
+    _resultText='Subject: '+data.subject+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Subject Line</span><div style="font-size:15px;font-weight:600;color:var(--text);">'+esc(data.subject)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else if(format==='blog'&&data.title){
+    _resultText=data.title+'\n\n'+data.content;
+    bodyEl.innerHTML='<div style="margin-bottom:12px;"><span class="card-label" style="margin-bottom:4px;">Headline</span><div style="font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.02em;">'+esc(data.title)+'</div></div><div class="result-content">'+esc(data.content)+'</div>';
+  } else {
+    // Generic: content or description field
+    var content=data.content||data.description||JSON.stringify(data,null,2);
+    _resultText=content;
+    bodyEl.innerHTML='<div class="result-content">'+esc(content)+'</div>';
+  }
+
+  document.getElementById('result-section').style.display='block';
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyResult(){
+  if(!_resultText)return;
+  navigator.clipboard.writeText(_resultText).then(function(){
+    ss('main-status','success','Copied to clipboard');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function downloadResult(){
+  if(!_resultText)return;
+  var ext=_resultFormat==='blog'?'md':'txt';
+  var blob=new Blob([_resultText],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=(_resultFormat||'content')+'.'+ext;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.innerHTML=m;}
+function hs(id){document.getElementById(id).className='status';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

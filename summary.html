@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Summary — TranscriptGrab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #ffffff; --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8; --border-light: #f0f0f0;
+    --text: #111111; --text-2: #333333; --text-3: #666666; --text-4: #999999; --text-5: #bbbbbb;
+    --accent: #111111; --accent-hover: #333333; --accent-subtle: #f5f5f5;
+    --cta: #0071e3; --cta-hover: #0077ED;
+    --success: #34c759; --error: #ff3b30;
+    --radius: 16px; --radius-sm: 10px; --radius-xs: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  .header { padding: 48px 0 40px; text-align: center; }
+  .hero-title { font-size: clamp(36px, 6vw, 56px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: var(--text); margin-bottom: 16px; }
+  .hero-subtitle { font-size: 17px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 480px; margin: 0 auto; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 14px; display: block; }
+
+  .text-input { width: 100%; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; transition: all var(--transition); }
+  .text-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .text-input::placeholder { color: var(--text-5); }
+  textarea.text-input { min-height: 160px; resize: vertical; line-height: 1.8; }
+  .input-hint { font-size: 12px; color: var(--text-4); margin-top: 10px; line-height: 1.5; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); width: 100%; letter-spacing: -0.01em; }
+  .btn-dark { background: var(--accent); color: var(--white); }
+  .btn-dark:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  .btn-sm { padding: 11px 24px; font-size: 13px; width: auto; }
+  .btn:active { transform: translateY(0); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+  .status.show { display: block; animation: reveal 0.3s ease; }
+  .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
+  .status.success { background: #34c75910; border: 1px solid #34c75933; color: #1a8a38; }
+  .status.info { background: #0071e310; border: 1px solid #0071e333; color: var(--cta); }
+
+  .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes reveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Input modes */
+  .input-modes { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 20px; }
+  .input-mode { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-3); font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 100px; transition: all var(--transition); text-align: center; }
+  .input-mode:hover { color: var(--text); }
+  .input-mode.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+  .input-area { display: none; }
+  .input-area.active { display: block; }
+
+  .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--text-4); background: var(--accent-subtle); }
+  .drop-zone p { font-size: 14px; color: var(--text-3); margin-bottom: 4px; font-weight: 500; }
+  .drop-zone span { font-size: 12px; color: var(--text-5); }
+  .drop-zone input { display: none; }
+  .url-row { display: flex; gap: 8px; }
+  .url-row .text-input { flex: 1; }
+
+  /* Result sections */
+  .result-card { animation: reveal 0.5s ease; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; margin-top: 28px; }
+  .section-header:first-child { margin-top: 0; }
+  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); }
+  .section-copy { background: none; border: 1px solid var(--border-light); padding: 4px 12px; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-4); cursor: pointer; transition: all 0.2s; }
+  .section-copy:hover { border-color: var(--border); color: var(--text-3); }
+
+  .summary-text { font-size: 15px; line-height: 1.8; color: var(--text-2); }
+  .summary-text p { margin-bottom: 12px; }
+  .summary-text p:last-child { margin-bottom: 0; }
+
+  .takeaway-list { list-style: none; }
+  .takeaway-item { padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; line-height: 1.6; color: var(--text-2); display: flex; gap: 12px; }
+  .takeaway-item:last-child { border-bottom: none; }
+  .takeaway-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cta); flex-shrink: 0; margin-top: 8px; }
+
+  .chapter-item { padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+  .chapter-item:last-child { border-bottom: none; }
+  .chapter-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .chapter-ts { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--cta); font-weight: 500; flex-shrink: 0; }
+  .chapter-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .chapter-summary { font-size: 13px; color: var(--text-3); line-height: 1.6; padding-left: 58px; }
+
+  .quote-block { padding: 16px 0; border-bottom: 1px solid var(--border-light); }
+  .quote-block:last-child { border-bottom: none; }
+  .quote-text { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.6; font-style: italic; }
+  .quote-ts { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-top: 6px; }
+
+  footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--text-5); }
+  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 32px; }
+    .header { padding: 32px 0 32px; }
+    .card { padding: 24px; }
+    .chapter-summary { padding-left: 0; margin-top: 4px; }
+    .input-modes { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="container">
+  <header class="header">
+    <h1 class="hero-title">Summarize<br>any video.</h1>
+    <p class="hero-subtitle">Get a concise summary, key takeaways, chapter markers, and notable quotes — in seconds.</p>
+  </header>
+
+  <!-- Input -->
+  <div class="card">
+    <span class="card-label">Transcript</span>
+    <div class="input-modes">
+      <button class="input-mode active" data-mode="paste">Paste Text</button>
+      <button class="input-mode" data-mode="upload">Upload File</button>
+      <button class="input-mode" data-mode="url">YouTube URL</button>
+    </div>
+    <div class="input-area active" id="input-paste">
+      <textarea class="text-input" id="transcript-input" placeholder="Paste your transcript here..."></textarea>
+    </div>
+    <div class="input-area" id="input-upload">
+      <div class="drop-zone" id="drop-zone">
+        <p>Drop a transcript file here or click to browse</p>
+        <span>.txt, .srt, .json, .csv</span>
+        <input type="file" id="file-input" accept=".txt,.srt,.json,.csv">
+      </div>
+    </div>
+    <div class="input-area" id="input-url">
+      <div class="url-row">
+        <input type="text" class="text-input" id="url-input" placeholder="https://youtube.com/watch?v=...">
+        <button class="btn btn-ghost btn-sm" id="btn-fetch" onclick="fetchFromUrl()">Fetch</button>
+      </div>
+      <p class="input-hint">We'll download the transcript and summarize it for you.</p>
+    </div>
+  </div>
+
+  <button class="btn btn-dark" id="btn-summarize" onclick="summarize()">Summarize</button>
+  <div id="main-status" class="status"></div>
+
+  <!-- Results -->
+  <div id="result-section" style="display:none;">
+    <div class="card result-card">
+      <!-- Summary -->
+      <div class="section-header" style="margin-top:0;">
+        <span class="section-title">Summary</span>
+        <button class="section-copy" onclick="copySection('summary')">Copy</button>
+      </div>
+      <div class="summary-text" id="result-summary"></div>
+
+      <!-- Takeaways -->
+      <div class="section-header">
+        <span class="section-title">Key Takeaways</span>
+        <button class="section-copy" onclick="copySection('takeaways')">Copy</button>
+      </div>
+      <ul class="takeaway-list" id="result-takeaways"></ul>
+
+      <!-- Chapters -->
+      <div class="section-header">
+        <span class="section-title">Chapters</span>
+        <button class="section-copy" onclick="copySection('chapters')">Copy</button>
+      </div>
+      <div id="result-chapters"></div>
+
+      <!-- Quotes -->
+      <div class="section-header">
+        <span class="section-title">Notable Quotes</span>
+        <button class="section-copy" onclick="copySection('quotes')">Copy</button>
+      </div>
+      <div id="result-quotes"></div>
+
+      <div style="margin-top:28px;">
+        <div class="btn-row">
+          <button class="btn btn-dark btn-sm" onclick="downloadAll()">Download All</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyAll()">Copy All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p style="margin-top:8px;">Powered by AI. Summaries are generated and may not be perfectly accurate.</p>
+  </footer>
+</div>
+
+<script>
+var _resultData=null;
+
+// ============================================
+// INPUT MODE SWITCHING
+// ============================================
+document.querySelectorAll('.input-mode').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+    document.getElementById('input-'+this.dataset.mode).classList.add('active');
+  });
+});
+
+// ============================================
+// FILE UPLOAD
+// ============================================
+var dropZone=document.getElementById('drop-zone');
+var fileInput=document.getElementById('file-input');
+dropZone.addEventListener('click',function(){fileInput.click();});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('over');});
+dropZone.addEventListener('dragleave',function(){this.classList.remove('over');});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();this.classList.remove('over');
+  if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',function(){if(this.files.length)handleFile(this.files[0]);});
+
+function handleFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var parsed=parseFile(e.target.result,file.name);
+    document.getElementById('transcript-input').value=parsed;
+    switchToTab('paste');
+    ss('main-status','success','Loaded: '+file.name);
+    setTimeout(function(){hs('main-status');},2000);
+  };
+  reader.readAsText(file);
+}
+
+function parseFile(content,filename){
+  var ext=(filename||'').split('.').pop().toLowerCase();
+  if(ext==='srt'){
+    return content.trim().split(/\n\n+/).map(function(b){
+      var l=b.split('\n');return l.length>=3?l.slice(2).join(' ').trim():'';
+    }).filter(Boolean).join('\n');
+  }
+  if(ext==='json'){
+    try{var d=JSON.parse(content);if(d.segments)return d.segments.map(function(s){return s.text;}).join('\n');return content;}catch(e){return content;}
+  }
+  if(ext==='csv'){
+    var lines=content.trim().split('\n'),texts=[];
+    for(var i=1;i<lines.length;i++){var m=lines[i].match(/"([^"]*(?:""[^"]*)*)"/);if(m)texts.push(m[1].replace(/""/g,'"'));}
+    return texts.length?texts.join('\n'):content;
+  }
+  return content;
+}
+
+function switchToTab(mode){
+  document.querySelectorAll('.input-mode').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('[data-mode="'+mode+'"]').classList.add('active');
+  document.querySelectorAll('.input-area').forEach(function(a){a.classList.remove('active');});
+  document.getElementById('input-'+mode).classList.add('active');
+}
+
+// ============================================
+// YOUTUBE URL FETCH
+// ============================================
+async function fetchFromUrl(){
+  var url=document.getElementById('url-input').value.trim();
+  if(!url){ss('main-status','error','Enter a YouTube URL.');return;}
+  var vidMatch=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  if(!vidMatch){ss('main-status','error','Invalid YouTube URL.');return;}
+
+  var btn=document.getElementById('btn-fetch');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{
+    var r=await fetch('/api/transcript?v='+vidMatch[1]+'&mode=single');
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed to fetch transcript');
+    var text=d.segments.map(function(s){
+      var m=Math.floor(s.start/60),sec=Math.floor(s.start%60);
+      return'['+m+':'+String(sec).padStart(2,'0')+'] '+s.text;
+    }).join('\n');
+    document.getElementById('transcript-input').value=text;
+    switchToTab('paste');
+    ss('main-status','success','Loaded: '+(d.title||vidMatch[1]));
+    setTimeout(function(){hs('main-status');},2000);
+  }catch(e){ss('main-status','error',e.message);}
+  finally{btn.disabled=false;btn.textContent='Fetch';}
+}
+
+// ============================================
+// SUMMARIZE
+// ============================================
+async function summarize(){
+  var text=document.getElementById('transcript-input').value.trim();
+  if(!text){ss('main-status','error','Enter or upload a transcript first.');return;}
+  if(text.length<50){ss('main-status','error','Transcript is too short to summarize.');return;}
+
+  var btn=document.getElementById('btn-summarize');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Summarizing...';
+  hs('main-status');
+  document.getElementById('result-section').style.display='none';
+
+  try{
+    var r=await fetch('/api/summarize',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({transcript:text})
+    });
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Summarization failed');
+    _resultData=d;
+    renderResults(d);
+  }catch(e){
+    ss('main-status','error',e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='Summarize';
+  }
+}
+
+function renderResults(data){
+  // Summary
+  var summaryEl=document.getElementById('result-summary');
+  var summaryText=data.summary||'';
+  summaryEl.innerHTML=summaryText.split('\n\n').map(function(p){return'<p>'+esc(p.trim())+'</p>';}).join('');
+
+  // Takeaways
+  var takeawaysEl=document.getElementById('result-takeaways');
+  var takeaways=data.takeaways||[];
+  takeawaysEl.innerHTML=takeaways.map(function(t){
+    return'<li class="takeaway-item"><div class="takeaway-dot"></div><span>'+esc(t)+'</span></li>';
+  }).join('');
+
+  // Chapters
+  var chaptersEl=document.getElementById('result-chapters');
+  var chapters=data.chapters||[];
+  chaptersEl.innerHTML=chapters.map(function(c){
+    return'<div class="chapter-item"><div class="chapter-top"><span class="chapter-ts">'+esc(c.timestamp||'')+'</span><span class="chapter-title">'+esc(c.title||'')+'</span></div>'+(c.summary?'<div class="chapter-summary">'+esc(c.summary)+'</div>':'')+'</div>';
+  }).join('');
+
+  // Quotes
+  var quotesEl=document.getElementById('result-quotes');
+  var quotes=data.quotes||[];
+  quotesEl.innerHTML=quotes.map(function(q){
+    var text=typeof q==='string'?q:(q.text||'');
+    var ts=typeof q==='object'?(q.timestamp||''):'';
+    return'<div class="quote-block"><div class="quote-text">"'+esc(text)+'"</div>'+(ts?'<div class="quote-ts">'+esc(ts)+'</div>':'')+'</div>';
+  }).join('');
+
+  document.getElementById('result-section').style.display='block';
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ============================================
+// COPY / DOWNLOAD
+// ============================================
+function copySection(section){
+  if(!_resultData)return;
+  var text='';
+  if(section==='summary')text=_resultData.summary||'';
+  else if(section==='takeaways')text=(_resultData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n');
+  else if(section==='chapters')text=(_resultData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'')+'\n'+(c.summary||'');}).join('\n\n');
+  else if(section==='quotes')text=(_resultData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n\n');
+
+  navigator.clipboard.writeText(text).then(function(){
+    ss('main-status','success','Copied to clipboard');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function copyAll(){
+  if(!_resultData)return;
+  var parts=[];
+  parts.push('SUMMARY\n'+(_resultData.summary||''));
+  parts.push('KEY TAKEAWAYS\n'+(_resultData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n'));
+  parts.push('CHAPTERS\n'+(_resultData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'');}).join('\n'));
+  parts.push('NOTABLE QUOTES\n'+(_resultData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n'));
+  navigator.clipboard.writeText(parts.join('\n\n---\n\n')).then(function(){
+    ss('main-status','success','Copied all sections');
+    setTimeout(function(){hs('main-status');},2000);
+  });
+}
+
+function downloadAll(){
+  if(!_resultData)return;
+  var parts=[];
+  parts.push('SUMMARY\n\n'+(_resultData.summary||''));
+  parts.push('KEY TAKEAWAYS\n\n'+(_resultData.takeaways||[]).map(function(t,i){return(i+1)+'. '+t;}).join('\n'));
+  parts.push('CHAPTERS\n\n'+(_resultData.chapters||[]).map(function(c){return(c.timestamp||'')+' — '+(c.title||'')+'\n'+(c.summary||'');}).join('\n\n'));
+  parts.push('NOTABLE QUOTES\n\n'+(_resultData.quotes||[]).map(function(q){var t=typeof q==='string'?q:(q.text||'');return'"'+t+'"';}).join('\n\n'));
+  var blob=new Blob([parts.join('\n\n========================================\n\n')],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='summary.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.innerHTML=m;}
+function hs(id){document.getElementById(id).className='status';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

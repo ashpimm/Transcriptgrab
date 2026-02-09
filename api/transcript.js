@@ -8,15 +8,55 @@
 // AssemblyAI: $50 free credit (~333 hours). After that, $0.15/hr.
 // Set ASSEMBLYAI_API_KEY in Vercel environment variables.
 
+import Stripe from 'stripe';
+
 const ASSEMBLYAI_KEY = process.env.ASSEMBLYAI_API_KEY || '';
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+// =============================================================
+// IN-MEMORY RATE LIMITER (per serverless instance)
+// Not bulletproof across instances, but catches casual abuse.
+// =============================================================
+const rateMap = new Map(); // IP -> { count, resetAt }
+const RATE_LIMIT = 10;     // max requests per window
+const RATE_WINDOW = 60000; // 1 minute in ms
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return false;
+  }
+
+  entry.count++;
+  if (entry.count > RATE_LIMIT) {
+    return true;
+  }
+  return false;
+}
+
+// Periodically clean stale entries to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateMap) {
+    if (now > entry.resetAt) rateMap.delete(ip);
+  }
+}, RATE_WINDOW);
 
 export const config = {
   maxDuration: 120, // Allow up to 120s for transcription (Vercel Pro: 300s)
 };
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — restrict to same origin
+  const origin = req.headers.origin || '';
+  const host = req.headers.host || '';
+  const allowed = !origin || origin.includes(host);
+  res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -24,6 +64,42 @@ export default async function handler(req, res) {
   const videoId = req.query.v;
   if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
     return res.status(400).json({ error: 'Invalid or missing video ID' });
+  }
+
+  const mode = req.query.mode || 'single';
+
+  // ===== RATE LIMITING (single mode only) =====
+  if (mode === 'single') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      || req.headers['x-real-ip']
+      || req.socket?.remoteAddress
+      || 'unknown';
+    if (isRateLimited(ip)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' });
+    }
+  }
+
+  // ===== PAYMENT VERIFICATION (bulk mode) =====
+  if (mode === 'bulk') {
+    const sessionId = req.query.session_id;
+
+    if (!sessionId || !sessionId.startsWith('cs_')) {
+      return res.status(403).json({ error: 'Payment required. A valid Stripe session is needed for bulk mode.' });
+    }
+
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment verification is not configured.' });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== 'paid') {
+        return res.status(403).json({ error: 'Payment not completed. Please complete your purchase first.' });
+      }
+    } catch (stripeErr) {
+      console.error('Stripe verification failed:', stripeErr.message);
+      return res.status(403).json({ error: 'Invalid or expired payment session.' });
+    }
   }
 
   try {
@@ -37,12 +113,19 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`No captions for ${videoId}: ${captionResult.error}. Falling back to AssemblyAI...`);
+    console.log(`No captions for ${videoId}: ${captionResult.error}.`);
 
-    // ===== STEP 2: Fallback to AssemblyAI =====
+    // ===== STEP 2: Fallback to AssemblyAI (bulk/paid only) =====
+    if (mode !== 'bulk') {
+      return res.status(404).json({
+        error: 'No captions available for this video. Bulk mode includes AI transcription for videos without captions.',
+        source: 'none',
+      });
+    }
+
     if (!ASSEMBLYAI_KEY) {
       return res.status(404).json({
-        error: 'No captions available for this video and speech-to-text is not configured. Set ASSEMBLYAI_API_KEY in your Vercel environment variables.',
+        error: 'No captions available and speech-to-text is not configured.',
         source: 'none',
       });
     }

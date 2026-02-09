@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcript Search — TranscriptGrab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<style>
+  :root {
+    --white: #ffffff;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e8e8e8;
+    --border-light: #f0f0f0;
+    --text: #111111;
+    --text-2: #333333;
+    --text-3: #666666;
+    --text-4: #999999;
+    --text-5: #bbbbbb;
+    --accent: #111111;
+    --accent-hover: #333333;
+    --accent-subtle: #f5f5f5;
+    --cta: #0071e3;
+    --cta-hover: #0077ED;
+    --success: #34c759;
+    --error: #ff3b30;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  .header { padding: 48px 0 40px; text-align: center; }
+  .hero-title { font-size: clamp(36px, 6vw, 56px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: var(--text); margin-bottom: 16px; }
+  .hero-subtitle { font-size: 17px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 480px; margin: 0 auto; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 14px; display: block; }
+
+  .text-input { width: 100%; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; transition: all var(--transition); }
+  .text-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .text-input::placeholder { color: var(--text-5); }
+  .input-hint { font-size: 12px; color: var(--text-4); margin-top: 10px; line-height: 1.5; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); width: 100%; letter-spacing: -0.01em; }
+  .btn-dark { background: var(--accent); color: var(--white); }
+  .btn-dark:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  .btn-sm { padding: 11px 24px; font-size: 13px; width: auto; }
+  .btn:active { transform: translateY(0); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+  .status.show { display: block; animation: reveal 0.3s ease; }
+  .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
+  .status.success { background: #34c75910; border: 1px solid #34c75933; color: #1a8a38; }
+  .status.info { background: #0071e310; border: 1px solid #0071e333; color: var(--cta); }
+
+  @keyframes reveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Drop zone */
+  .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--text-4); background: var(--accent-subtle); }
+  .drop-zone p { font-size: 14px; color: var(--text-3); margin-bottom: 4px; font-weight: 500; }
+  .drop-zone span { font-size: 12px; color: var(--text-5); }
+  .drop-zone input { display: none; }
+
+  /* Loaded files list */
+  .file-list { margin-top: 16px; }
+  .file-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+  .file-item:last-child { border-bottom: none; }
+  .file-info { display: flex; align-items: center; gap: 10px; }
+  .file-icon { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .file-name { font-weight: 500; color: var(--text-2); }
+  .file-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); }
+  .file-remove { background: none; border: none; cursor: pointer; color: var(--text-5); font-size: 16px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+  .file-remove:hover { color: var(--error); background: #ff3b3010; }
+  .file-summary { font-size: 13px; color: var(--text-3); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-light); }
+  .file-summary strong { color: var(--text); }
+
+  /* Search */
+  .search-card { position: sticky; top: 0; z-index: 10; }
+  .search-row { display: flex; gap: 8px; }
+  .search-row .text-input { flex: 1; }
+  .search-count { font-size: 12px; color: var(--text-4); margin-top: 8px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Results */
+  .result-item { padding: 20px 0; border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background 0.2s; }
+  .result-item:hover { background: var(--accent-subtle); margin: 0 -32px; padding: 20px 32px; }
+  .result-item:last-child { border-bottom: none; }
+  .result-source { font-size: 11px; font-weight: 600; color: var(--cta); letter-spacing: 0.02em; margin-bottom: 6px; }
+  .result-text { font-size: 14px; line-height: 1.7; color: var(--text-2); }
+  .result-text mark { background: #fef3cd; color: var(--text); padding: 1px 3px; border-radius: 3px; font-weight: 500; }
+  .result-timestamp { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); margin-top: 6px; }
+
+  /* Context panel */
+  .context-panel { background: var(--bg); border-radius: var(--radius-sm); padding: 20px; margin-top: 12px; animation: reveal 0.3s ease; }
+  .context-panel .context-seg { padding: 6px 0; font-size: 13px; line-height: 1.7; color: var(--text-3); }
+  .context-panel .context-seg.highlight { color: var(--text); font-weight: 500; background: #fef3cd22; padding: 6px 8px; margin: 0 -8px; border-radius: 4px; }
+  .context-panel .context-ts { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-5); margin-right: 8px; }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--text-4); }
+  .empty-state p { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .empty-state span { font-size: 13px; }
+
+  footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--text-5); }
+  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 32px; }
+    .header { padding: 32px 0 32px; }
+    .card { padding: 24px; }
+    .result-item:hover { margin: 0 -24px; padding: 20px 24px; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="container">
+  <header class="header">
+    <h1 class="hero-title">Search across<br>transcripts.</h1>
+    <p class="hero-subtitle">Upload transcript files and search across all of them instantly. Find every mention of any topic.</p>
+  </header>
+
+  <!-- File Upload -->
+  <div class="card">
+    <span class="card-label">Load Transcripts</span>
+    <div class="drop-zone" id="drop-zone">
+      <p>Drop transcript files here or click to browse</p>
+      <span>.txt, .srt, .json, .csv — all processed locally, nothing uploaded</span>
+      <input type="file" id="file-input" accept=".txt,.srt,.json,.csv" multiple>
+    </div>
+    <div id="file-list" class="file-list" style="display:none;"></div>
+    <div id="file-summary" class="file-summary" style="display:none;"></div>
+  </div>
+
+  <!-- Search -->
+  <div class="card search-card" id="search-card" style="display:none;">
+    <span class="card-label">Search</span>
+    <div class="search-row">
+      <input type="text" class="text-input" id="search-input" placeholder="Search across all transcripts...">
+      <button class="btn btn-dark btn-sm" onclick="exportResults()">Export</button>
+    </div>
+    <div class="search-count" id="search-count"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section" style="display:none;">
+    <div class="card">
+      <span class="card-label">Results</span>
+      <div id="results-list"></div>
+    </div>
+  </div>
+
+  <div id="search-status" class="status"></div>
+
+  <footer>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p style="margin-top:8px;">All search is performed locally in your browser. No data leaves your device.</p>
+  </footer>
+</div>
+
+<script>
+// ============================================
+// STATE
+// ============================================
+var transcripts=[];  // [{filename, segments:[{index,text,timestamp}], fullText}]
+var searchIndex=[];  // flattened segments for Fuse.js
+var fuse=null;
+var lastResults=[];
+
+// ============================================
+// FILE HANDLING
+// ============================================
+var dropZone=document.getElementById('drop-zone');
+var fileInput=document.getElementById('file-input');
+
+dropZone.addEventListener('click',function(){fileInput.click();});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('over');});
+dropZone.addEventListener('dragleave',function(){this.classList.remove('over');});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();this.classList.remove('over');
+  if(e.dataTransfer.files.length)loadFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change',function(){if(this.files.length)loadFiles(this.files);});
+
+function loadFiles(files){
+  var promises=[];
+  for(var i=0;i<files.length;i++){
+    promises.push(readFile(files[i]));
+  }
+  Promise.all(promises).then(function(results){
+    for(var i=0;i<results.length;i++){
+      if(results[i])transcripts.push(results[i]);
+    }
+    rebuildIndex();
+    renderFileList();
+  });
+}
+
+function readFile(file){
+  return new Promise(function(resolve){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var parsed=parseTranscriptFile(e.target.result,file.name);
+      resolve({
+        filename:file.name,
+        segments:parsed.segments,
+        fullText:parsed.text
+      });
+    };
+    reader.onerror=function(){resolve(null);};
+    reader.readAsText(file);
+  });
+}
+
+function removeFile(idx){
+  transcripts.splice(idx,1);
+  rebuildIndex();
+  renderFileList();
+  // Re-run search if there's a query
+  var q=document.getElementById('search-input').value.trim();
+  if(q)runSearch(q);
+}
+
+function renderFileList(){
+  var el=document.getElementById('file-list');
+  var sum=document.getElementById('file-summary');
+  if(!transcripts.length){
+    el.style.display='none';
+    sum.style.display='none';
+    document.getElementById('search-card').style.display='none';
+    document.getElementById('results-section').style.display='none';
+    return;
+  }
+  el.style.display='block';
+  sum.style.display='block';
+  document.getElementById('search-card').style.display='block';
+
+  var html='';
+  var totalSegs=0;
+  for(var i=0;i<transcripts.length;i++){
+    var t=transcripts[i];
+    totalSegs+=t.segments.length;
+    html+='<div class="file-item">'+
+      '<div class="file-info"><div class="file-icon"></div><span class="file-name">'+esc(t.filename)+'</span><span class="file-meta">'+t.segments.length+' segments</span></div>'+
+      '<button class="file-remove" onclick="removeFile('+i+')" title="Remove">&times;</button>'+
+    '</div>';
+  }
+  el.innerHTML=html;
+  sum.innerHTML='<strong>'+transcripts.length+'</strong> file'+(transcripts.length!==1?'s':'')+' loaded &nbsp;·&nbsp; <strong>'+totalSegs.toLocaleString()+'</strong> total segments';
+}
+
+// ============================================
+// FILE PARSERS
+// ============================================
+function parseTranscriptFile(content,filename){
+  var ext=(filename||'').split('.').pop().toLowerCase();
+  if(ext==='srt')return parseSRT(content);
+  if(ext==='json')return parseJSONFile(content);
+  if(ext==='csv')return parseCSVFile(content);
+  return parseTXT(content);
+}
+
+function parseTXT(content){
+  var lines=content.split('\n').filter(function(l){return l.trim();});
+  var segments=[];
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    var tsMatch=line.match(/^\[?(\d+:?\d{2}(?::\d{2})?)\]?\s*/);
+    var timestamp=tsMatch?tsMatch[1]:'';
+    var text=tsMatch?line.replace(tsMatch[0],''):line;
+    if(text.trim())segments.push({index:i,text:text.trim(),timestamp:timestamp});
+  }
+  return{text:content,segments:segments};
+}
+
+function parseSRT(content){
+  var blocks=content.trim().split(/\n\n+/);
+  var segments=[];
+  for(var i=0;i<blocks.length;i++){
+    var lines=blocks[i].split('\n');
+    if(lines.length>=3){
+      var timeMatch=lines[1].match(/(\d{2}):(\d{2}):(\d{2})/);
+      var ts=timeMatch?(parseInt(timeMatch[1])*60+parseInt(timeMatch[2]))+':'+timeMatch[3]:'';
+      var text=lines.slice(2).join(' ').trim();
+      if(text)segments.push({index:i,text:text,timestamp:ts});
+    }
+  }
+  return{text:segments.map(function(s){return s.text;}).join('\n'),segments:segments};
+}
+
+function parseJSONFile(content){
+  try{
+    var data=JSON.parse(content);
+    if(data.segments&&Array.isArray(data.segments)){
+      var segs=data.segments.map(function(s,i){
+        var m=Math.floor((s.start||0)/60);
+        var sec=Math.floor((s.start||0)%60);
+        return{index:i,text:s.text||'',timestamp:m+':'+String(sec).padStart(2,'0')};
+      });
+      return{text:segs.map(function(s){return s.text;}).join('\n'),segments:segs};
+    }
+    return parseTXT(content);
+  }catch(e){return parseTXT(content);}
+}
+
+function parseCSVFile(content){
+  var lines=content.trim().split('\n');
+  var segments=[];
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    var match=line.match(/"([^"]*(?:""[^"]*)*)"/);
+    var text='',ts='';
+    if(match){
+      text=match[1].replace(/""/g,'"');
+    }else{
+      var parts=line.split(',');
+      text=parts.length>2?parts.slice(2).join(',').trim():parts[parts.length-1].trim();
+    }
+    var tsMatch=line.match(/^([\d.]+)/);
+    if(tsMatch){var sec=parseFloat(tsMatch[1]);var m=Math.floor(sec/60);ts=m+':'+String(Math.floor(sec%60)).padStart(2,'0');}
+    if(text)segments.push({index:i-1,text:text,timestamp:ts});
+  }
+  return{text:segments.map(function(s){return s.text;}).join('\n'),segments:segments};
+}
+
+// ============================================
+// SEARCH INDEX
+// ============================================
+function rebuildIndex(){
+  searchIndex=[];
+  for(var ti=0;ti<transcripts.length;ti++){
+    var t=transcripts[ti];
+    for(var si=0;si<t.segments.length;si++){
+      searchIndex.push({
+        text:t.segments[si].text,
+        timestamp:t.segments[si].timestamp,
+        file:t.filename,
+        tIdx:ti,
+        sIdx:si
+      });
+    }
+  }
+  fuse=new Fuse(searchIndex,{
+    keys:['text'],
+    threshold:0.3,
+    includeMatches:true,
+    minMatchCharLength:2,
+    ignoreLocation:true
+  });
+}
+
+// ============================================
+// SEARCH
+// ============================================
+var searchTimer=null;
+document.getElementById('search-input').addEventListener('input',function(){
+  clearTimeout(searchTimer);
+  var q=this.value.trim();
+  searchTimer=setTimeout(function(){runSearch(q);},200);
+});
+
+function runSearch(query){
+  var resultsEl=document.getElementById('results-list');
+  var countEl=document.getElementById('search-count');
+  var section=document.getElementById('results-section');
+
+  if(!query){
+    section.style.display='none';
+    countEl.textContent='';
+    lastResults=[];
+    return;
+  }
+
+  if(!fuse||!searchIndex.length){
+    countEl.textContent='No transcripts loaded';
+    return;
+  }
+
+  var results=fuse.search(query,{limit:100});
+  lastResults=results;
+  countEl.textContent=results.length+' result'+(results.length!==1?'s':'');
+
+  if(!results.length){
+    section.style.display='block';
+    resultsEl.innerHTML='<div class="empty-state"><p>No results found</p><span>Try a different search term or load more transcripts</span></div>';
+    return;
+  }
+
+  section.style.display='block';
+  var html='';
+  for(var i=0;i<results.length;i++){
+    var r=results[i];
+    var item=r.item;
+    var highlighted=highlightMatches(item.text,r.matches);
+    html+='<div class="result-item" data-tidx="'+item.tIdx+'" data-sidx="'+item.sIdx+'" onclick="toggleContext(this)">'+
+      '<div class="result-source">'+esc(item.file)+'</div>'+
+      '<div class="result-text">'+highlighted+'</div>'+
+      (item.timestamp?'<div class="result-timestamp">'+esc(item.timestamp)+'</div>':'')+
+    '</div>';
+  }
+  resultsEl.innerHTML=html;
+}
+
+function highlightMatches(text,matches){
+  if(!matches||!matches.length)return esc(text);
+  var indices=[];
+  for(var m=0;m<matches.length;m++){
+    if(matches[m].indices){
+      for(var j=0;j<matches[m].indices.length;j++){
+        indices.push(matches[m].indices[j]);
+      }
+    }
+  }
+  if(!indices.length)return esc(text);
+  // Merge overlapping
+  indices.sort(function(a,b){return a[0]-b[0];});
+  var merged=[indices[0]];
+  for(var i=1;i<indices.length;i++){
+    var last=merged[merged.length-1];
+    if(indices[i][0]<=last[1]+1){
+      last[1]=Math.max(last[1],indices[i][1]);
+    }else{
+      merged.push(indices[i]);
+    }
+  }
+  var result='';
+  var pos=0;
+  for(var i=0;i<merged.length;i++){
+    var start=merged[i][0],end=merged[i][1]+1;
+    result+=esc(text.substring(pos,start))+'<mark>'+esc(text.substring(start,end))+'</mark>';
+    pos=end;
+  }
+  result+=esc(text.substring(pos));
+  return result;
+}
+
+function toggleContext(el){
+  var existing=el.querySelector('.context-panel');
+  if(existing){existing.remove();return;}
+
+  var tIdx=parseInt(el.dataset.tidx);
+  var sIdx=parseInt(el.dataset.sidx);
+  var t=transcripts[tIdx];
+  if(!t)return;
+
+  var startIdx=Math.max(0,sIdx-5);
+  var endIdx=Math.min(t.segments.length-1,sIdx+5);
+
+  var html='<div class="context-panel">';
+  for(var i=startIdx;i<=endIdx;i++){
+    var seg=t.segments[i];
+    var isHighlight=i===sIdx;
+    html+='<div class="context-seg'+(isHighlight?' highlight':'')+'">';
+    if(seg.timestamp)html+='<span class="context-ts">'+esc(seg.timestamp)+'</span>';
+    html+=esc(seg.text)+'</div>';
+  }
+  html+='</div>';
+  el.insertAdjacentHTML('beforeend',html);
+}
+
+// ============================================
+// EXPORT
+// ============================================
+function exportResults(){
+  if(!lastResults.length){
+    ss('search-status','error','No results to export. Run a search first.');
+    return;
+  }
+  var query=document.getElementById('search-input').value.trim();
+  var lines=['Search results for: "'+query+'"','',lastResults.length+' results found','','---',''];
+  for(var i=0;i<lastResults.length;i++){
+    var item=lastResults[i].item;
+    lines.push('Source: '+item.file);
+    if(item.timestamp)lines.push('Time: '+item.timestamp);
+    lines.push(item.text);
+    lines.push('');
+  }
+  var blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='search-results.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function ss(id,t,m){var e=document.getElementById(id);e.className='status show '+t;e.innerHTML=m;}
+function hs(id){document.getElementById(id).className='status';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
