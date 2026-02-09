@@ -154,168 +154,215 @@ const YT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537
 
 // =============================================================
 // YOUTUBE CAPTIONS (FREE — multi-strategy approach)
+// YouTube blocks direct API calls from data center IPs (Vercel),
+// so we use public Invidious/Piped instances as primary strategy,
+// with direct YouTube fallback in case they start working again.
 // =============================================================
+
+// Public API instances for caption extraction (rotated on failure)
+const INVIDIOUS_INSTANCES = [
+  'https://inv.nadeko.net',
+  'https://invidious.fdn.fr',
+  'https://invidious.nerdvpn.de',
+  'https://vid.puffyan.us',
+];
+
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://pipedapi.adminforge.de',
+  'https://api.piped.projectsegfault.com',
+];
+
 async function tryYouTubeCaptions(videoId) {
-  // Strategy 1: Innertube get_transcript endpoint (what transcript libraries use)
-  const transcriptResult = await tryGetTranscript(videoId);
-  if (transcriptResult.success) return transcriptResult;
-  console.log(`get_transcript failed for ${videoId}: ${transcriptResult.error}`);
+  // Strategy 1: Invidious API (most reliable from servers)
+  const invResult = await tryInvidiousCaptions(videoId);
+  if (invResult.success) return invResult;
+  console.log(`Invidious failed for ${videoId}: ${invResult.error}`);
 
-  // Strategy 2: Innertube player API with WEB client
-  const innertubeResult = await tryInnertubeCaption(videoId);
-  if (innertubeResult.success) return innertubeResult;
-  console.log(`Innertube failed for ${videoId}: ${innertubeResult.error}`);
+  // Strategy 2: Piped API
+  const pipedResult = await tryPipedCaptions(videoId);
+  if (pipedResult.success) return pipedResult;
+  console.log(`Piped failed for ${videoId}: ${pipedResult.error}`);
 
-  // Strategy 3: Scrape watch page as fallback
-  const scrapeResult = await tryScrapeCaption(videoId);
-  if (scrapeResult.success) return scrapeResult;
-  console.log(`Scrape failed for ${videoId}: ${scrapeResult.error}`);
+  // Strategy 3: Direct YouTube (works if not blocked by bot detection)
+  const directResult = await tryDirectYouTube(videoId);
+  if (directResult.success) return directResult;
+  console.log(`Direct YouTube failed for ${videoId}: ${directResult.error}`);
 
   return { success: false, error: 'No caption tracks found via any method' };
 }
 
-// --- Strategy 1: Innertube get_transcript (most reliable from servers) ---
-async function tryGetTranscript(videoId) {
-  try {
-    // Build protobuf-encoded params for the video ID
-    // Structure: field 1 { field 1 { videoId } }
-    const innerBytes = Buffer.from(`\x0a\x0b${videoId}`);
-    const params = Buffer.concat([
-      Buffer.from([0x0a, innerBytes.length]),
-      innerBytes
-    ]).toString('base64');
+// --- Strategy 1: Invidious API ---
+async function tryInvidiousCaptions(videoId) {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      // Get caption list
+      const listRes = await fetch(`${instance}/api/v1/captions/${videoId}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
 
-    const response = await fetch('https://www.youtube.com/youtubei/v1/get_transcript', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': YT_USER_AGENT,
-        'Cookie': YT_CONSENT_COOKIE,
-      },
-      body: JSON.stringify({
-        context: {
-          client: {
-            clientName: 'WEB',
-            clientVersion: '2.20260115.01.00',
-            hl: 'en',
-            gl: 'US',
-          }
-        },
-        params,
-      }),
-    });
+      if (!listRes.ok) {
+        console.log(`Invidious ${instance}: HTTP ${listRes.status}`);
+        continue;
+      }
 
-    if (!response.ok) {
-      return { success: false, error: `get_transcript HTTP ${response.status}` };
-    }
+      const listData = await listRes.json();
+      const tracks = listData?.captions || [];
+      if (tracks.length === 0) {
+        console.log(`Invidious ${instance}: no caption tracks`);
+        continue;
+      }
 
-    const data = await response.json();
-    console.log(`get_transcript: response keys=${Object.keys(data).join(',')}`);
+      // Pick best track
+      let track = tracks.find(t => t.language_code === 'en' && !t.label?.includes('auto'));
+      if (!track) track = tracks.find(t => t.language_code === 'en');
+      if (!track) track = tracks[0];
 
-    // Navigate the response structure to find cue groups
-    const actions = data?.actions;
-    if (!actions || actions.length === 0) {
-      return { success: false, error: `No actions in get_transcript response (keys: ${Object.keys(data).join(',')})` };
-    }
+      // Fetch caption content as VTT
+      const captionUrl = track.url.startsWith('http')
+        ? track.url
+        : `${instance}${track.url}`;
+      const captionRes = await fetch(captionUrl, {
+        signal: AbortSignal.timeout(8000),
+      });
 
-    // Find the transcript renderer in the response
-    let cueGroups = null;
-    for (const action of actions) {
-      const panel = action?.updateEngagementPanelAction?.content
-        ?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups;
-      if (panel) { cueGroups = panel; break; }
-    }
+      if (!captionRes.ok) {
+        console.log(`Invidious ${instance}: caption fetch HTTP ${captionRes.status}`);
+        continue;
+      }
 
-    if (!cueGroups || cueGroups.length === 0) {
-      return { success: false, error: 'No cue groups found in transcript response' };
-    }
+      const captionText = await captionRes.text();
+      const segments = parseVTT(captionText);
+      if (segments.length === 0) {
+        console.log(`Invidious ${instance}: parsed 0 segments`);
+        continue;
+      }
 
-    // Parse cue groups into segments
-    const segments = [];
-    for (const group of cueGroups) {
-      const cues = group?.transcriptCueGroupRenderer?.cues;
-      if (!cues) continue;
-      for (const cue of cues) {
-        const renderer = cue?.transcriptCueRenderer;
-        if (!renderer) continue;
-        const text = renderer.cue?.simpleText || '';
-        const startMs = parseInt(renderer.startOffsetMs || '0');
-        const durationMs = parseInt(renderer.durationMs || '0');
-        if (text.trim()) {
-          segments.push({
-            start: startMs / 1000,
-            duration: durationMs / 1000,
-            text: text.trim(),
-          });
+      const title = await getVideoTitle(videoId) || `Video ${videoId}`;
+      console.log(`Invidious ${instance}: success, ${segments.length} segments`);
+
+      return {
+        success: true,
+        data: {
+          title, videoId,
+          language: track.language_code || 'en',
+          isAutoGenerated: track.label?.toLowerCase().includes('auto') || false,
+          durationSeconds: null,
+          segments,
+          totalSegments: segments.length,
         }
-      }
+      };
+    } catch (err) {
+      console.log(`Invidious ${instance}: ${err.message}`);
+      continue;
     }
-
-    if (segments.length === 0) {
-      return { success: false, error: 'Transcript cues were empty' };
-    }
-
-    // Get title via oEmbed
-    const title = await getVideoTitle(videoId) || `Video ${videoId}`;
-
-    return {
-      success: true,
-      data: {
-        title,
-        videoId,
-        language: 'en',
-        isAutoGenerated: true, // get_transcript doesn't distinguish, assume auto
-        durationSeconds: null,
-        segments,
-        totalSegments: segments.length,
-      }
-    };
-  } catch (err) {
-    return { success: false, error: `get_transcript error: ${err.message}` };
   }
+  return { success: false, error: 'All Invidious instances failed' };
 }
 
-// --- Strategy 2: Innertube WEB player client ---
-async function tryInnertubeCaption(videoId) {
+// --- Strategy 2: Piped API ---
+async function tryPipedCaptions(videoId) {
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/streams/${videoId}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (!res.ok) {
+        console.log(`Piped ${instance}: HTTP ${res.status}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const subtitles = data?.subtitles || [];
+      if (subtitles.length === 0) {
+        console.log(`Piped ${instance}: no subtitles`);
+        continue;
+      }
+
+      // Pick best subtitle track
+      let track = subtitles.find(s => s.code === 'en' && !s.autoGenerated);
+      if (!track) track = subtitles.find(s => s.code === 'en');
+      if (!track) track = subtitles[0];
+
+      // Fetch caption content
+      const captionRes = await fetch(track.url, {
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (!captionRes.ok) {
+        console.log(`Piped ${instance}: caption fetch HTTP ${captionRes.status}`);
+        continue;
+      }
+
+      const captionText = await captionRes.text();
+      const segments = parseVTT(captionText);
+      if (segments.length === 0) {
+        console.log(`Piped ${instance}: parsed 0 segments`);
+        continue;
+      }
+
+      const title = data?.title || await getVideoTitle(videoId) || `Video ${videoId}`;
+      const durationSeconds = data?.duration || null;
+      console.log(`Piped ${instance}: success, ${segments.length} segments`);
+
+      return {
+        success: true,
+        data: {
+          title, videoId,
+          language: track.code || 'en',
+          isAutoGenerated: track.autoGenerated || false,
+          durationSeconds, segments,
+          totalSegments: segments.length,
+        }
+      };
+    } catch (err) {
+      console.log(`Piped ${instance}: ${err.message}`);
+      continue;
+    }
+  }
+  return { success: false, error: 'All Piped instances failed' };
+}
+
+// --- Strategy 3: Direct YouTube (fallback if not blocked) ---
+async function tryDirectYouTube(videoId) {
   try {
-    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
-      method: 'POST',
+    // Fetch watch page
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
-        'Content-Type': 'application/json',
         'User-Agent': YT_USER_AGENT,
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml',
         'Cookie': YT_CONSENT_COOKIE,
       },
-      body: JSON.stringify({
-        videoId,
-        context: {
-          client: {
-            clientName: 'WEB',
-            clientVersion: '2.20260115.01.00',
-            hl: 'en',
-            gl: 'US',
-          }
-        },
-        contentCheckOk: true,
-        racyCheckOk: true,
-      }),
+      signal: AbortSignal.timeout(10000),
     });
 
-    if (!response.ok) return { success: false, error: `Innertube HTTP ${response.status}` };
+    if (!res.ok) return { success: false, error: `Watch page HTTP ${res.status}` };
+    const html = await res.text();
 
-    const data = await response.json();
-    const playability = data?.playabilityStatus?.status;
-    console.log(`Innertube player: playability=${playability}, hasCaptions=${!!data?.captions}, hasVideoDetails=${!!data?.videoDetails}`);
-
-    if (playability && playability !== 'OK') {
-      return { success: false, error: `Innertube playability: ${playability} - ${data?.playabilityStatus?.reason || 'unknown'}` };
+    // Check for bot detection
+    if (html.includes('Sign in to confirm') || html.includes('bot')) {
+      return { success: false, error: 'YouTube bot detection active' };
     }
 
-    const title = data?.videoDetails?.title || `Video ${videoId}`;
-    const durationSeconds = data?.videoDetails?.lengthSeconds ? parseInt(data.videoDetails.lengthSeconds) : null;
-    const captionTracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    // Extract caption tracks
+    let captionTracks;
+    const patterns = [
+      /"captionTracks":\s*(\[.*?\])\s*,\s*"/s,
+      /"captionTracks":\s*(\[.*?\])/s,
+    ];
+    for (const pattern of patterns) {
+      try {
+        const m = html.match(pattern);
+        if (m) { captionTracks = JSON.parse(m[1]); break; }
+      } catch (e) { continue; }
+    }
 
     if (!captionTracks || captionTracks.length === 0) {
-      return { success: false, error: 'No caption tracks in Innertube response' };
+      return { success: false, error: 'No caption tracks in page HTML' };
     }
 
     let track = captionTracks.find(t => t.languageCode === 'en' && t.kind !== 'asr');
@@ -324,80 +371,14 @@ async function tryInnertubeCaption(videoId) {
 
     const captionUrl = track.baseUrl + '&fmt=json3';
     const captionRes = await fetch(captionUrl);
-    if (!captionRes.ok) return { success: false, error: 'Innertube caption fetch failed' };
+    if (!captionRes.ok) return { success: false, error: 'Caption fetch failed' };
 
     const captionData = await captionRes.json();
     const segments = parseJson3Events(captionData);
-    if (segments.length === 0) return { success: false, error: 'Innertube captions empty' };
-
-    return {
-      success: true,
-      data: {
-        title, videoId,
-        language: track.languageCode,
-        isAutoGenerated: track.kind === 'asr',
-        durationSeconds, segments,
-        totalSegments: segments.length,
-      }
-    };
-  } catch (err) {
-    return { success: false, error: `Innertube error: ${err.message}` };
-  }
-}
-
-// --- Strategy 3: Scrape watch page ---
-async function tryScrapeCaption(videoId) {
-  try {
-    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'User-Agent': YT_USER_AGENT,
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Cookie': YT_CONSENT_COOKIE,
-      }
-    });
-
-    if (!videoPageRes.ok) return { success: false, error: `Watch page HTTP ${videoPageRes.status}` };
-    const html = await videoPageRes.text();
-    console.log(`Scrape: page size=${html.length}, hasCaptionTracks=${html.includes('captionTracks')}, title=${html.match(/<title>(.*?)<\/title>/)?.[1]?.substring(0, 50)}`);
+    if (segments.length === 0) return { success: false, error: 'Captions empty' };
 
     const titleMatch = html.match(/<title>(.*?)<\/title>/);
     const title = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : `Video ${videoId}`;
-    const durationMatch = html.match(/"lengthSeconds":"(\d+)"/);
-    const durationSeconds = durationMatch ? parseInt(durationMatch[1]) : null;
-
-    // Try multiple regex patterns for caption tracks
-    let captionTracks;
-    const patterns = [
-      /"captionTracks":\s*(\[.*?\])\s*,\s*"/s,
-      /"captionTracks":\s*(\[.*?\])/s,
-    ];
-
-    for (const pattern of patterns) {
-      try {
-        const m = html.match(pattern);
-        if (m) {
-          captionTracks = JSON.parse(m[1]);
-          break;
-        }
-      } catch (e) { continue; }
-    }
-
-    if (!captionTracks || captionTracks.length === 0) {
-      return { success: false, error: 'No caption tracks in page HTML' };
-    }
-
-    let track = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
-    if (!track) track = captionTracks.find(t => t.languageCode === 'en');
-    if (!track) track = captionTracks[0];
-
-    const captionUrl = track.baseUrl + '&fmt=json3';
-    const captionRes = await fetch(captionUrl);
-    if (!captionRes.ok) return { success: false, error: 'Scrape caption fetch failed' };
-
-    const captionData = await captionRes.json();
-    const segments = parseJson3Events(captionData);
-    if (segments.length === 0) return { success: false, error: 'Scraped captions empty' };
 
     return {
       success: true,
@@ -405,13 +386,65 @@ async function tryScrapeCaption(videoId) {
         title, videoId,
         language: track.languageCode,
         isAutoGenerated: track.kind === 'asr',
-        durationSeconds, segments,
+        durationSeconds: null,
+        segments,
         totalSegments: segments.length,
       }
     };
   } catch (err) {
-    return { success: false, error: `Scrape error: ${err.message}` };
+    return { success: false, error: `Direct YouTube error: ${err.message}` };
   }
+}
+
+// --- Parse WebVTT caption format ---
+function parseVTT(vttText) {
+  const segments = [];
+  const lines = vttText.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    // Look for timestamp lines: 00:00:01.234 --> 00:00:04.567
+    const tsMatch = line.match(/^(\d{2}:)?(\d{2}):(\d{2}\.\d{3})\s*-->\s*(\d{2}:)?(\d{2}):(\d{2}\.\d{3})/);
+    if (tsMatch) {
+      const startH = tsMatch[1] ? parseInt(tsMatch[1]) : 0;
+      const startM = parseInt(tsMatch[2]);
+      const startS = parseFloat(tsMatch[3]);
+      const endH = tsMatch[4] ? parseInt(tsMatch[4]) : 0;
+      const endM = parseInt(tsMatch[5]);
+      const endS = parseFloat(tsMatch[6]);
+
+      const start = startH * 3600 + startM * 60 + startS;
+      const end = endH * 3600 + endM * 60 + endS;
+
+      // Collect text lines until blank line
+      i++;
+      const textLines = [];
+      while (i < lines.length && lines[i].trim() !== '') {
+        textLines.push(lines[i].trim());
+        i++;
+      }
+
+      const text = textLines.join(' ')
+        .replace(/<[^>]+>/g, '') // strip VTT tags
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .trim();
+
+      if (text) {
+        segments.push({
+          start: Math.round(start * 100) / 100,
+          duration: Math.round((end - start) * 100) / 100,
+          text,
+        });
+      }
+    }
+    i++;
+  }
+
+  return segments;
 }
 
 // --- Shared: parse json3 caption format ---
@@ -575,93 +608,70 @@ function groupWordsIntoSegments(words, fullText) {
 
 
 // =============================================================
-// HELPER: Get YouTube audio stream URL via Innertube API
+// HELPER: Get YouTube audio stream URL (Piped API + YouTube fallback)
 // =============================================================
 async function getYouTubeAudioUrl(videoId) {
-  // Try WEB client first, then fall back to scraping the watch page
-  const clients = [
-    {
-      name: 'WEB',
-      body: {
+  // Try Piped instances first — they return direct audio stream URLs
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/streams/${videoId}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const audioStreams = (data?.audioStreams || [])
+        .filter(s => s.url)
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+
+      if (audioStreams.length > 0) {
+        console.log(`Audio URL via Piped ${instance}: bitrate=${audioStreams[0].bitrate}`);
+        return audioStreams[0].url;
+      }
+    } catch (err) {
+      console.log(`Piped audio ${instance}: ${err.message}`);
+    }
+  }
+
+  // Fallback: try YouTube directly (may be blocked by bot detection)
+  try {
+    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': YT_USER_AGENT,
+        'Cookie': YT_CONSENT_COOKIE,
+      },
+      body: JSON.stringify({
         videoId,
         context: {
           client: {
             clientName: 'WEB',
             clientVersion: '2.20260115.01.00',
-            hl: 'en',
-            gl: 'US',
+            hl: 'en', gl: 'US',
           }
         },
         contentCheckOk: true,
         racyCheckOk: true,
-      },
-    },
-    {
-      name: 'TVHTML5_EMBEDDED',
-      body: {
-        videoId,
-        context: {
-          client: {
-            clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-            clientVersion: '2.0',
-            hl: 'en',
-            gl: 'US',
-          },
-          thirdParty: {
-            embedUrl: 'https://www.google.com',
-          }
-        },
-        contentCheckOk: true,
-        racyCheckOk: true,
-      },
-    },
-  ];
+      }),
+    });
 
-  for (const client of clients) {
-    try {
-      const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': YT_USER_AGENT,
-          'Cookie': YT_CONSENT_COOKIE,
-        },
-        body: JSON.stringify(client.body),
-      });
-
-      if (!response.ok) {
-        console.log(`Audio URL: ${client.name} returned HTTP ${response.status}`);
-        continue;
-      }
-
+    if (response.ok) {
       const data = await response.json();
-      const status = data?.playabilityStatus?.status;
-      if (status && status !== 'OK') {
-        console.log(`Audio URL: ${client.name} playability=${status} reason=${data?.playabilityStatus?.reason || 'none'}`);
-        continue;
+      if (data?.playabilityStatus?.status === 'OK') {
+        const formats = data?.streamingData?.adaptiveFormats || [];
+        const audio = formats
+          .filter(f => f.mimeType?.startsWith('audio/') && f.url)
+          .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+        if (audio.length > 0) {
+          console.log(`Audio URL via YouTube direct: bitrate=${audio[0].bitrate}`);
+          return audio[0].url;
+        }
       }
-
-      const formats = data?.streamingData?.adaptiveFormats || [];
-      const audioFormats = formats
-        .filter(f => f.mimeType && f.mimeType.startsWith('audio/'))
-        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-      if (audioFormats.length === 0) {
-        console.log(`Audio URL: ${client.name} had ${formats.length} formats but no audio-only streams`);
-        continue;
-      }
-
-      // Some formats use signatureCipher instead of direct url — skip those
-      const directFormat = audioFormats.find(f => f.url);
-      if (directFormat) {
-        console.log(`Audio URL: ${client.name} success, bitrate=${directFormat.bitrate}`);
-        return directFormat.url;
-      }
-
-      console.log(`Audio URL: ${client.name} audio formats lack direct URL (signatureCipher only)`);
-    } catch (err) {
-      console.error(`Audio URL: ${client.name} error:`, err.message);
     }
+  } catch (err) {
+    console.log(`YouTube direct audio: ${err.message}`);
   }
 
   return null;
