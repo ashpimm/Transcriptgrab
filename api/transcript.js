@@ -153,50 +153,53 @@ export default async function handler(req, res) {
 
 
 // =============================================================
-// YOUTUBE CAPTIONS (FREE — uses YouTube's internal caption API)
+// YOUTUBE CAPTIONS (FREE — uses Innertube API for reliability)
 // =============================================================
 async function tryYouTubeCaptions(videoId) {
   try {
-    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    // Use Innertube player API — much more reliable than scraping HTML
+    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+      method: 'POST',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      body: JSON.stringify({
+        videoId,
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20240101.00.00',
+            hl: 'en',
+            gl: 'US',
+          }
+        },
+      }),
     });
 
-    if (!videoPageRes.ok) {
-      return { success: false, error: 'Video page fetch failed' };
+    if (!response.ok) {
+      return { success: false, error: 'Innertube API request failed' };
     }
 
-    const html = await videoPageRes.text();
+    const data = await response.json();
 
     // Extract title
-    const titleMatch = html.match(/<title>(.*?)<\/title>/);
-    const title = titleMatch
-      ? titleMatch[1].replace(' - YouTube', '').trim()
-      : `Video ${videoId}`;
+    const title = data?.videoDetails?.title || `Video ${videoId}`;
 
     // Extract duration
-    const durationMatch = html.match(/"lengthSeconds":"(\d+)"/);
-    const durationSeconds = durationMatch ? parseInt(durationMatch[1]) : null;
+    const durationSeconds = data?.videoDetails?.lengthSeconds
+      ? parseInt(data.videoDetails.lengthSeconds)
+      : null;
 
     // Find caption tracks
-    let captionTracks;
-    try {
-      const tracksMatch = html.match(/"captionTracks":\s*(\[.*?\])/s);
-      if (tracksMatch) {
-        captionTracks = JSON.parse(tracksMatch[1]);
-      }
-    } catch (e) {
-      return { success: false, error: 'Failed to parse caption data' };
-    }
+    const captionTracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
 
     if (!captionTracks || captionTracks.length === 0) {
       return { success: false, error: 'No caption tracks found' };
     }
 
     // Prefer: manual English → auto English → first available
-    let track = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
+    let track = captionTracks.find(t => t.languageCode === 'en' && t.kind !== 'asr');
     if (!track) track = captionTracks.find(t => t.languageCode === 'en');
     if (!track) track = captionTracks[0];
 
