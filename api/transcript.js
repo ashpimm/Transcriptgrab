@@ -146,6 +146,13 @@ export default async function handler(req, res) {
 
 
 // =============================================================
+// SHARED HEADERS — consent cookie bypasses GDPR consent page
+// that YouTube serves to data center IPs (like Vercel)
+// =============================================================
+const YT_CONSENT_COOKIE = 'SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiACGgYIgJnOlwY';
+const YT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+// =============================================================
 // YOUTUBE CAPTIONS (FREE — multi-strategy approach)
 // =============================================================
 async function tryYouTubeCaptions(videoId) {
@@ -154,7 +161,7 @@ async function tryYouTubeCaptions(videoId) {
   if (transcriptResult.success) return transcriptResult;
   console.log(`get_transcript failed for ${videoId}: ${transcriptResult.error}`);
 
-  // Strategy 2: Innertube player API with ANDROID client
+  // Strategy 2: Innertube player API with WEB client
   const innertubeResult = await tryInnertubeCaption(videoId);
   if (innertubeResult.success) return innertubeResult;
   console.log(`Innertube failed for ${videoId}: ${innertubeResult.error}`);
@@ -182,13 +189,14 @@ async function tryGetTranscript(videoId) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': YT_USER_AGENT,
+        'Cookie': YT_CONSENT_COOKIE,
       },
       body: JSON.stringify({
         context: {
           client: {
             clientName: 'WEB',
-            clientVersion: '2.20250101.00.00',
+            clientVersion: '2.20260115.01.00',
             hl: 'en',
             gl: 'US',
           }
@@ -202,11 +210,12 @@ async function tryGetTranscript(videoId) {
     }
 
     const data = await response.json();
+    console.log(`get_transcript: response keys=${Object.keys(data).join(',')}`);
 
     // Navigate the response structure to find cue groups
     const actions = data?.actions;
     if (!actions || actions.length === 0) {
-      return { success: false, error: 'No actions in get_transcript response' };
+      return { success: false, error: `No actions in get_transcript response (keys: ${Object.keys(data).join(',')})` };
     }
 
     // Find the transcript renderer in the response
@@ -266,22 +275,22 @@ async function tryGetTranscript(videoId) {
   }
 }
 
-// --- Strategy 2: Innertube ANDROID client ---
+// --- Strategy 2: Innertube WEB player client ---
 async function tryInnertubeCaption(videoId) {
   try {
     const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 12)',
+        'User-Agent': YT_USER_AGENT,
+        'Cookie': YT_CONSENT_COOKIE,
       },
       body: JSON.stringify({
         videoId,
         context: {
           client: {
-            clientName: 'ANDROID',
-            clientVersion: '19.09.37',
-            androidSdkVersion: 31,
+            clientName: 'WEB',
+            clientVersion: '2.20260115.01.00',
             hl: 'en',
             gl: 'US',
           }
@@ -294,6 +303,13 @@ async function tryInnertubeCaption(videoId) {
     if (!response.ok) return { success: false, error: `Innertube HTTP ${response.status}` };
 
     const data = await response.json();
+    const playability = data?.playabilityStatus?.status;
+    console.log(`Innertube player: playability=${playability}, hasCaptions=${!!data?.captions}, hasVideoDetails=${!!data?.videoDetails}`);
+
+    if (playability && playability !== 'OK') {
+      return { success: false, error: `Innertube playability: ${playability} - ${data?.playabilityStatus?.reason || 'unknown'}` };
+    }
+
     const title = data?.videoDetails?.title || `Video ${videoId}`;
     const durationSeconds = data?.videoDetails?.lengthSeconds ? parseInt(data.videoDetails.lengthSeconds) : null;
     const captionTracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
@@ -334,9 +350,10 @@ async function tryScrapeCaption(videoId) {
   try {
     const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': YT_USER_AGENT,
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept': 'text/html,application/xhtml+xml',
+        'Cookie': YT_CONSENT_COOKIE,
       }
     });
 
@@ -561,47 +578,93 @@ function groupWordsIntoSegments(words, fullText) {
 // HELPER: Get YouTube audio stream URL via Innertube API
 // =============================================================
 async function getYouTubeAudioUrl(videoId) {
-  try {
-    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      body: JSON.stringify({
+  // Try WEB client first, then fall back to scraping the watch page
+  const clients = [
+    {
+      name: 'WEB',
+      body: {
         videoId,
         context: {
           client: {
-            clientName: 'ANDROID',
-            clientVersion: '19.09.37',
-            androidSdkVersion: 30,
+            clientName: 'WEB',
+            clientVersion: '2.20260115.01.00',
             hl: 'en',
             gl: 'US',
-            utcOffsetMinutes: 0,
           }
         },
         contentCheckOk: true,
         racyCheckOk: true,
-      }),
-    });
+      },
+    },
+    {
+      name: 'TVHTML5_EMBEDDED',
+      body: {
+        videoId,
+        context: {
+          client: {
+            clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+            clientVersion: '2.0',
+            hl: 'en',
+            gl: 'US',
+          },
+          thirdParty: {
+            embedUrl: 'https://www.google.com',
+          }
+        },
+        contentCheckOk: true,
+        racyCheckOk: true,
+      },
+    },
+  ];
 
-    if (!response.ok) return null;
+  for (const client of clients) {
+    try {
+      const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': YT_USER_AGENT,
+          'Cookie': YT_CONSENT_COOKIE,
+        },
+        body: JSON.stringify(client.body),
+      });
 
-    const data = await response.json();
-    const formats = data?.streamingData?.adaptiveFormats || [];
+      if (!response.ok) {
+        console.log(`Audio URL: ${client.name} returned HTTP ${response.status}`);
+        continue;
+      }
 
-    // Find best audio-only stream
-    const audioFormats = formats
-      .filter(f => f.mimeType && f.mimeType.startsWith('audio/'))
-      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+      const data = await response.json();
+      const status = data?.playabilityStatus?.status;
+      if (status && status !== 'OK') {
+        console.log(`Audio URL: ${client.name} playability=${status} reason=${data?.playabilityStatus?.reason || 'none'}`);
+        continue;
+      }
 
-    if (audioFormats.length === 0) return null;
+      const formats = data?.streamingData?.adaptiveFormats || [];
+      const audioFormats = formats
+        .filter(f => f.mimeType && f.mimeType.startsWith('audio/'))
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
-    return audioFormats[0].url || null;
-  } catch (err) {
-    console.error('Failed to get audio URL:', err);
-    return null;
+      if (audioFormats.length === 0) {
+        console.log(`Audio URL: ${client.name} had ${formats.length} formats but no audio-only streams`);
+        continue;
+      }
+
+      // Some formats use signatureCipher instead of direct url — skip those
+      const directFormat = audioFormats.find(f => f.url);
+      if (directFormat) {
+        console.log(`Audio URL: ${client.name} success, bitrate=${directFormat.bitrate}`);
+        return directFormat.url;
+      }
+
+      console.log(`Audio URL: ${client.name} audio formats lack direct URL (signatureCipher only)`);
+    } catch (err) {
+      console.error(`Audio URL: ${client.name} error:`, err.message);
+    }
   }
+
+  return null;
 }
 
 
