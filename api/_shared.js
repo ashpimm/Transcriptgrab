@@ -92,5 +92,28 @@ export async function callGemini(prompt, text, temperature = 0.7) {
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) throw new Error('Empty response from AI service.');
 
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    // Gemini sometimes returns broken JSON — try to repair common issues
+    let fixed = content
+      .replace(/[\x00-\x1f]/g, (ch) => {
+        if (ch === '\n') return '\\n';
+        if (ch === '\r') return '\\r';
+        if (ch === '\t') return '\\t';
+        return '';
+      });
+
+    try {
+      return JSON.parse(fixed);
+    } catch (e2) {
+      // Last resort: extract the first JSON object or array
+      const match = fixed.match(/[\[{][\s\S]*[\]}]/);
+      if (match) {
+        try { return JSON.parse(match[0]); } catch (_) {}
+      }
+      console.error('JSON parse failed:', e.message, content.substring(0, 500));
+      throw new Error('AI returned an invalid response. Please try again.');
+    }
+  }
 }
