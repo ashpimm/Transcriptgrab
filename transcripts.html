@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Transcripts — TranscriptGrab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --white: #ffffff;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e8e8e8;
+    --border-light: #f0f0f0;
+    --text: #111111;
+    --text-2: #333333;
+    --text-3: #666666;
+    --text-4: #999999;
+    --text-5: #bbbbbb;
+    --accent: #111111;
+    --accent-hover: #333333;
+    --accent-subtle: #f5f5f5;
+    --cta: #0071e3;
+    --cta-hover: #0077ED;
+    --premium-bg: #1d1d1f;
+    --premium-text: #f5f5f7;
+    --success: #34c759;
+    --error: #ff3b30;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== HEADER ===== */
+  .header { padding: 48px 0 0; text-align: center; }
+  .wordmark { font-size: 15px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-4); margin-bottom: 48px; }
+  .hero-title { font-size: clamp(42px, 7vw, 72px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: var(--text); margin-bottom: 20px; }
+  .hero-subtitle { font-size: 19px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 480px; margin: 0 auto 24px; }
+
+  /* ===== GLOBAL COUNTER ===== */
+  .global-counter {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 20px; border-radius: 100px;
+    background: var(--white); border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 48px;
+    font-size: 13px; font-weight: 500; color: var(--text-3);
+  }
+  .counter-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .counter-num { font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+
+  /* ===== TABS ===== */
+  .tabs { display: inline-flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 48px; }
+  .tab { padding: 10px 28px; border: none; background: transparent; color: var(--text-3); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 100px; transition: all var(--transition); white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+  .tab .pill { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 100px; margin-left: 6px; position: relative; top: -1px; }
+  .pill-free { background: var(--text); color: var(--white); }
+  .pill-pro { background: var(--cta); color: var(--white); }
+
+  /* ===== PANELS ===== */
+  .panel { display: none; }
+  .panel.active { display: block; animation: reveal 0.5s ease; }
+  @keyframes reveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ===== CARD ===== */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--transition); }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 14px; display: block; }
+
+  /* ===== INPUTS ===== */
+  .text-input { width: 100%; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; transition: all var(--transition); }
+  .text-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .text-input::placeholder { color: var(--text-5); }
+  textarea.text-input { min-height: 140px; resize: vertical; line-height: 1.8; }
+  .input-hint { font-size: 12px; color: var(--text-4); margin-top: 10px; line-height: 1.5; }
+
+  /* ===== BUTTONS ===== */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); width: 100%; letter-spacing: -0.01em; }
+  .btn-dark { background: var(--accent); color: var(--white); }
+  .btn-dark:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-blue { background: var(--cta); color: var(--white); }
+  .btn-blue:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  .btn-sm { padding: 11px 24px; font-size: 13px; width: auto; }
+  .btn:active { transform: translateY(0); }
+
+  /* ===== RADIO / OPTION ===== */
+  .options-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.02em; }
+  .option-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-4); margin-bottom: 10px; margin-top: 24px; }
+  .option-group-label:first-child { margin-top: 0; }
+  .radio-group { display: flex; flex-direction: column; gap: 6px; }
+  .radio-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .radio-opt { position: relative; cursor: pointer; display: block; }
+  .radio-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background: var(--white); transition: all 0.2s ease; }
+  .radio-opt:hover .radio-card { border-color: var(--border); }
+  .radio-opt input:checked + .radio-card { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .r-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .radio-opt input:checked + .radio-card .r-dot { border-color: var(--text); }
+  .radio-opt input:checked + .radio-card .r-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+  .r-label { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .r-desc { font-size: 12px; color: var(--text-4); margin-top: 1px; }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); }
+  .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 12px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .toggle-switch input:checked + .toggle-slider { background: var(--text); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+  .toggle-label { font-size: 14px; color: var(--text-3); font-weight: 500; }
+
+  /* ===== PRO CARD INNER ELEMENTS ===== */
+  .pro-section { margin-top: 28px; }
+  .pro-section:first-of-type { margin-top: 0; }
+  .pro-section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(255,255,255,0.4);
+    margin-bottom: 10px; position: relative;
+  }
+  .pro-input-row { display: flex; gap: 8px; position: relative; }
+  .pro-input {
+    flex: 1; padding: 14px 16px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-xs); color: var(--premium-text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none;
+    transition: all 0.2s;
+  }
+  .pro-input:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+  .pro-input::placeholder { color: rgba(255,255,255,0.2); }
+  .pro-resolve-btn {
+    padding: 14px 24px; background: var(--cta); color: white;
+    border: none; border-radius: var(--radius-xs);
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  }
+  .pro-resolve-btn:hover { background: var(--cta-hover); }
+  .pro-resolve-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pro-hint { font-size: 12px; color: rgba(255,255,255,0.25); margin-top: 8px; position: relative; }
+  .pro-textarea {
+    width: 100%; min-height: 120px; padding: 14px 16px; resize: vertical;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-xs); color: var(--premium-text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.8;
+    outline: none; transition: all 0.2s;
+  }
+  .pro-textarea:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+  .pro-textarea::placeholder { color: rgba(255,255,255,0.2); }
+  .pro-divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 28px 0; position: relative;
+  }
+  .pro-divider::before, .pro-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+  .pro-divider span {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgba(255,255,255,0.2);
+  }
+
+  /* Resolved video list (inside dark card) */
+  .resolved-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; margin-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px; color: rgba(255,255,255,0.6); position: relative;
+  }
+  .resolved-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .resolved-bar strong { color: var(--premium-text); }
+  .resolved-clear {
+    margin-left: auto; background: none; border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4); font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 600; padding: 4px 12px;
+    border-radius: 100px; cursor: pointer; transition: all 0.2s;
+  }
+  .resolved-clear:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); }
+
+  .video-list {
+    max-height: 200px; overflow-y: auto; margin-top: 8px;
+    border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-xs);
+    background: rgba(0,0,0,0.2);
+  }
+  .video-list::-webkit-scrollbar { width: 4px; }
+  .video-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .video-item {
+    padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px; display: flex; gap: 10px; align-items: center;
+  }
+  .video-item:last-child { border-bottom: none; }
+  .video-num { color: rgba(255,255,255,0.2); font-family: 'IBM Plex Mono', monospace; font-size: 10px; flex-shrink: 0; min-width: 20px; }
+  .video-name { color: rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ===== TIER SELECTOR ===== */
+  .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tier-opt { position: relative; cursor: pointer; display: block; }
+  .tier-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .tier-card {
+    padding: 18px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light); background: var(--white);
+    transition: all 0.2s ease; display: flex; flex-direction: column; gap: 12px;
+  }
+  .tier-opt:hover .tier-card { border-color: var(--border); }
+  .tier-opt input:checked + .tier-card {
+    border-color: var(--text); box-shadow: 0 0 0 1px var(--text);
+  }
+  .tier-opt.recommended .tier-card { position: relative; }
+  .tier-opt.recommended .tier-card::after {
+    content: 'Popular'; position: absolute; top: -8px; right: 12px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 100px;
+    background: var(--cta); color: white;
+  }
+  .tier-top { display: flex; flex-direction: column; gap: 2px; }
+  .tier-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .tier-limit { font-size: 12px; color: var(--text-4); }
+  .tier-price { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .tier-opt input:checked + .tier-card .tier-price { color: var(--cta); }
+  .tier-opt.disabled { pointer-events: none; opacity: 0.35; }
+  .tier-warning {
+    margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-xs);
+    background: #ff3b3010; border: 1px solid #ff3b3033;
+    font-size: 13px; color: var(--error); font-weight: 500;
+  }
+
+  @media (max-width: 400px) { .tier-grid { grid-template-columns: 1fr; } }
+
+  /* ===== AD / SUCCESS / STATUS ===== */
+  .ad-space { background: var(--accent-subtle); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 24px; text-align: center; margin: 24px 0; position: relative; }
+  .ad-space .ad-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-5); position: absolute; top: 10px; right: 14px; }
+  .ad-space p { color: var(--text-4); font-size: 13px; }
+  .ad-space code { font-family: 'IBM Plex Mono',monospace; font-size: 11px; color: var(--text-5); background: var(--white); padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 6px; }
+
+  .success-bar { background: var(--white); border: 1px solid #34c75944; border-radius: var(--radius-sm); padding: 18px 24px; text-align: center; margin: 24px 0; display: flex; align-items: center; justify-content: center; gap: 12px; animation: reveal 0.4s ease; }
+  .success-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; flex-shrink: 0; }
+  .success-bar span { font-size: 15px; font-weight: 600; }
+  .success-bar strong { font-weight: 700; }
+
+  .result-card { animation: reveal 0.5s ease; }
+  .result-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .result-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+  .result-meta { font-size: 12px; color: var(--text-4); font-family: 'IBM Plex Mono', monospace; }
+  .source-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 100px; margin-left: 8px; letter-spacing: 0.02em; }
+  .tag-captions { background: #34c75915; color: #1a8a38; }
+  .tag-ai { background: #0071e315; color: #0071e3; }
+  .preview-box { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 18px; max-height: 220px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.9; color: var(--text-3); margin-bottom: 20px; white-space: pre-wrap; }
+  .preview-box::-webkit-scrollbar { width: 4px; }
+  .preview-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ===== PRO CARD ===== */
+  .pro-card { background: var(--premium-bg); border-radius: var(--radius); padding: 40px 36px; margin-bottom: 24px; color: var(--premium-text); position: relative; overflow: hidden; }
+  .pro-card::after { content: ''; position: absolute; top: 0; right: 0; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%); pointer-events: none; }
+  .pro-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cta); margin-bottom: 16px; position: relative; }
+  .pro-card h3 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; position: relative; }
+  .pro-card .pro-desc { font-size: 15px; color: #999; line-height: 1.6; margin-bottom: 28px; position: relative; }
+  .pro-price { font-size: 48px; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 2px; position: relative; }
+  .pro-price-sub { font-size: 14px; font-weight: 400; color: #666; margin-bottom: 28px; position: relative; }
+  .pro-features { list-style: none; position: relative; }
+  .pro-features li { padding: 10px 0; font-size: 14px; color: #aaa; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .pro-features li:last-child { border-bottom: none; }
+  .pro-features li::before { content: ''; width: 5px; height: 5px; background: var(--cta); border-radius: 50%; flex-shrink: 0; }
+
+  /* ===== PROGRESS ===== */
+  .prog-container { margin: 24px 0; }
+  .prog-bar { height: 4px; background: var(--border-light); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+  .prog-fill { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+  .prog-text { font-size: 12px; color: var(--text-4); font-family: 'IBM Plex Mono', monospace; }
+
+  /* ===== STATUS ===== */
+  .status { padding: 12px 16px; border-radius: var(--radius-xs); font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+  .status.show { display: block; animation: reveal 0.3s ease; }
+  .status.error { background: #ff3b3010; border: 1px solid #ff3b3033; color: var(--error); }
+  .status.success { background: #34c75910; border: 1px solid #34c75933; color: #1a8a38; }
+  .status.info { background: #0071e310; border: 1px solid #0071e333; color: var(--cta); }
+
+  /* ===== PROCESSING ===== */
+  .proc-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px; text-align: center; margin: 24px 0; box-shadow: var(--shadow-sm); animation: reveal 0.3s ease; }
+  .proc-spinner { width: 40px; height: 40px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+  .proc-card h4 { font-size: 17px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+  .proc-card p { font-size: 14px; color: var(--text-3); }
+  .proc-steps { margin-top: 24px; text-align: left; max-width: 300px; margin-left: auto; margin-right: auto; }
+  .proc-step { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 13px; color: var(--text-5); font-weight: 500; transition: color 0.3s; }
+  .proc-step.active { color: var(--text); }
+  .proc-step.done { color: var(--success); }
+  .proc-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 12px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .countdown-area { text-align: center; padding: 24px; }
+  .countdown-label { font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 4px; }
+  .countdown-num { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 500; color: var(--text); }
+
+  .note { background: var(--accent-subtle); border-radius: var(--radius-sm); padding: 16px 20px; margin-bottom: 24px; font-size: 14px; color: var(--text-3); line-height: 1.6; }
+  .note strong { color: var(--text); font-weight: 600; }
+
+  footer { text-align: center; padding: 64px 0 40px; border-top: 1px solid var(--border-light); margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--text-5); }
+  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--text); }
+
+  .steps-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin: 40px 0; }
+  .step-item { text-align: center; padding: 24px 16px; }
+  .step-n { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 2px solid var(--border); border-radius: 50%; font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+  .step-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
+  .step-item p { font-size: 12px; color: var(--text-4); line-height: 1.5; }
+
+  @media (max-width: 600px) {
+    .steps-row { grid-template-columns: 1fr; gap: 0; }
+    .radio-group-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 36px; }
+    .header { padding: 32px 0 0; }
+    .card { padding: 24px; }
+    .pro-card { padding: 28px 24px; }
+    .input-modes { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="container">
+  <header class="header">
+    <h1 class="hero-title">Download<br>transcripts.</h1>
+    <p class="hero-subtitle">Paste a YouTube URL and download the transcript instantly.</p>
+
+    <div class="global-counter">
+      <div class="counter-dot"></div>
+      <span><span class="counter-num" id="global-count">0</span> transcripts generated</span>
+    </div>
+
+    <div style="text-align:center;">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('single')">Single <span class="pill pill-free">Free</span></button>
+        <button class="tab" onclick="switchTab('bulk')">Bulk <span class="pill pill-pro">Pro</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== SINGLE ========== -->
+  <div id="panel-single" class="panel active">
+    <div class="note">
+      <strong>Free for captioned videos.</strong> We grab YouTube's built-in captions instantly. Videos without captions? Use Bulk mode for AI transcription.
+    </div>
+    <div class="card">
+      <span class="card-label">Video URL</span>
+      <input type="text" class="text-input" id="single-url" placeholder="https://youtube.com/watch?v=...">
+      <p class="input-hint">Supports standard URLs, shorts, and embeds.</p>
+    </div>
+    <div class="card">
+      <div class="options-title">Download Options</div>
+      <div class="option-group-label">File Format</div>
+      <div class="radio-group radio-group-grid">
+        <label class="radio-opt"><input type="radio" name="single-format" value="txt" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Text (.txt)</div><div class="r-desc">Plain text</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="single-format" value="srt"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Subtitles (.srt)</div><div class="r-desc">Standard subs</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="single-format" value="json"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">JSON (.json)</div><div class="r-desc">For developers</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="single-format" value="csv"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">CSV (.csv)</div><div class="r-desc">Spreadsheets</div></div></div></label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="single-timestamps" checked><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Include timestamps</span>
+      </div>
+    </div>
+    <button class="btn btn-dark" id="btn-single" onclick="fetchSingleTranscript()">Get Transcript</button>
+    <div id="single-status" class="status"></div>
+    <div id="single-processing" style="display:none;"></div>
+    <div id="single-ad" class="ad-space" style="display:none;"><span class="ad-tag">Sponsored</span><p>Your AdSense ad appears here</p><code>&lt;ins class="adsbygoogle"&gt;</code></div>
+    <div id="single-countdown" class="countdown-area" style="display:none;"><div class="countdown-label">Download ready in</div><div class="countdown-num" id="countdown-timer">5</div></div>
+    <div id="single-result" style="display:none;"></div>
+    <div class="steps-row">
+      <div class="step-item"><div class="step-n">1</div><h4>Paste</h4><p>Any YouTube URL</p></div>
+      <div class="step-item"><div class="step-n">2</div><h4>Extract</h4><p>Captions or AI speech-to-text</p></div>
+      <div class="step-item"><div class="step-n">3</div><h4>Download</h4><p>TXT, SRT, JSON, or CSV</p></div>
+    </div>
+  </div>
+
+  <!-- ========== BULK ========== -->
+  <div id="panel-bulk" class="panel">
+
+    <!-- Dark pro card with both inputs -->
+    <div class="pro-card">
+      <div class="pro-label">Pro</div>
+      <h3>Bulk Downloads</h3>
+      <p class="pro-desc">Transcribe entire playlists, channels, or any mix of videos at once.</p>
+
+      <!-- Playlist / Channel input -->
+      <div class="pro-section">
+        <div class="pro-section-label">Playlist or Channel</div>
+        <div class="pro-input-row">
+          <input type="text" class="pro-input" id="playlist-url" placeholder="https://youtube.com/playlist?list=... or @channel">
+          <button class="pro-resolve-btn" id="btn-resolve" onclick="resolveSource()">Find</button>
+        </div>
+        <p class="pro-hint">Paste a playlist URL, @handle, or /channel/ link — we'll find every video.</p>
+      </div>
+
+      <div id="resolve-status" class="status" style="margin-top:8px;"></div>
+
+      <!-- Resolved video list -->
+      <div id="resolved-videos" style="display:none;">
+        <div class="resolved-bar">
+          <div class="resolved-dot"></div>
+          <span>Found <strong id="resolved-count">0</strong> videos</span>
+          <button class="resolved-clear" onclick="clearResolved()">Clear</button>
+        </div>
+        <div class="video-list" id="video-list"></div>
+      </div>
+
+      <div class="pro-divider"><span>and / or</span></div>
+
+      <!-- Bulk URLs input -->
+      <div class="pro-section">
+        <div class="pro-section-label">Individual Video URLs</div>
+        <textarea class="pro-textarea" id="bulk-urls" placeholder="Paste video URLs, one per line..."></textarea>
+        <p class="pro-hint"><span id="url-count">0</span> videos total</p>
+      </div>
+    </div>
+
+    <!-- Download options -->
+    <div class="card">
+      <div class="options-title">Download Options</div>
+      <div class="option-group-label">Download Format</div>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="bulk-dl-type" value="combined" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Combined Transcript</div><div class="r-desc">All transcripts in a single file</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="bulk-dl-type" value="individual"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Individual Transcripts (ZIP)</div><div class="r-desc">Each transcript as a separate file</div></div></div></label>
+      </div>
+      <div class="option-group-label">File Format</div>
+      <div class="radio-group radio-group-grid">
+        <label class="radio-opt"><input type="radio" name="bulk-format" value="txt" checked><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Text (.txt)</div><div class="r-desc">Plain text</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="bulk-format" value="srt"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">Subtitles (.srt)</div><div class="r-desc">Standard subs</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="bulk-format" value="json"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">JSON (.json)</div><div class="r-desc">For developers</div></div></div></label>
+        <label class="radio-opt"><input type="radio" name="bulk-format" value="csv"><div class="radio-card"><div class="r-dot"></div><div><div class="r-label">CSV (.csv)</div><div class="r-desc">Spreadsheets</div></div></div></label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="bulk-timestamps" checked><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Include timestamps</span>
+      </div>
+    </div>
+
+    <button class="btn btn-blue" id="btn-bulk" onclick="handleBulkDownload()">Download All</button>
+    <div class="pro-required-tag" id="bulk-pro-tag">Pro subscription required for bulk downloads</div>
+    <div id="bulk-status" class="status"></div>
+    <div id="bulk-success" style="display:none;"></div>
+    <div id="bulk-progress" class="prog-container" style="display:none;">
+      <div class="prog-bar"><div class="prog-fill" id="bulk-prog-fill"></div></div>
+      <div class="prog-text" id="bulk-prog-text">Processing...</div>
+    </div>
+    <div id="bulk-result" style="display:none;"></div>
+  </div>
+
+  <footer>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p style="margin-top:8px;">Powered by YouTube captions & Supadata.</p>
+  </footer>
+</div>
+
+<script src="/pro.js"></script>
+<script>
+const C={
+  API_BASE:'',POLL_INTERVAL:4000,MAX_POLL_TIME:300000,MAX_BULK:500
+};
+
+// ============================================
+// GLOBAL COUNTER
+// Reads/writes from a simple API endpoint.
+// For now, uses localStorage for demo. Replace
+// with /api/counter endpoint in production.
+// ============================================
+(function initCounter(){
+  // Production: fetch(`${C.API_BASE}/api/counter`).then(r=>r.json()).then(d=> ...)
+  // Demo: use localStorage with a seeded starting value
+  let count=parseInt(localStorage.getItem('tg_counter')||'0');
+  if(!count){count=12847;localStorage.setItem('tg_counter',String(count));}
+  animateCounter(count);
+})();
+
+function animateCounter(target){
+  const el=document.getElementById('global-count');
+  const duration=1200;
+  const start=Math.max(0,target-200);
+  const startTime=performance.now();
+  function step(now){
+    const progress=Math.min((now-startTime)/duration,1);
+    const eased=1-Math.pow(1-progress,3); // ease-out cubic
+    const current=Math.round(start+(target-start)*eased);
+    el.textContent=current.toLocaleString();
+    if(progress<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function bumpCounter(n){
+  let count=parseInt(localStorage.getItem('tg_counter')||'12847');
+  count+=n;
+  localStorage.setItem('tg_counter',String(count));
+  animateCounter(count);
+  // Production: fetch(`${C.API_BASE}/api/counter`,{method:'POST',body:JSON.stringify({add:n})})
+}
+
+// ============================================
+// TAB SWITCHING
+// ============================================
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((e,i)=>e.classList.toggle('active',(t==='single'&&i===0)||(t==='bulk'&&i===1)));
+  document.getElementById('panel-single').classList.toggle('active',t==='single');
+  document.getElementById('panel-bulk').classList.toggle('active',t==='bulk');
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function rv(n){return document.querySelector(`input[name="${n}"]:checked`)?.value;}
+function extractVideoId(u){for(const p of[/(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,/(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/]){const m=u.match(p);if(m)return m[1];}return null;}
+function ss(id,t,m){const e=document.getElementById(id);e.className=`status show ${t}`;e.innerHTML=m;}
+function hs(id){document.getElementById(id).className='status';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ============================================
+// TRANSCRIPT API
+// ============================================
+async function fetchAPI(vid,mode='single'){
+  const params=new URLSearchParams({v:vid,mode});
+  const headers={};
+  if(mode==='bulk'&&window.TGPro){
+    const subId=TGPro.getSubscriptionId();
+    if(subId)headers['x-subscription-id']=subId;
+  }
+  const r=await fetch(`${C.API_BASE}/api/transcript?${params}`,{headers});
+  const d=await r.json();
+  if(!r.ok){
+    if(d.upgrade){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
+    if(d.transcriptId)return{pending:true,transcriptId:d.transcriptId};
+    throw new Error(d.error||'Failed');
+  }
+  return d;
+}
+async function pollAPI(tid){const r=await fetch(`${C.API_BASE}/api/poll?id=${tid}`);return await r.json();}
+async function getTranscript(vid,mode='single'){return await fetchAPI(vid,mode);}
+
+// ============================================
+// FORMAT CONVERTERS
+// ============================================
+function fts(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.floor((s%1)*1000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')},${String(ms).padStart(3,'0')}`;}
+function toTxt(d,ts){return d.segments.map(s=>{if(ts){const m=Math.floor(s.start/60),sc=Math.floor(s.start%60);return`[${m}:${String(sc).padStart(2,'0')}] ${s.text}`;}return s.text;}).join('\n');}
+function toSrt(d){return d.segments.map((s,i)=>`${i+1}\n${fts(s.start)} --> ${fts(s.start+s.duration)}\n${s.text}\n`).join('\n');}
+function toJson(d){return JSON.stringify(d,null,2);}
+function toCsv(d,ts){const h=ts?'Start,End,Text':'Text';return h+'\n'+d.segments.map(s=>ts?`${s.start.toFixed(2)},${(s.start+s.duration).toFixed(2)},"${s.text.replace(/"/g,'""')}"`:`"${s.text.replace(/"/g,'""')}"`).join('\n');}
+function fmt(d,f,ts){switch(f){case'srt':return toSrt(d);case'json':return toJson(d);case'csv':return toCsv(d,ts);default:return toTxt(d,ts);}}
+function mime(f){switch(f){case'json':return'application/json';case'csv':return'text/csv';case'srt':return'application/x-subrip';default:return'text/plain';}}
+
+// ============================================
+// DOWNLOAD / CLIPBOARD
+// ============================================
+function dlBlob(b,n){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+function dlFile(c,n,m){dlBlob(new Blob([c],{type:m}),n);}
+function copyClip(){if(window._lt){navigator.clipboard.writeText(window._lt).then(()=>{ss('single-status','success','Copied to clipboard');setTimeout(()=>hs('single-status'),2000);});}}
+
+// ============================================
+// PROCESSING UI
+// ============================================
+function showProc(id,steps){const e=document.getElementById(id);e.style.display='block';e.innerHTML=`<div class="proc-card"><div class="proc-spinner"></div><h4>AI Transcribing</h4><p>No captions found. Using speech-to-text.</p><div class="proc-steps">${steps.map((s,i)=>`<div class="proc-step ${i===0?'active':''}" id="ps-${i}"><span class="proc-icon">${i===0?'●':'○'}</span><span>${s}</span></div>`).join('')}</div></div>`;}
+function upStep(idx,n){for(let i=0;i<n;i++){const e=document.getElementById(`ps-${i}`);if(!e)continue;if(i<idx){e.className='proc-step done';e.querySelector('.proc-icon').textContent='✓';}else if(i===idx){e.className='proc-step active';e.querySelector('.proc-icon').textContent='●';}else{e.className='proc-step';e.querySelector('.proc-icon').textContent='○';}}}
+
+// ============================================
+// SINGLE
+// ============================================
+async function fetchSingleTranscript(){
+  const url=document.getElementById('single-url').value.trim(),format=rv('single-format'),ts=document.getElementById('single-timestamps').checked,btn=document.getElementById('btn-single');
+  hs('single-status');['single-result','single-ad','single-countdown','single-processing'].forEach(id=>document.getElementById(id).style.display='none');
+  if(!url){ss('single-status','error','Enter a YouTube URL.');return;}
+  const vid=extractVideoId(url);if(!vid){ss('single-status','error','Invalid URL.');return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Fetching...';
+  try{
+    let d=await getTranscript(vid);
+    if(d.pending&&d.transcriptId){btn.innerHTML='<span class="spinner"></span> Transcribing...';showProc('single-processing',['Extracting audio','Sending to AI','Transcribing','Formatting']);upStep(1,4);const st=Date.now();while(Date.now()-st<C.MAX_POLL_TIME){await new Promise(r=>setTimeout(r,C.POLL_INTERVAL));const e=(Date.now()-st)/1000;if(e>10)upStep(2,4);if(e>30)upStep(3,4);const p=await pollAPI(d.transcriptId);if(p.status==='completed'){d=p;break;}if(p.status==='error')throw new Error(p.error);}if(d.pending)throw new Error('Timed out.');}
+    document.getElementById('single-processing').style.display='none';
+    const f=fmt(d,format,ts),fn=`transcript-${vid}.${format}`;window._lt=f;window._fn=fn;window._ff=format;
+    showSingleResult(d,f,format,fn,vid);
+    bumpCounter(1);
+  }catch(e){document.getElementById('single-processing').style.display='none';ss('single-status','error',e.message);}finally{btn.disabled=false;btn.innerHTML='Get Transcript';}
+}
+
+function showSingleResult(d,f,format,fn,vid){
+  const prev=f.substring(0,1500)+(f.length>1500?'\n\n...':''),wc=f.split(/\s+/).length;
+  const tag=d.source==='assemblyai'||d.isSpeechToText?'<span class="source-tag tag-ai">AI</span>':'<span class="source-tag tag-captions">Captions</span>';
+  const el=document.getElementById('single-result');el.style.display='block';
+  el.innerHTML=`<div class="card result-card"><div class="result-header"><div class="result-title">${esc(d.title||'Transcript')} ${tag}</div><div class="result-meta">${d.totalSegments||0} segments · ${wc.toLocaleString()} words</div></div><div class="preview-box">${esc(prev)}</div><div class="btn-row"><button class="btn btn-dark btn-sm" onclick="dlFile(window._lt,window._fn,'${mime(format)}')">Download .${format}</button><button class="btn btn-ghost btn-sm" onclick="copyClip()">Copy to Clipboard</button></div></div>`;
+}
+
+// ============================================
+// RESOLVE PLAYLIST / CHANNEL
+// ============================================
+async function resolveSource(){
+  const url=document.getElementById('playlist-url').value.trim();
+  const btn=document.getElementById('btn-resolve');
+  hs('resolve-status');document.getElementById('resolved-videos').style.display='none';
+  if(!url){ss('resolve-status','error','Enter a playlist or channel URL.');return;}
+
+  btn.disabled=true;btn.textContent='...';
+
+  try{
+    let videos;
+    const r=await fetch(`${C.API_BASE}/api/resolve?url=${encodeURIComponent(url)}`);
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed to resolve');
+    videos=d.videos;
+
+    window._resolvedVideos=videos;
+    const el=document.getElementById('resolved-videos');el.style.display='block';
+    document.getElementById('resolved-count').textContent=videos.length;
+    document.getElementById('video-list').innerHTML=videos.map((v,i)=>`<div class="video-item"><span class="video-num">${i+1}</span><span class="video-name">${esc(v.title||v.videoId)}</span></div>`).join('');
+
+    // Append to bulk URLs (don't overwrite)
+    const existing=document.getElementById('bulk-urls').value.trim();
+    const newUrls=videos.map(v=>v.url||`https://youtube.com/watch?v=${v.videoId}`).join('\n');
+    document.getElementById('bulk-urls').value=existing?(existing+'\n'+newUrls):newUrls;
+    updateVideoCount();
+
+  }catch(e){
+    ss('resolve-status','error',e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='Find';
+  }
+}
+
+function clearResolved(){
+  document.getElementById('resolved-videos').style.display='none';
+  document.getElementById('playlist-url').value='';
+  if(window._resolvedVideos){
+    const resolvedUrls=new Set(window._resolvedVideos.map(v=>v.url||`https://youtube.com/watch?v=${v.videoId}`));
+    const lines=document.getElementById('bulk-urls').value.split('\n').filter(l=>l.trim()&&!resolvedUrls.has(l.trim()));
+    document.getElementById('bulk-urls').value=lines.join('\n');
+    updateVideoCount();
+    window._resolvedVideos=null;
+  }
+}
+
+// ============================================
+// BULK
+// ============================================
+document.getElementById('bulk-urls').addEventListener('input',function(){updateVideoCount();});
+
+function updateVideoCount(){
+  const count=document.getElementById('bulk-urls').value.split('\n').filter(l=>l.trim()).length;
+  document.getElementById('url-count').textContent=count;
+}
+
+function handleBulkDownload(){
+  TGPro.checkGate(function(){
+    const urls=document.getElementById('bulk-urls').value.split('\n').filter(l=>l.trim());
+    if(!urls.length){ss('bulk-status','error','No videos loaded. Paste URLs or use the Playlist/Channel finder above.');return;}
+    if(urls.length>C.MAX_BULK){ss('bulk-status','error','Max '+C.MAX_BULK+' videos per batch.');return;}
+
+    const bad=urls.filter(u=>!extractVideoId(u));
+    if(bad.length){ss('bulk-status','error',bad.length+' invalid URL(s).');return;}
+
+    processBulk(urls);
+  });
+}
+
+// Update Pro tag visibility
+function updateBulkProTag(){
+  const tag=document.getElementById('bulk-pro-tag');
+  if(tag) tag.style.display=TGPro.isPro()?'none':'flex';
+}
+setTimeout(updateBulkProTag,100);
+
+async function processBulk(urls){
+  const format=rv('bulk-format'),dlType=rv('bulk-dl-type'),ts=document.getElementById('bulk-timestamps').checked,btn=document.getElementById('btn-bulk');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Processing...';
+  document.getElementById('bulk-progress').style.display='block';['bulk-result','bulk-success'].forEach(id=>document.getElementById(id).style.display='none');
+  const pf=document.getElementById('bulk-prog-fill'),pt=document.getElementById('bulk-prog-text');
+  const res=[],err=[];
+  for(let i=0;i<urls.length;i++){
+    const vid=extractVideoId(urls[i]);pf.style.width=((i+1)/urls.length*100).toFixed(0)+'%';pt.textContent=`Processing ${i+1} of ${urls.length}...`;
+    try{let d=await getTranscript(vid,'bulk');if(d.pending&&d.transcriptId){pt.textContent=`${i+1}/${urls.length} — AI transcribing...`;const st=Date.now();while(Date.now()-st<C.MAX_POLL_TIME){await new Promise(r=>setTimeout(r,C.POLL_INTERVAL));const p=await pollAPI(d.transcriptId);if(p.status==='completed'){d=p;break;}if(p.status==='error')throw new Error(p.error);}if(d.pending)throw new Error('Timeout');}res.push({videoId:vid,title:d.title,content:fmt(d,format,ts),source:d.source});}catch(e){err.push({videoId:vid,error:e.message});}
+  }
+  pf.style.width='100%';pt.textContent=`${res.length} succeeded, ${err.length} failed`;
+  const sb=document.getElementById('bulk-success');sb.style.display='block';sb.innerHTML=`<div class="success-bar"><div class="success-dot"></div><span>Extracted <strong>${res.length} transcripts</strong> from ${urls.length} videos</span></div>`;
+  window._br=res;window._bf=format;window._bdt=dlType;
+  bumpCounter(res.length);
+  const rd=document.getElementById('bulk-result');rd.style.display='block';
+  const sc=res.filter(r=>r.source==='assemblyai').length,cc=res.length-sc;
+  rd.innerHTML=`<div class="card result-card"><div class="result-header"><div class="result-title">Download Ready</div><div class="result-meta">${cc} captions · ${sc} AI transcribed</div></div>${err.length?`<p style="font-size:13px;color:var(--text-4);margin-bottom:16px;">${err.length} video(s) failed</p>`:''}<div class="btn-row"><button class="btn btn-dark btn-sm" onclick="execBulkDl()">Download ${dlType==='combined'?'Combined File':'ZIP'}</button><button class="btn btn-ghost btn-sm" onclick="copyBulk()">Copy All</button></div></div>`;
+  btn.disabled=false;btn.textContent='Download All';
+}
+
+async function execBulkDl(){
+  if(!window._br)return;const f=window._bf||'txt',t=window._bdt||'combined';
+  if(t==='combined'){const c=window._br.map(r=>`${'─'.repeat(50)}\n${r.title||r.videoId}\nhttps://youtube.com/watch?v=${r.videoId}\n${'─'.repeat(50)}\n\n${r.content}`).join('\n\n\n');dlFile(c,`transcripts-combined.${f}`,mime(f));}
+  else{if(typeof JSZip==='undefined'){window._br.forEach(r=>dlFile(r.content,`transcript-${r.videoId}.${f}`,mime(f)));return;}const z=new JSZip();window._br.forEach(r=>{const n=(r.title||r.videoId).replace(/[^a-zA-Z0-9\s-]/g,'').substring(0,60).trim();z.file(`${n} [${r.videoId}].${f}`,r.content);});const b=await z.generateAsync({type:'blob'});dlBlob(b,'transcripts.zip');}
+}
+function copyBulk(){if(!window._br)return;const a=window._br.map(r=>`── ${r.title||r.videoId} ──\n${r.content}`).join('\n\n');navigator.clipboard.writeText(a).then(()=>{ss('bulk-status','success','Copied');setTimeout(()=>hs('bulk-status'),2000);});}
+
+// Payment return is handled by pro.js (TGPro.handlePaymentReturn)
+</script>
+</body>
+</html>

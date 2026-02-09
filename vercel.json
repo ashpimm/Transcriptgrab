@@ -8,6 +8,7 @@
     { "source": "/api/quotes", "destination": "/api/quotes" },
     { "source": "/api/repurpose", "destination": "/api/repurpose" },
     { "source": "/api/clean", "destination": "/api/clean" },
+    { "source": "/transcripts", "destination": "/transcripts.html" },
     { "source": "/clean", "destination": "/clean.html" },
     { "source": "/search", "destination": "/search.html" },
     { "source": "/summary", "destination": "/summary.html" },

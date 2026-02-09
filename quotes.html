@@ -137,7 +137,8 @@
     </div>
   </div>
 
-  <button class="btn btn-dark" id="btn-find" onclick="findQuotes()">Find Quotes</button>
+  <button class="btn btn-dark" id="btn-find" onclick="TGPro.checkGate(findQuotes)">Find Quotes</button>
+  <div class="pro-required-tag" id="pro-tag">Pro subscription required</div>
   <div id="main-status" class="status"></div>
 
   <!-- Results -->
@@ -158,13 +159,20 @@
   </div>
 
   <footer>
-    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/#pricing">Pricing</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
     <p style="margin-top:8px;">Powered by AI. Quotes are extracted and formatted automatically.</p>
   </footer>
 </div>
 
+<script src="/pro.js"></script>
 <script>
 var _quotes=[];
+
+// Update pro tag visibility
+setTimeout(function(){
+  var tag=document.getElementById('pro-tag');
+  if(tag && window.TGPro && TGPro.isPro()) tag.style.display='none';
+},100);
 
 // ============================================
 // INPUT MODE SWITCHING
@@ -259,12 +267,14 @@ async function findQuotes(){
   document.getElementById('result-section').style.display='none';
 
   try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
     var r=await fetch('/api/quotes',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:headers,
       body:JSON.stringify({transcript:text})
     });
     var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
     if(!r.ok)throw new Error(d.error||'Failed to find quotes');
     _quotes=d.quotes||[];
     renderQuotes(_quotes);

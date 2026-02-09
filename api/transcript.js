@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   const allowed = !origin || origin.includes(host);
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const videoId = req.query.v;
@@ -64,12 +64,12 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== PAYMENT VERIFICATION (bulk mode) =====
+  // ===== SUBSCRIPTION VERIFICATION (bulk mode) =====
   if (mode === 'bulk') {
-    const sessionId = req.query.session_id;
+    const subId = req.headers['x-subscription-id'] || req.query.subscription_id;
 
-    if (!sessionId || !sessionId.startsWith('cs_')) {
-      return res.status(403).json({ error: 'Payment required. A valid Stripe session is needed for bulk mode.' });
+    if (!subId || !subId.startsWith('sub_')) {
+      return res.status(402).json({ error: 'Pro subscription required for bulk downloads.', upgrade: true });
     }
 
     if (!stripe) {
@@ -77,13 +77,13 @@ export default async function handler(req, res) {
     }
 
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.payment_status !== 'paid') {
-        return res.status(403).json({ error: 'Payment not completed. Please complete your purchase first.' });
+      const sub = await stripe.subscriptions.retrieve(subId);
+      if (sub.status !== 'active' && sub.status !== 'trialing') {
+        return res.status(402).json({ error: 'Subscription is not active.', upgrade: true });
       }
     } catch (stripeErr) {
       console.error('Stripe verification failed:', stripeErr.message);
-      return res.status(403).json({ error: 'Invalid or expired payment session.' });
+      return res.status(402).json({ error: 'Invalid subscription.', upgrade: true });
     }
   }
 

@@ -151,7 +151,8 @@
     </div>
   </div>
 
-  <button class="btn btn-dark" id="btn-summarize" onclick="summarize()">Summarize</button>
+  <button class="btn btn-dark" id="btn-summarize" onclick="TGPro.checkGate(summarize)">Summarize</button>
+  <div class="pro-required-tag" id="pro-tag">Pro subscription required</div>
   <div id="main-status" class="status"></div>
 
   <!-- Results -->
@@ -195,13 +196,20 @@
   </div>
 
   <footer>
-    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/#pricing">Pricing</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
     <p style="margin-top:8px;">Powered by AI. Summaries are generated and may not be perfectly accurate.</p>
   </footer>
 </div>
 
+<script src="/pro.js"></script>
 <script>
 var _resultData=null;
+
+// Update pro tag visibility
+setTimeout(function(){
+  var tag=document.getElementById('pro-tag');
+  if(tag && window.TGPro && TGPro.isPro()) tag.style.display='none';
+},100);
 
 // ============================================
 // INPUT MODE SWITCHING
@@ -307,12 +315,14 @@ async function summarize(){
   document.getElementById('result-section').style.display='none';
 
   try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
     var r=await fetch('/api/summarize',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:headers,
       body:JSON.stringify({transcript:text})
     });
     var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required');}
     if(!r.ok)throw new Error(d.error||'Summarization failed');
     _resultData=d;
     renderResults(d);

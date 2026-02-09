@@ -180,7 +180,8 @@
     </div>
   </div>
 
-  <button class="btn btn-dark" id="btn-clean" onclick="cleanTranscript()">Clean Transcript</button>
+  <button class="btn btn-dark" id="btn-clean" onclick="handleClean()">Clean Transcript</button>
+  <div class="pro-required-tag" id="pro-tag" style="display:none;">Pro subscription required for AI cleaning</div>
   <div id="clean-status" class="status"></div>
 
   <!-- Results -->
@@ -206,11 +207,37 @@
   </div>
 
   <footer>
-    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
+    <p>TranscriptGrab &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/#pricing">Pricing</a> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a></p>
   </footer>
 </div>
 
+<script src="/pro.js"></script>
 <script>
+// Gate handler — light is free, medium/heavy require Pro
+function handleClean(){
+  var level=document.querySelector('input[name="level"]:checked').value;
+  if(level==='light'){
+    cleanTranscript();
+  } else {
+    TGPro.checkGate(cleanTranscript);
+  }
+}
+
+// Update pro tag based on level selection
+function updateProTag(){
+  var level=document.querySelector('input[name="level"]:checked').value;
+  var tag=document.getElementById('pro-tag');
+  if(level==='light' || (window.TGPro && TGPro.isPro())){
+    tag.style.display='none';
+  } else {
+    tag.style.display='flex';
+  }
+}
+document.querySelectorAll('input[name="level"]').forEach(function(r){
+  r.addEventListener('change',updateProTag);
+});
+setTimeout(updateProTag,100);
+
 // ============================================
 // INPUT MODE SWITCHING
 // ============================================
@@ -379,12 +406,14 @@ async function cleanTranscript(){
   // Medium / Heavy — API call
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Cleaning...';
   try{
+    var headers=Object.assign({'Content-Type':'application/json'},TGPro.authHeaders());
     var r=await fetch('/api/clean',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:headers,
       body:JSON.stringify({transcript:text,level:level})
     });
     var d=await r.json();
+    if(r.status===402){TGPro.showUpgradeModal();throw new Error('Pro subscription required for AI cleaning');}
     if(!r.ok)throw new Error(d.error||'Cleaning failed');
     if(!d.cleaned)throw new Error('No cleaned text returned');
     showResult(text,d.cleaned);

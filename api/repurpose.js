@@ -1,8 +1,28 @@
 // api/repurpose.js
 // Content Repurposer endpoint — transforms transcripts into various content formats.
+// Requires Pro subscription.
 // Set GEMINI_API_KEY in Vercel environment variables.
 
+import Stripe from 'stripe';
+
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+// In-memory subscription cache
+const subCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000;
+
+async function verifySubscription(subId) {
+  if (!subId || !stripe) return false;
+  const cached = subCache.get(subId);
+  if (cached && (Date.now() - cached.at) < CACHE_TTL) return cached.active;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId);
+    const active = sub.status === 'active' || sub.status === 'trialing';
+    subCache.set(subId, { active, at: Date.now() });
+    return active;
+  } catch { return false; }
+}
 
 const FORMAT_PROMPTS = {
   blog: `You are an expert content writer. Transform the given video transcript into a well-structured blog post.
@@ -91,11 +111,21 @@ export default async function handler(req, res) {
   const allowed = !origin || origin.includes(host);
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Pro subscription check
+  const subId = req.headers['x-subscription-id'];
+  if (!subId) {
+    return res.status(402).json({ error: 'Pro subscription required', upgrade: true });
+  }
+  const isActive = await verifySubscription(subId);
+  if (!isActive) {
+    return res.status(402).json({ error: 'Subscription expired or invalid', upgrade: true });
   }
 
   const { transcript, format, tone, length } = req.body || {};

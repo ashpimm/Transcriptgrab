@@ -1,9 +1,29 @@
 // api/clean.js
 // Transcript Cleaner endpoint — uses Gemini Flash for medium/heavy cleaning.
 // Light cleaning is handled client-side (no API call needed).
+// Medium/heavy require Pro subscription.
 // Set GEMINI_API_KEY in Vercel environment variables.
 
+import Stripe from 'stripe';
+
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+// In-memory subscription cache
+const subCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000;
+
+async function verifySubscription(subId) {
+  if (!subId || !stripe) return false;
+  const cached = subCache.get(subId);
+  if (cached && (Date.now() - cached.at) < CACHE_TTL) return cached.active;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId);
+    const active = sub.status === 'active' || sub.status === 'trialing';
+    subCache.set(subId, { active, at: Date.now() });
+    return active;
+  } catch { return false; }
+}
 
 const PROMPTS = {
   medium: `You are a transcript editor. Clean up the given transcript by:
@@ -38,7 +58,7 @@ export default async function handler(req, res) {
   const allowed = !origin || origin.includes(host);
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin || '*' : '');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method !== 'POST') {
@@ -46,6 +66,18 @@ export default async function handler(req, res) {
   }
 
   const { transcript, level } = req.body || {};
+
+  // Pro subscription check for medium/heavy (light is client-side only)
+  if (level === 'medium' || level === 'heavy') {
+    const subId = req.headers['x-subscription-id'];
+    if (!subId) {
+      return res.status(402).json({ error: 'Pro subscription required for AI cleaning', upgrade: true });
+    }
+    const isActive = await verifySubscription(subId);
+    if (!isActive) {
+      return res.status(402).json({ error: 'Subscription expired or invalid', upgrade: true });
+    }
+  }
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 10) {
     return res.status(400).json({ error: 'Transcript text is required.' });
