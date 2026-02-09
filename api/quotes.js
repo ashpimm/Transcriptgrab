@@ -1,8 +1,8 @@
 // api/quotes.js
 // Quote Finder endpoint — extracts shareable, quotable moments from transcripts.
-// Set OPENAI_API_KEY in Vercel environment variables.
+// Set GEMINI_API_KEY in Vercel environment variables.
 
-const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
+const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 
 const SYSTEM_PROMPT = `You are an expert at identifying shareable, impactful moments in video content. Given a transcript, find 10-20 of the most quotable statements.
 
@@ -44,8 +44,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
   }
 
-  if (!OPENAI_KEY) {
-    return res.status(500).json({ error: 'OpenAI API key is not configured. Set OPENAI_API_KEY in environment variables.' });
+  if (!GEMINI_KEY) {
+    return res.status(500).json({ error: 'AI service not configured. Set GEMINI_API_KEY in environment variables.' });
   }
 
   try {
@@ -54,31 +54,26 @@ export default async function handler(req, res) {
       text = text.substring(0, 120000) + '\n\n[Transcript truncated]';
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: text },
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: SYSTEM_PROMPT + '\n\nTranscript:\n' + text }] }],
+          generationConfig: { temperature: 0.7, responseMimeType: 'application/json' },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      console.error('OpenAI API error:', response.status, err);
+      console.error('Gemini API error:', response.status, err);
       return res.status(502).json({ error: 'AI service error. Please try again.' });
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
       return res.status(502).json({ error: 'Empty response from AI service.' });
