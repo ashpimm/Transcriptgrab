@@ -153,89 +153,232 @@ export default async function handler(req, res) {
 
 
 // =============================================================
-// YOUTUBE CAPTIONS (FREE — uses Innertube API for reliability)
+// YOUTUBE CAPTIONS (FREE — multi-strategy approach)
 // =============================================================
 async function tryYouTubeCaptions(videoId) {
+  // Strategy 1: Try YouTube's timedtext list API (most direct)
+  const listResult = await tryTimedTextAPI(videoId);
+  if (listResult.success) return listResult;
+
+  // Strategy 2: Try Innertube player API with ANDROID client
+  const innertubeResult = await tryInnertubeCaption(videoId);
+  if (innertubeResult.success) return innertubeResult;
+
+  // Strategy 3: Try scraping the watch page as fallback
+  const scrapeResult = await tryScrapeCaption(videoId);
+  if (scrapeResult.success) return scrapeResult;
+
+  return { success: false, error: 'No caption tracks found via any method' };
+}
+
+// --- Strategy 1: Direct timedtext API ---
+async function tryTimedTextAPI(videoId) {
   try {
-    // Use Innertube player API — much more reliable than scraping HTML
-    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      body: JSON.stringify({
-        videoId,
-        context: {
-          client: {
-            clientName: 'WEB',
-            clientVersion: '2.20240101.00.00',
-            hl: 'en',
-            gl: 'US',
-          }
-        },
-      }),
-    });
+    // First get the list of available tracks
+    const listRes = await fetch(
+      `https://www.youtube.com/api/timedtext?v=${videoId}&type=list`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } }
+    );
+    if (!listRes.ok) return { success: false, error: 'Timedtext list failed' };
 
-    if (!response.ok) {
-      return { success: false, error: 'Innertube API request failed' };
+    const listXml = await listRes.text();
+
+    // Parse track info from XML
+    const tracks = [];
+    const trackRegex = /<track\s+([^>]+)>/g;
+    let match;
+    while ((match = trackRegex.exec(listXml)) !== null) {
+      const attrs = match[1];
+      const lang = attrs.match(/lang_code="([^"]+)"/)?.[1];
+      const kind = attrs.match(/kind="([^"]+)"/)?.[1] || '';
+      const name = attrs.match(/name="([^"]*)"/)?.[1] || '';
+      if (lang) tracks.push({ lang, kind, name });
     }
 
-    const data = await response.json();
-
-    // Extract title
-    const title = data?.videoDetails?.title || `Video ${videoId}`;
-
-    // Extract duration
-    const durationSeconds = data?.videoDetails?.lengthSeconds
-      ? parseInt(data.videoDetails.lengthSeconds)
-      : null;
-
-    // Find caption tracks
-    const captionTracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-
-    if (!captionTracks || captionTracks.length === 0) {
-      return { success: false, error: 'No caption tracks found' };
-    }
+    if (tracks.length === 0) return { success: false, error: 'No tracks in timedtext list' };
 
     // Prefer: manual English → auto English → first available
-    let track = captionTracks.find(t => t.languageCode === 'en' && t.kind !== 'asr');
-    if (!track) track = captionTracks.find(t => t.languageCode === 'en');
-    if (!track) track = captionTracks[0];
+    let track = tracks.find(t => t.lang === 'en' && t.kind !== 'asr');
+    if (!track) track = tracks.find(t => t.lang === 'en');
+    if (!track) track = tracks[0];
 
-    // Fetch transcript JSON
-    const captionUrl = track.baseUrl + '&fmt=json3';
-    const captionRes = await fetch(captionUrl);
-    if (!captionRes.ok) {
-      return { success: false, error: 'Caption fetch failed' };
-    }
+    // Fetch the actual captions
+    let captionUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${track.lang}&fmt=json3`;
+    if (track.kind) captionUrl += `&kind=${track.kind}`;
+    if (track.name) captionUrl += `&name=${encodeURIComponent(track.name)}`;
+
+    const captionRes = await fetch(captionUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+    });
+    if (!captionRes.ok) return { success: false, error: 'Timedtext caption fetch failed' };
 
     const captionData = await captionRes.json();
+    const segments = parseJson3Events(captionData);
+    if (segments.length === 0) return { success: false, error: 'Timedtext returned empty' };
 
-    const segments = (captionData.events || [])
-      .filter(e => e.segs && e.segs.length > 0)
-      .map(e => ({
-        start: (e.tStartMs || 0) / 1000,
-        duration: (e.dDurationMs || 0) / 1000,
-        text: e.segs.map(s => s.utf8 || '').join('').trim()
-      }))
-      .filter(s => s.text.length > 0);
+    // Get title via oEmbed
+    const title = await getVideoTitle(videoId) || `Video ${videoId}`;
 
     return {
       success: true,
       data: {
         title,
         videoId,
-        language: track.languageCode,
+        language: track.lang,
         isAutoGenerated: track.kind === 'asr',
-        durationSeconds,
+        durationSeconds: null,
         segments,
         totalSegments: segments.length,
       }
     };
   } catch (err) {
+    console.log(`Timedtext strategy failed for ${videoId}:`, err.message);
     return { success: false, error: err.message };
   }
+}
+
+// --- Strategy 2: Innertube ANDROID client ---
+async function tryInnertubeCaption(videoId) {
+  try {
+    const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 12)',
+      },
+      body: JSON.stringify({
+        videoId,
+        context: {
+          client: {
+            clientName: 'ANDROID',
+            clientVersion: '19.09.37',
+            androidSdkVersion: 31,
+            hl: 'en',
+            gl: 'US',
+          }
+        },
+        contentCheckOk: true,
+        racyCheckOk: true,
+      }),
+    });
+
+    if (!response.ok) return { success: false, error: 'Innertube request failed' };
+
+    const data = await response.json();
+    const title = data?.videoDetails?.title || `Video ${videoId}`;
+    const durationSeconds = data?.videoDetails?.lengthSeconds ? parseInt(data.videoDetails.lengthSeconds) : null;
+    const captionTracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!captionTracks || captionTracks.length === 0) {
+      return { success: false, error: 'No caption tracks in Innertube response' };
+    }
+
+    let track = captionTracks.find(t => t.languageCode === 'en' && t.kind !== 'asr');
+    if (!track) track = captionTracks.find(t => t.languageCode === 'en');
+    if (!track) track = captionTracks[0];
+
+    const captionUrl = track.baseUrl + '&fmt=json3';
+    const captionRes = await fetch(captionUrl);
+    if (!captionRes.ok) return { success: false, error: 'Innertube caption fetch failed' };
+
+    const captionData = await captionRes.json();
+    const segments = parseJson3Events(captionData);
+    if (segments.length === 0) return { success: false, error: 'Innertube captions empty' };
+
+    return {
+      success: true,
+      data: {
+        title, videoId,
+        language: track.languageCode,
+        isAutoGenerated: track.kind === 'asr',
+        durationSeconds, segments,
+        totalSegments: segments.length,
+      }
+    };
+  } catch (err) {
+    console.log(`Innertube strategy failed for ${videoId}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// --- Strategy 3: Scrape watch page ---
+async function tryScrapeCaption(videoId) {
+  try {
+    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml',
+      }
+    });
+
+    if (!videoPageRes.ok) return { success: false, error: 'Watch page fetch failed' };
+    const html = await videoPageRes.text();
+
+    const titleMatch = html.match(/<title>(.*?)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : `Video ${videoId}`;
+    const durationMatch = html.match(/"lengthSeconds":"(\d+)"/);
+    const durationSeconds = durationMatch ? parseInt(durationMatch[1]) : null;
+
+    // Try multiple regex patterns for caption tracks
+    let captionTracks;
+    const patterns = [
+      /"captionTracks":\s*(\[.*?\])\s*,\s*"/s,
+      /"captionTracks":\s*(\[.*?\])/s,
+    ];
+
+    for (const pattern of patterns) {
+      try {
+        const m = html.match(pattern);
+        if (m) {
+          captionTracks = JSON.parse(m[1]);
+          break;
+        }
+      } catch (e) { continue; }
+    }
+
+    if (!captionTracks || captionTracks.length === 0) {
+      return { success: false, error: 'No caption tracks in page HTML' };
+    }
+
+    let track = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
+    if (!track) track = captionTracks.find(t => t.languageCode === 'en');
+    if (!track) track = captionTracks[0];
+
+    const captionUrl = track.baseUrl + '&fmt=json3';
+    const captionRes = await fetch(captionUrl);
+    if (!captionRes.ok) return { success: false, error: 'Scrape caption fetch failed' };
+
+    const captionData = await captionRes.json();
+    const segments = parseJson3Events(captionData);
+    if (segments.length === 0) return { success: false, error: 'Scraped captions empty' };
+
+    return {
+      success: true,
+      data: {
+        title, videoId,
+        language: track.languageCode,
+        isAutoGenerated: track.kind === 'asr',
+        durationSeconds, segments,
+        totalSegments: segments.length,
+      }
+    };
+  } catch (err) {
+    console.log(`Scrape strategy failed for ${videoId}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// --- Shared: parse json3 caption format ---
+function parseJson3Events(captionData) {
+  return (captionData.events || [])
+    .filter(e => e.segs && e.segs.length > 0)
+    .map(e => ({
+      start: (e.tStartMs || 0) / 1000,
+      duration: (e.dDurationMs || 0) / 1000,
+      text: e.segs.map(s => s.utf8 || '').join('').trim()
+    }))
+    .filter(s => s.text.length > 0);
 }
 
 
