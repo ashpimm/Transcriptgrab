@@ -6,7 +6,7 @@
   // ============================================
   // CONFIG
   // ============================================
-  var STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/YOUR_SUBSCRIPTION_LINK_HERE';
+  var STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_4gMeVfbs2d2n6yKbxtcAo04';
   var VERIFY_ENDPOINT = '/api/verify';
   var CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
