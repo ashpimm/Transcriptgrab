@@ -6,6 +6,7 @@
     "dev": "vercel dev"
   },
   "dependencies": {
-    "stripe": "^20.3.1"
+    "stripe": "^20.3.1",
+    "youtube-caption-extractor": "^1.9.1"
   }
 }
