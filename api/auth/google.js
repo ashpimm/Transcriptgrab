@@ -13,7 +13,14 @@ export default function handler(req, res) {
   const state = crypto.randomBytes(16).toString('hex');
 
   // Set state as HttpOnly cookie (10 min TTL)
-  res.setHeader('Set-Cookie', `tg_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+  const cookies = [`tg_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`];
+
+  // If plan=pro param present, set checkout plan cookie so callback can redirect to checkout
+  if (req.query && req.query.plan === 'pro') {
+    cookies.push('tg_checkout_plan=pro; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600');
+  }
+
+  res.setHeader('Set-Cookie', cookies);
 
   // Use production domain — Vercel preview URLs won't match Google's allowed redirect URIs
   const redirectUri = `https://transcriptgrab.vercel.app/api/auth/callback`;

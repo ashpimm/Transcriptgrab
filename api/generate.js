@@ -1,7 +1,7 @@
 // api/generate.js — Generate selected platform content from a transcript.
 
 import { handleCors, callGemini } from './_shared.js';
-import { getSession, canGenerate, consumeCredit } from './_db.js';
+import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie } from './_db.js';
 
 const FORMAT_PROMPTS = {
   twitter: {
@@ -94,25 +94,42 @@ export default async function handler(req, res) {
 
   // ===== SERVER-SIDE GATING =====
   let user = null;
+  let creditToken = null;
   try {
     user = await getSession(req);
   } catch (e) {
-    // DB error — allow anonymous free usage as fallback
     console.error('Session check failed:', e.message);
   }
 
   if (!user) {
-    // Anonymous: check if they've already used their free generation
-    // The client sends this, and we trust it for now (server-side IP tracking is optional)
-    // If the client says they've used their free one, block
-    const freeUsed = req.headers['x-free-used'] === 'true';
-    if (freeUsed) {
-      return res.status(401).json({
-        error: 'Sign in to continue generating content.',
-        auth_required: true,
-      });
+    // Anonymous user — check for single credit cookie first
+    const cookies = parseCookies(req);
+    if (cookies.tg_credit) {
+      const credit = await getSingleCredit(cookies.tg_credit);
+      if (credit) {
+        creditToken = cookies.tg_credit;
+        // Allowed — will consume after successful generation
+      } else {
+        // Invalid/used credit cookie — check free usage
+        const freeUsed = req.headers['x-free-used'] === 'true';
+        if (freeUsed) {
+          return res.status(402).json({
+            error: 'Purchase a video or upgrade to Pro.',
+            upgrade: true,
+          });
+        }
+      }
+    } else {
+      // No credit cookie — check free usage
+      const freeUsed = req.headers['x-free-used'] === 'true';
+      if (freeUsed) {
+        return res.status(402).json({
+          error: 'Purchase a video or upgrade to Pro.',
+          upgrade: true,
+        });
+      }
     }
-    // Allow anonymous free generation (first video)
+    // Allow anonymous free generation (first video) or credit-holder
   } else {
     // Signed-in user: check credits/subscription
     const check = canGenerate(user);
@@ -149,7 +166,14 @@ Return JSON with this exact structure:
     const result = await callGemini(prompt, transcript, 0.7);
 
     // Consume credit after successful generation
-    if (user) {
+    if (creditToken) {
+      try {
+        await consumeSingleCredit(creditToken);
+        clearCreditCookie(res);
+      } catch (e) {
+        console.error('Single credit consumption failed:', e.message);
+      }
+    } else if (user) {
       try {
         await consumeCredit(user);
       } catch (e) {

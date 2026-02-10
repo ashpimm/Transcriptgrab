@@ -201,4 +201,61 @@ export async function findUserByStripeCustomer(stripeCustomerId) {
   return rows[0] || null;
 }
 
+// ============================================
+// SINGLE CREDIT (anonymous $5 purchases)
+// ============================================
+export async function createSingleCredit(stripeSessionId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const sql = getSQL();
+  await sql`
+    INSERT INTO single_credits (token, stripe_session_id)
+    VALUES (${token}, ${stripeSessionId})
+  `;
+  return token;
+}
+
+export async function getSingleCredit(token) {
+  if (!token || token.length !== 64) return null;
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT * FROM single_credits
+    WHERE token = ${token} AND used = FALSE
+  `;
+  return rows[0] || null;
+}
+
+export async function consumeSingleCredit(token) {
+  if (!token || token.length !== 64) return null;
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE single_credits
+    SET used = TRUE
+    WHERE token = ${token} AND used = FALSE
+    RETURNING *
+  `;
+  return rows[0] || null;
+}
+
+export function setCreditCookie(res, token) {
+  const existing = res.getHeader('Set-Cookie');
+  const cookie = `tg_credit=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
+  if (existing) {
+    const cookies = Array.isArray(existing) ? existing : [existing];
+    res.setHeader('Set-Cookie', [...cookies, cookie]);
+  } else {
+    res.setHeader('Set-Cookie', cookie);
+  }
+}
+
+export function clearCreditCookie(res) {
+  const existing = res.getHeader('Set-Cookie');
+  const cookie = 'tg_credit=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
+  if (existing) {
+    const cookies = Array.isArray(existing) ? existing : [existing];
+    res.setHeader('Set-Cookie', [...cookies, cookie]);
+  } else {
+    res.setHeader('Set-Cookie', cookie);
+  }
+}
+
 export { getSQL };

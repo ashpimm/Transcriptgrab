@@ -234,29 +234,41 @@
 
 <script>
 (function(){
-  if (!window.TGUser) return;
-  TGUser.ready.then(function() {
-    if (TGUser.isPro()) {
-      var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
-      cards.forEach(function(c){ c.textContent='Go to App'; c.href='/app'; });
-    }
-    if (TGUser.isSignedIn()) {
-      var singleBtn = document.getElementById('buy-single-btn');
-      if (singleBtn) {
-        singleBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (window.TGPro) TGPro._checkout('single');
-        });
+  // $5 button — always works, no sign-in needed
+  var singleBtn = document.getElementById('buy-single-btn');
+  if (singleBtn) {
+    singleBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = '/api/checkout-single';
+    });
+  }
+
+  // $49 Pro button — if signed in, checkout; if not, OAuth with plan=pro
+  var proBtn = document.getElementById('buy-pro-btn');
+  if (proBtn) {
+    proBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.TGUser && TGUser.isSignedIn()) {
+        if (TGUser.isPro()) {
+          window.location.href = '/app';
+        } else if (window.TGPro) {
+          TGPro._checkout('pro');
+        }
+      } else {
+        window.location.href = '/api/auth/google?plan=pro';
       }
-      var proBtn = document.getElementById('buy-pro-btn');
-      if (proBtn && !TGUser.isPro()) {
-        proBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (window.TGPro) TGPro._checkout('pro');
-        });
+    });
+  }
+
+  // Update Pro card for existing Pro users
+  if (window.TGUser) {
+    TGUser.ready.then(function() {
+      if (TGUser.isPro()) {
+        var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
+        cards.forEach(function(c){ c.textContent='Go to App'; });
       }
-    }
-  });
+    });
+  }
 })();
 </script>
 </body>

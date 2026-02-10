@@ -27,7 +27,9 @@
     { "source": "/api/cron/cleanup", "destination": "/api/cron/cleanup" },
     { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/transcript", "destination": "/api/transcript" },
-{ "source": "/api/resolve", "destination": "/api/resolve" },
-{ "source": "/app", "destination": "/app.html" }
+    { "source": "/api/resolve", "destination": "/api/resolve" },
+    { "source": "/api/checkout-single", "destination": "/api/checkout-single" },
+    { "source": "/api/verify-single", "destination": "/api/verify-single" },
+    { "source": "/app", "destination": "/app.html" }
   ]
 }

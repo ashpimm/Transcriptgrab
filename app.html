@@ -326,12 +326,6 @@
   'use strict';
 
   // ==============================
-  // STRIPE LINKS
-  // ==============================
-  var SINGLE_VIDEO_LINK = 'https://buy.stripe.com/test_bJe28tdAagezaP0bxtcAo05';
-  var PRO_LINK = 'https://buy.stripe.com/test_aFa14panY5zVcX8595cAo02';
-
-  // ==============================
   // FORMAT PICKER
   // ==============================
   var FORMATS = {
@@ -401,25 +395,10 @@
   // PAYWALL
   // ==============================
   function showPaywall() {
-    if (document.getElementById('paywall-overlay')) return;
-    var div = document.createElement('div');
-    div.className = 'paywall-overlay';
-    div.id = 'paywall-overlay';
-    div.innerHTML =
-      '<div class="paywall-card">' +
-        '<h2>Your free video is used</h2>' +
-        '<p>Upgrade to keep generating social content from any YouTube video.</p>' +
-        '<div class="paywall-btns">' +
-          '<a href="' + SINGLE_VIDEO_LINK + '" class="paywall-btn secondary">Generate this video &mdash; $5</a>' +
-          '<a href="' + PRO_LINK + '" class="paywall-btn primary">Go unlimited &mdash; $49/mo</a>' +
-        '</div>' +
-        '<button class="paywall-restore" onclick="TGPro.showRestoreModal()">Already subscribed? Restore access</button>' +
-      '</div>';
-    document.body.appendChild(div);
+    if (window.TGPro) TGPro.showUpgradeModal();
   }
   function hidePaywall() {
-    var el = document.getElementById('paywall-overlay');
-    if (el) el.remove();
+    if (window.TGPro) TGPro.hideUpgradeModal();
   }
 
   // ==============================
@@ -498,7 +477,7 @@
 
     try {
       // Step 1: Fetch transcript
-      var tRes = await fetch('/api/transcript?v=' + videoId);
+      var tRes = await fetch('/api/transcript?v=' + videoId, { credentials: 'same-origin' });
       var tData = await tRes.json();
       if (!tRes.ok || !tData.segments) {
         throw new Error(tData.error || 'Could not fetch transcript for this video.');
@@ -522,15 +501,30 @@
 
         var gRes = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-free-used': getFreeUsed() ? 'true' : 'false'
+          },
           body: JSON.stringify({ transcript: transcriptText, formats: aiFormats })
         });
         gData = await gRes.json();
+        if (gRes.status === 402) {
+          hideProcessing();
+          showPaywall();
+          return;
+        }
+        if (gRes.status === 403) {
+          hideProcessing();
+          showError(gData.error || 'Monthly limit reached.');
+          return;
+        }
         if (!gRes.ok) {
           throw new Error(gData.error || 'Content generation failed.');
         }
 
-        consumeCredit();
+        // Mark free usage on first anonymous generation
+        if (!getFreeUsed()) setFreeUsed();
       }
 
       if (wantTranscript) {
@@ -634,6 +628,7 @@
           if (aiFormats.length > 0) {
             var gRes = await fetch('/api/generate', {
               method: 'POST',
+              credentials: 'same-origin',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ transcript: transcriptText, formats: aiFormats })
             });
@@ -1043,8 +1038,6 @@
   // ==============================
   // INIT
   // ==============================
-  handleCreditReturn();
-
   // Show bulk toggle for Pro users (slight delay for pro.js to load)
   setTimeout(function() {
     if (window.TGPro && TGPro.isPro()) {

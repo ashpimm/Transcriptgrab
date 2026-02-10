@@ -11,10 +11,14 @@ export default async function handler(req, res) {
 
   try {
     const sql = getSQL();
-    const result = await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
-    const deleted = result.count || 0;
-    console.log(`Cron cleanup: deleted ${deleted} expired sessions`);
-    return res.status(200).json({ ok: true, deleted });
+    const sessionResult = await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
+    const sessionsDeleted = sessionResult.count || 0;
+
+    const creditResult = await sql`DELETE FROM single_credits WHERE created_at < NOW() - INTERVAL '7 days'`;
+    const creditsDeleted = creditResult.count || 0;
+
+    console.log(`Cron cleanup: deleted ${sessionsDeleted} expired sessions, ${creditsDeleted} old single credits`);
+    return res.status(200).json({ ok: true, sessions_deleted: sessionsDeleted, credits_deleted: creditsDeleted });
   } catch (err) {
     console.error('Cron cleanup error:', err);
     return res.status(500).json({ error: 'Cleanup failed' });

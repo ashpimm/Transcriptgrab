@@ -109,7 +109,7 @@
           '</div>' +
         '</div>';
     } else {
-      rightHtml = '<button class="suite-nav-signin" id="nav-signin-btn">Sign In</button>';
+      rightHtml = '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
 
     nav.innerHTML =
@@ -122,13 +122,6 @@
       '</div>';
 
     // Bind events
-    var signinBtn = document.getElementById('nav-signin-btn');
-    if (signinBtn) {
-      signinBtn.addEventListener('click', function() {
-        window.location.href = '/api/auth/google';
-      });
-    }
-
     var userArea = document.getElementById('nav-user-area');
     var dropdown = document.getElementById('nav-dropdown');
     if (userArea && dropdown) {

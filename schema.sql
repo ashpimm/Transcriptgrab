@@ -29,3 +29,10 @@ CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_stripe_customer_id ON users(stripe_customer_id);
 CREATE INDEX idx_users_stripe_subscription_id ON users(stripe_subscription_id);
+
+CREATE TABLE single_credits (
+  token VARCHAR(64) PRIMARY KEY,
+  stripe_session_id VARCHAR(255) UNIQUE NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
