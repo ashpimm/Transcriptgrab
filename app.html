@@ -397,32 +397,6 @@
   // ==============================
   // PAYMENT RETURN
   // ==============================
-  function handleCreditReturn() {
-    var params = new URLSearchParams(window.location.search);
-    var sessionId = params.get('session_id');
-    if (!sessionId || !sessionId.startsWith('cs_')) return;
-
-    var handled = null;
-    try { handled = localStorage.getItem('tg_handled_session'); } catch(e) {}
-    if (handled === sessionId) {
-      window.history.replaceState({}, '', window.location.pathname);
-      return;
-    }
-
-    fetch('/api/verify?session_id=' + encodeURIComponent(sessionId))
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.verified && d.subscriptionId) return;
-        setCredits(getCredits() + 1);
-        try { localStorage.setItem('tg_handled_session', sessionId); } catch(e) {}
-        showToast('Credit added! Generate your video.');
-      })
-      .catch(function(){})
-      .finally(function() {
-        window.history.replaceState({}, '', window.location.pathname);
-      });
-  }
-
   // ==============================
   // PAYWALL
   // ==============================
