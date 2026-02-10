@@ -84,8 +84,9 @@ export async function callGemini(prompt, text, temperature = 0.7) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    const detail = err?.error?.message || err?.error?.status || JSON.stringify(err).substring(0, 200);
     console.error('Gemini API error:', response.status, err);
-    throw new Error('AI service error. Please try again.');
+    throw new Error('AI error (' + response.status + '): ' + detail);
   }
 
   const data = await response.json();
