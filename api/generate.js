@@ -1,6 +1,7 @@
 // api/generate.js — Generate selected platform content from a transcript.
 
 import { handleCors, callGemini } from './_shared.js';
+import { getSession, canGenerate, consumeCredit } from './_db.js';
 
 const FORMAT_PROMPTS = {
   twitter: {
@@ -91,6 +92,46 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Select at least one format. Valid: ' + VALID_FORMATS.join(', ') });
   }
 
+  // ===== SERVER-SIDE GATING =====
+  let user = null;
+  try {
+    user = await getSession(req);
+  } catch (e) {
+    // DB error — allow anonymous free usage as fallback
+    console.error('Session check failed:', e.message);
+  }
+
+  if (!user) {
+    // Anonymous: check if they've already used their free generation
+    // The client sends this, and we trust it for now (server-side IP tracking is optional)
+    // If the client says they've used their free one, block
+    const freeUsed = req.headers['x-free-used'] === 'true';
+    if (freeUsed) {
+      return res.status(401).json({
+        error: 'Sign in to continue generating content.',
+        auth_required: true,
+      });
+    }
+    // Allow anonymous free generation (first video)
+  } else {
+    // Signed-in user: check credits/subscription
+    const check = canGenerate(user);
+    if (!check.allowed) {
+      if (check.reason === 'monthly_limit') {
+        return res.status(403).json({
+          error: 'Monthly limit reached (200 videos). Resets next month.',
+          monthly_limit: true,
+        });
+      }
+      if (check.reason === 'upgrade') {
+        return res.status(402).json({
+          error: 'No credits remaining. Purchase a video or upgrade to Pro.',
+          upgrade: true,
+        });
+      }
+    }
+  }
+
   // Build prompt with only selected formats
   const promptParts = requested.map(f => FORMAT_PROMPTS[f].prompt);
   const schemaParts = requested.map(f => FORMAT_PROMPTS[f].schema);
@@ -106,6 +147,16 @@ Return JSON with this exact structure:
 
   try {
     const result = await callGemini(prompt, transcript, 0.7);
+
+    // Consume credit after successful generation
+    if (user) {
+      try {
+        await consumeCredit(user);
+      } catch (e) {
+        console.error('Credit consumption failed:', e.message);
+      }
+    }
+
     return res.status(200).json(result);
   } catch (error) {
     console.error('Generate error:', error);

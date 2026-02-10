@@ -4,12 +4,9 @@
 // Uses Supadata API to fetch YouTube captions (handles bot detection).
 // Set SUPADATA_API_KEY in Vercel environment variables.
 
-import Stripe from 'stripe';
+import { getSession } from './_db.js';
 
 const SUPADATA_KEY = process.env.SUPADATA_API_KEY || '';
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
 
 // =============================================================
 // IN-MEMORY RATE LIMITER (per serverless instance)
@@ -43,7 +40,8 @@ export default async function handler(req, res) {
   const allowed = !origin || (function() { try { return new URL(origin).host === host; } catch { return false; } })();
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-subscription-id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const videoId = req.query.v;
@@ -64,26 +62,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // ===== SUBSCRIPTION VERIFICATION (bulk mode) =====
+  // ===== SESSION VERIFICATION (bulk mode) =====
   if (mode === 'bulk') {
-    const subId = req.headers['x-subscription-id'];
-
-    if (!subId || !subId.startsWith('sub_')) {
-      return res.status(402).json({ error: 'Pro subscription required for bulk downloads.', upgrade: true });
-    }
-
-    if (!stripe) {
-      return res.status(500).json({ error: 'Payment verification is not configured.' });
-    }
-
     try {
-      const sub = await stripe.subscriptions.retrieve(subId);
-      if (sub.status !== 'active' && sub.status !== 'trialing') {
-        return res.status(402).json({ error: 'Subscription is not active.', upgrade: true });
+      const user = await getSession(req);
+      if (!user || user.tier !== 'pro') {
+        return res.status(402).json({ error: 'Pro subscription required for bulk downloads.', upgrade: true });
       }
-    } catch (stripeErr) {
-      console.error('Stripe verification failed:', stripeErr.message);
-      return res.status(402).json({ error: 'Invalid subscription.', upgrade: true });
+    } catch (e) {
+      console.error('Session check failed:', e.message);
+      return res.status(402).json({ error: 'Pro subscription required for bulk downloads.', upgrade: true });
     }
   }
 
