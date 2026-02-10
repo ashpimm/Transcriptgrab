@@ -210,7 +210,7 @@
         <li>Copy & download</li>
         <li>Pay only when you need it</li>
       </ul>
-      <a href="https://buy.stripe.com/test_bJe28tdAagezaP0bxtcAo05" class="price-card-cta">Buy 1 Video</a>
+      <a href="/app" class="price-card-cta" id="buy-single-btn">Buy 1 Video</a>
     </div>
     <div class="price-card featured">
       <div class="price-card-label">Pro</div>
@@ -222,7 +222,7 @@
         <li>Bulk channel processing</li>
         <li>Priority support</li>
       </ul>
-      <a href="https://buy.stripe.com/test_aFa14panY5zVcX8595cAo02" class="price-card-cta">Go Pro</a>
+      <a href="/app" class="price-card-cta" id="buy-pro-btn">Go Pro</a>
     </div>
   </div>
 </div>
@@ -233,13 +233,30 @@
 </footer>
 
 <script>
-// Pro users: update pricing CTA
 (function(){
-  setTimeout(function(){
-    if(!window.TGPro||!TGPro.isPro())return;
-    var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
-    cards.forEach(function(c){ c.textContent='Go to App'; c.href='/app'; });
-  },100);
+  if (!window.TGUser) return;
+  TGUser.ready.then(function() {
+    if (TGUser.isPro()) {
+      var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
+      cards.forEach(function(c){ c.textContent='Go to App'; c.href='/app'; });
+    }
+    if (TGUser.isSignedIn()) {
+      var singleBtn = document.getElementById('buy-single-btn');
+      if (singleBtn) {
+        singleBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (window.TGPro) TGPro._checkout('single');
+        });
+      }
+      var proBtn = document.getElementById('buy-pro-btn');
+      if (proBtn && !TGUser.isPro()) {
+        proBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (window.TGPro) TGPro._checkout('pro');
+        });
+      }
+    }
+  });
 })();
 </script>
 </body>
