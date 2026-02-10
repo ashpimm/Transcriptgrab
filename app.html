@@ -23,12 +23,12 @@
   ::selection { background: var(--text); color: var(--white); }
 
   /* ===== COMPACT HERO ===== */
-  .app-hero { text-align: center; padding: 48px 24px 8px; max-width: 640px; margin: 0 auto; }
+  .app-hero { text-align: center; padding: 48px 40px 8px; max-width: 800px; margin: 0 auto; }
   .app-hero h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 10px; }
   .app-hero p { font-size: 15px; color: var(--text-3); line-height: 1.5; }
 
   /* ===== INPUT SECTION ===== */
-  .input-section { max-width: 540px; margin: 24px auto 0; padding: 0 24px; display: flex; flex-direction: column; align-items: center; }
+  .input-section { max-width: 600px; margin: 24px auto 0; padding: 0 40px; display: flex; flex-direction: column; align-items: center; }
   .url-input {
     width: 100%; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border);
     border-radius: 100px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--text);
@@ -60,7 +60,7 @@
   .input-hint { font-size: 12px; color: var(--text-5); margin-top: 12px; }
 
   /* ===== ERROR ===== */
-  .error-msg { max-width: 540px; margin: 16px auto 0; padding: 0 24px; }
+  .error-msg { max-width: 600px; margin: 16px auto 0; padding: 0 40px; }
   .error-msg p { background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--error); }
 
   /* ===== PROCESSING STATE ===== */
@@ -71,7 +71,7 @@
   .processing .substep { font-size: 13px; color: var(--text-4); margin-top: 6px; }
 
   /* ===== RESULTS ===== */
-  .results { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+  .results { max-width: 1000px; margin: 0 auto; padding: 0 40px 80px; }
   .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-top: 32px; }
   .results-header h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
   .download-all-btn {
@@ -225,6 +225,7 @@
     <button class="format-pill" data-format="tiktok"><span class="pill-icon">&#9835;</span> TikTok</button>
     <button class="format-pill" data-format="blog"><span class="pill-icon">&#9997;&#65039;</span> Blog</button>
     <button class="format-pill" data-format="quotes"><span class="pill-icon">&#128172;</span> Quotes</button>
+    <button class="format-pill" data-format="transcript"><span class="pill-icon">&#128196;</span> Transcript</button>
   </div>
 
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
@@ -296,6 +297,7 @@
   // ==============================
   var currentResult = null;
   var currentTitle = '';
+  var currentTranscript = '';
 
   // ==============================
   // CREDIT HELPERS
@@ -421,7 +423,12 @@
     var formats = getSelectedFormats();
     if (formats.length === 0) { showError('Select at least one format.'); return; }
 
-    if (!canGenerate()) { showPaywall(); return; }
+    // Separate transcript (client-side) from AI formats
+    var wantTranscript = formats.indexOf('transcript') !== -1;
+    var aiFormats = formats.filter(function(f) { return f !== 'transcript'; });
+
+    // Need credits for AI formats, transcript alone is free
+    if (aiFormats.length > 0 && !canGenerate()) { showPaywall(); return; }
 
     hidePaywall();
     showProcessing('Fetching transcript...');
@@ -436,22 +443,37 @@
 
       currentTitle = tData.title || 'Video';
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
+      currentTranscript = tData.segments.map(function(s) {
+        var mins = Math.floor(s.start / 60);
+        var secs = Math.floor(s.start % 60);
+        var ts = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+        return '[' + ts + '] ' + s.text;
+      }).join('\n');
 
-      // Step 2: Generate selected formats
-      var label = formats.length === 1 ? formats[0] : formats.length + ' formats';
-      updateProcessing('Generating ' + label + '...', 'This may take a moment');
+      var gData = {};
 
-      var gRes = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: transcriptText, formats: formats })
-      });
-      var gData = await gRes.json();
-      if (!gRes.ok) {
-        throw new Error(gData.error || 'Content generation failed.');
+      // Step 2: Generate AI formats (if any selected)
+      if (aiFormats.length > 0) {
+        var label = aiFormats.length === 1 ? aiFormats[0] : aiFormats.length + ' formats';
+        updateProcessing('Generating ' + label + '...', 'This may take a moment');
+
+        var gRes = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: transcriptText, formats: aiFormats })
+        });
+        gData = await gRes.json();
+        if (!gRes.ok) {
+          throw new Error(gData.error || 'Content generation failed.');
+        }
+
+        consumeCredit();
       }
 
-      consumeCredit();
+      if (wantTranscript) {
+        gData._transcript = currentTranscript;
+      }
+
       currentResult = gData;
       renderResults(gData, currentTitle);
 
@@ -503,6 +525,9 @@
     var grid = document.getElementById('platform-grid');
     grid.innerHTML = '';
 
+    if (data._transcript) {
+      grid.appendChild(buildTranscriptCard(data._transcript));
+    }
     if (data.twitter && data.twitter.tweets) {
       grid.appendChild(buildTwitterCard(data.twitter.tweets));
     }
@@ -539,6 +564,21 @@
     });
     body.innerHTML = '';
     body.appendChild(list);
+    return card;
+  }
+
+  function buildTranscriptCard(text) {
+    var card = makeCard('Transcript', '\u{1F4C4}', text);
+    card.classList.add('full-width');
+    var body = card.querySelector('.card-body');
+    body.classList.add('tall');
+    var pre = document.createElement('div');
+    pre.className = 'content-text';
+    pre.style.fontFamily = '"IBM Plex Mono", monospace';
+    pre.style.fontSize = '12px';
+    pre.textContent = text;
+    body.innerHTML = '';
+    body.appendChild(pre);
     return card;
   }
 
@@ -634,6 +674,9 @@
     parts.push('=== ' + title + ' ===\n');
     parts.push('Generated by TranscriptGrab\n\n');
 
+    if (currentResult._transcript) {
+      parts.push('--- TRANSCRIPT ---\n\n' + currentResult._transcript + '\n\n');
+    }
     if (currentResult.twitter && currentResult.twitter.tweets) {
       parts.push('--- TWITTER THREAD ---\n\n');
       currentResult.twitter.tweets.forEach(function(t, i) {
@@ -676,11 +719,11 @@
   window.resetApp = function() {
     currentResult = null;
     currentTitle = '';
+    currentTranscript = '';
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('input-section').classList.remove('hidden');
     document.getElementById('url-input').value = '';
     document.getElementById('url-input').focus();
-    if (!canGenerate()) showPaywall();
   };
 
   // ==============================
@@ -723,9 +766,6 @@
   // INIT
   // ==============================
   handleCreditReturn();
-  setTimeout(function() {
-    if (!canGenerate()) showPaywall();
-  }, 200);
 
 })();
 </script>

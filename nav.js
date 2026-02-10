@@ -8,8 +8,8 @@
 
   var css=document.createElement('style');
   css.textContent=
-    '.suite-nav{background:#fff;border-bottom:1px solid #e8e8e8;padding:0 24px;position:relative;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}'+
-    '.suite-nav-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:52px;gap:8px;}'+
+    '.suite-nav{background:#fff;border-bottom:1px solid #e8e8e8;padding:0 40px;position:relative;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}'+
+    '.suite-nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:52px;gap:8px;}'+
     '.suite-nav-brand{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#999;text-decoration:none;flex-shrink:0;transition:color 0.2s;}'+
     '.suite-nav-brand:hover{color:#111;}'+
     '.suite-nav-links{display:flex;align-items:center;gap:2px;}'+
