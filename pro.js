@@ -6,7 +6,7 @@
   // ============================================
   // CONFIG
   // ============================================
-  var STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_4gMeVfbs2d2n6yKbxtcAo04';
+  var STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_aFa14panY5zVcX8595cAo02';
   var VERIFY_ENDPOINT = '/api/verify';
   var CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
@@ -30,7 +30,6 @@
     isPro: function(){
       var d = getProData();
       if(!d || !d.subscriptionId || !d.verifiedAt) return false;
-      // Consider valid if verified within cache TTL
       return (Date.now() - d.verifiedAt) < CACHE_TTL;
     },
 
@@ -44,7 +43,6 @@
       return d ? d.customerEmail : null;
     },
 
-    // Gate check — runs callback if Pro, shows upgrade modal if not
     checkGate: function(callback){
       if(window.TGPro.isPro()){
         callback();
@@ -53,7 +51,6 @@
       }
     },
 
-    // Inject subscription header into fetch options
     authHeaders: function(){
       var subId = window.TGPro.getSubscriptionId();
       return subId ? { 'x-subscription-id': subId } : {};
@@ -70,15 +67,15 @@
         '<div class="tg-modal-backdrop"></div>' +
         '<div class="tg-modal-card">' +
           '<div class="tg-modal-label">PRO</div>' +
-          '<h3 class="tg-modal-title">Unlock all AI tools</h3>' +
+          '<h3 class="tg-modal-title">Unlimited content generation</h3>' +
           '<ul class="tg-modal-features">' +
-            '<li>Dashboard: summarize, quotes & repurpose</li>' +
-            '<li>7 content formats (blog, tweets, LinkedIn & more)</li>' +
-            '<li>Filler word cleaning built into downloads</li>' +
-            '<li>Bulk transcript downloads (up to 500)</li>' +
+            '<li>Generate social content from any YouTube video</li>' +
+            '<li>All 6 formats: tweets, LinkedIn, Facebook, Instagram, blog, quotes</li>' +
+            '<li>Unlimited videos per month</li>' +
+            '<li>Bulk channel processing</li>' +
           '</ul>' +
-          '<div class="tg-modal-price">$9.99<span>/month</span></div>' +
-          '<a href="' + STRIPE_PAYMENT_LINK + '" class="tg-modal-cta">Upgrade Now</a>' +
+          '<div class="tg-modal-price">$49<span>/month</span></div>' +
+          '<a href="' + STRIPE_PAYMENT_LINK + '" class="tg-modal-cta">Go Pro</a>' +
           '<button class="tg-modal-restore" onclick="TGPro.showRestoreModal()">Already subscribed? Restore access</button>' +
           '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
         '</div>';
@@ -139,7 +136,7 @@
           TGPro.hideRestoreModal();
           TGPro.renderProStatus();
           TGPro._showToast('Pro access restored!');
-          setTimeout(function(){ window.location.href = '/dashboard'; }, 1500);
+          setTimeout(function(){ window.location.href = '/app'; }, 1500);
         } else {
           statusEl.textContent = d.error || 'No active subscription found for this email.';
           statusEl.className = 'tg-modal-status error';
@@ -170,7 +167,7 @@
           setProData({ subscriptionId: d.subscriptionId, customerEmail: d.customerEmail || '', verifiedAt: Date.now() });
           TGPro.renderProStatus();
           TGPro._showToast('Welcome to Pro!');
-          setTimeout(function(){ window.location.href = '/dashboard'; }, 1500);
+          setTimeout(function(){ window.location.href = '/app'; }, 1500);
           return true;
         }
       } catch(e) {
@@ -188,7 +185,7 @@
       if(TGPro.isPro()){
         navRight.innerHTML = '<span class="suite-nav-pro-badge">Pro</span>';
       } else {
-        navRight.innerHTML = '<a href="/#pricing" class="suite-nav-pricing-link">Pricing</a><a href="' + STRIPE_PAYMENT_LINK + '" class="suite-nav-upgrade-btn">Upgrade</a>';
+        navRight.innerHTML = '<a href="/#pricing" class="suite-nav-pricing-link">Pricing</a><a href="' + STRIPE_PAYMENT_LINK + '" class="suite-nav-upgrade-btn">Go Pro</a>';
       }
     },
 
@@ -205,7 +202,7 @@
     },
 
     // ============================================
-    // RE-VERIFY (background, called periodically)
+    // RE-VERIFY
     // ============================================
     reVerify: async function(){
       var d = getProData();
@@ -230,7 +227,6 @@
   // ============================================
   var style = document.createElement('style');
   style.textContent =
-    /* Modal backdrop + card */
     '.tg-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;animation:tgFadeIn 0.2s ease;}' +
     '#tg-upgrade-modal,#tg-restore-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;}' +
     '.tg-modal-card{background:#fff;border-radius:20px;padding:40px 36px;max-width:420px;width:100%;position:relative;z-index:9999;animation:tgSlideUp 0.3s ease;box-shadow:0 24px 80px rgba(0,0,0,0.15);}' +
@@ -254,22 +250,13 @@
     '.tg-modal-input:focus{border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,0.05);}' +
     '.tg-modal-status{font-size:13px;margin-top:8px;min-height:20px;}' +
     '.tg-modal-status.error{color:#ff3b30;}' +
-    /* Toast */
     '.tg-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;padding:12px 28px;border-radius:100px;font-family:"Outfit",sans-serif;font-size:14px;font-weight:600;z-index:10000;opacity:0;transition:all 0.3s ease;pointer-events:none;}' +
     '.tg-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}' +
-    /* Pro pill badge for nav */
-    '.suite-nav-pro-pill{display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 6px;border-radius:100px;background:#0071e3;color:#fff;margin-left:4px;vertical-align:middle;position:relative;top:-1px;}' +
-    /* Nav right area */
-    '.suite-nav-pro-area{display:flex;align-items:center;gap:8px;flex-shrink:0;}' +
     '.suite-nav-pricing-link{font-size:13px;font-weight:500;color:#999;text-decoration:none;transition:color 0.2s;white-space:nowrap;}' +
     '.suite-nav-pricing-link:hover{color:#111;}' +
     '.suite-nav-upgrade-btn{font-size:12px;font-weight:600;color:#fff;background:#0071e3;text-decoration:none;padding:6px 16px;border-radius:100px;transition:all 0.2s;white-space:nowrap;}' +
     '.suite-nav-upgrade-btn:hover{background:#0077ED;transform:translateY(-1px);}' +
     '.suite-nav-pro-badge{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0071e3;padding:4px 12px;border:1px solid #0071e320;border-radius:100px;background:#0071e308;}' +
-    /* Pro indicator near buttons */
-    '.pro-required-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#0071e3;margin-top:8px;}' +
-    '.pro-required-tag::before{content:"";width:5px;height:5px;background:#0071e3;border-radius:50%;}' +
-    /* Animations */
     '@keyframes tgFadeIn{from{opacity:0}to{opacity:1}}' +
     '@keyframes tgSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}';
   document.head.appendChild(style);
@@ -277,14 +264,9 @@
   // ============================================
   // AUTO-INIT
   // ============================================
-  // Handle payment return (from Stripe checkout redirect)
   TGPro.handlePaymentReturn();
-
-  // Render Pro status in nav once nav.js has run
-  // nav.js runs synchronously before pro.js, so nav should exist
   setTimeout(function(){ TGPro.renderProStatus(); }, 0);
 
-  // Background re-verify every 30 minutes if Pro
   if(TGPro.isPro()){
     TGPro.reVerify();
     setInterval(function(){ TGPro.reVerify(); }, CACHE_TTL);

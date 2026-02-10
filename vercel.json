@@ -1,23 +1,21 @@
 {
   "redirects": [
-    { "source": "/clean", "destination": "/analyze?mode=clean", "statusCode": 301 },
-    { "source": "/summary", "destination": "/analyze?mode=summarize", "statusCode": 301 },
-    { "source": "/quotes", "destination": "/create?mode=quotes", "statusCode": 301 },
-    { "source": "/repurpose", "destination": "/create", "statusCode": 301 }
+    { "source": "/clean", "destination": "/app", "statusCode": 301 },
+    { "source": "/summary", "destination": "/app", "statusCode": 301 },
+    { "source": "/quotes", "destination": "/app", "statusCode": 301 },
+    { "source": "/repurpose", "destination": "/app", "statusCode": 301 },
+    { "source": "/analyze", "destination": "/app", "statusCode": 301 },
+    { "source": "/create", "destination": "/app", "statusCode": 301 },
+    { "source": "/dashboard", "destination": "/app", "statusCode": 301 },
+    { "source": "/search", "destination": "/app", "statusCode": 301 },
+    { "source": "/transcripts", "destination": "/app", "statusCode": 301 }
   ],
   "rewrites": [
+    { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/transcript", "destination": "/api/transcript" },
     { "source": "/api/verify", "destination": "/api/verify" },
     { "source": "/api/resolve", "destination": "/api/resolve" },
     { "source": "/api/poll", "destination": "/api/poll" },
-    { "source": "/api/summarize", "destination": "/api/summarize" },
-    { "source": "/api/quotes", "destination": "/api/quotes" },
-    { "source": "/api/repurpose", "destination": "/api/repurpose" },
-    { "source": "/api/clean", "destination": "/api/clean" },
-    { "source": "/transcripts", "destination": "/transcripts.html" },
-    { "source": "/analyze", "destination": "/analyze.html" },
-    { "source": "/create", "destination": "/create.html" },
-    { "source": "/search", "destination": "/search.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/app", "destination": "/app.html" }
   ]
 }

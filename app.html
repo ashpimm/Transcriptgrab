@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TranscriptGrab — Generate Content</title>
+<meta name="description" content="Paste a YouTube URL, get ready-to-post content for Twitter, LinkedIn, Facebook, Instagram, blog, and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #ffffff; --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8; --border-light: #f0f0f0;
+    --text: #111111; --text-2: #333333; --text-3: #666666; --text-4: #999999; --text-5: #bbbbbb;
+    --accent: #111111; --accent-hover: #333333; --accent-subtle: #f5f5f5;
+    --cta: #0071e3; --cta-hover: #0077ED;
+    --success: #34c759; --error: #ff3b30;
+    --radius: 16px; --radius-sm: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Outfit', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--text); color: var(--white); }
+
+  /* ===== COMPACT HERO ===== */
+  .app-hero { text-align: center; padding: 48px 24px 8px; max-width: 640px; margin: 0 auto; }
+  .app-hero h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 10px; }
+  .app-hero p { font-size: 15px; color: var(--text-3); line-height: 1.5; }
+
+  /* ===== INPUT SECTION ===== */
+  .input-section { max-width: 640px; margin: 24px auto 0; padding: 0 24px; }
+  .input-row { display: flex; gap: 10px; }
+  .url-input {
+    flex: 1; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--text);
+    outline: none; transition: all 0.2s;
+  }
+  .url-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .url-input::placeholder { color: var(--text-5); }
+  .generate-btn {
+    padding: 16px 32px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+  }
+  .generate-btn:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
+  .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .input-hint { font-size: 12px; color: var(--text-5); margin-top: 10px; text-align: center; }
+
+  /* ===== ERROR ===== */
+  .error-msg { max-width: 640px; margin: 16px auto 0; padding: 0 24px; }
+  .error-msg p { background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--error); }
+
+  /* ===== PROCESSING STATE ===== */
+  .processing { text-align: center; padding: 64px 24px; max-width: 640px; margin: 0 auto; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--cta); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .processing p { font-size: 15px; color: var(--text-3); }
+  .processing .substep { font-size: 13px; color: var(--text-4); margin-top: 6px; }
+
+  /* ===== RESULTS ===== */
+  .results { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-top: 32px; }
+  .results-header h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .download-all-btn {
+    padding: 10px 24px; background: var(--accent); color: var(--white); border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .download-all-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+  .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .platform-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow-sm); transition: all var(--transition);
+  }
+  .platform-card:hover { box-shadow: var(--shadow-md); }
+  .platform-card.full-width { grid-column: 1 / -1; }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border-light);
+  }
+  .card-platform { display: flex; align-items: center; gap: 10px; }
+  .card-icon { font-size: 18px; width: 28px; text-align: center; }
+  .card-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .card-copy-btn {
+    padding: 6px 16px; background: var(--accent-subtle); border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .card-copy-btn:hover { background: var(--border); }
+  .card-copy-btn.copied { background: var(--success); color: var(--white); border-color: var(--success); }
+
+  .card-body { padding: 20px; max-height: 400px; overflow-y: auto; }
+  .card-body.tall { max-height: 600px; }
+
+  /* Twitter thread */
+  .tweet-list { list-style: none; }
+  .tweet-item { padding: 14px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; line-height: 1.5; color: var(--text-2); }
+  .tweet-item:last-child { border-bottom: none; }
+  .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--text-4); display: block; margin-bottom: 4px; }
+
+  /* Text content (LinkedIn, Facebook, Instagram) */
+  .content-text { font-size: 14px; line-height: 1.7; color: var(--text-2); white-space: pre-wrap; word-wrap: break-word; }
+
+  /* Blog */
+  .blog-title { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 16px; line-height: 1.3; }
+  .blog-body { font-size: 14px; line-height: 1.8; color: var(--text-2); }
+  .blog-body h2 { font-size: 18px; font-weight: 700; margin: 24px 0 8px; color: var(--text); }
+  .blog-body h3 { font-size: 16px; font-weight: 700; margin: 20px 0 6px; color: var(--text); }
+  .blog-body p { margin-bottom: 12px; }
+  .blog-body ul, .blog-body ol { margin: 8px 0 12px 20px; }
+  .blog-body li { margin-bottom: 4px; }
+
+  /* Quotes */
+  .quote-list { display: flex; flex-direction: column; gap: 12px; }
+  .quote-card {
+    background: var(--accent-subtle); border-radius: var(--radius-sm); padding: 16px;
+    position: relative;
+  }
+  .quote-text { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--text); margin-bottom: 8px; }
+  .quote-meta { display: flex; align-items: center; justify-content: space-between; }
+  .quote-ts { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); }
+  .quote-copy {
+    padding: 4px 12px; background: var(--white); border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-3);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .quote-copy:hover { border-color: var(--text-4); color: var(--text); }
+  .quote-copy.copied { background: var(--success); color: var(--white); border-color: var(--success); }
+
+  /* ===== PAYWALL ===== */
+  .paywall-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(250,250,250,0.97);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .paywall-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+    padding: 48px 40px; max-width: 480px; width: 100%; text-align: center;
+    box-shadow: var(--shadow-lg); animation: tgSlideUp 0.3s ease;
+  }
+  .paywall-card h2 { font-size: 28px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 10px; line-height: 1.2; }
+  .paywall-card p { font-size: 15px; color: var(--text-3); margin-bottom: 32px; line-height: 1.5; }
+  .paywall-btns { display: flex; flex-direction: column; gap: 12px; }
+  .paywall-btn {
+    display: block; width: 100%; padding: 16px; border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; text-decoration: none; text-align: center;
+  }
+  .paywall-btn.primary { background: var(--cta); color: var(--white); }
+  .paywall-btn.primary:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
+  .paywall-btn.secondary { background: var(--accent); color: var(--white); }
+  .paywall-btn.secondary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .paywall-restore {
+    display: block; width: 100%; background: none; border: none; padding: 14px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-4);
+    cursor: pointer; transition: color 0.2s; margin-top: 4px;
+  }
+  .paywall-restore:hover { color: var(--text-3); }
+
+  /* ===== NEW VIDEO BTN ===== */
+  .new-video-row { text-align: center; margin-top: 32px; }
+  .new-video-btn {
+    padding: 12px 28px; background: var(--accent-subtle); border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .new-video-btn:hover { background: var(--border); }
+
+  /* ===== HIDDEN ===== */
+  .hidden { display: none !important; }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes tgSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .fade-in { animation: fadeIn 0.4s ease; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .app-hero { padding: 32px 24px 4px; }
+    .input-row { flex-direction: column; }
+    .generate-btn { width: 100%; }
+    .platform-grid { grid-template-columns: 1fr; }
+    .results-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .paywall-card { padding: 36px 24px; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<script src="/pro.js"></script>
+
+<!-- ===== HERO ===== -->
+<section class="app-hero">
+  <h1>Turn any YouTube video into content.</h1>
+  <p>Paste a URL. Get tweets, LinkedIn posts, blog articles, Instagram captions, and quotable moments.</p>
+</section>
+
+<!-- ===== INPUT ===== -->
+<div class="input-section" id="input-section">
+  <div class="input-row">
+    <input type="text" class="url-input" id="url-input" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
+    <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
+  </div>
+  <p class="input-hint" id="input-hint">Paste any YouTube video URL</p>
+</div>
+
+<!-- ===== ERROR ===== -->
+<div class="error-msg hidden" id="error-section">
+  <p id="error-text"></p>
+</div>
+
+<!-- ===== PROCESSING ===== -->
+<div class="processing hidden" id="processing-section">
+  <div class="spinner"></div>
+  <p id="processing-msg">Fetching transcript...</p>
+  <p class="substep" id="processing-sub">This may take a moment</p>
+</div>
+
+<!-- ===== RESULTS ===== -->
+<div class="results hidden" id="results-section">
+  <div class="results-header">
+    <h2 id="results-title">Your content is ready</h2>
+    <button class="download-all-btn" onclick="downloadAll()">Download All</button>
+  </div>
+  <div class="platform-grid" id="platform-grid"></div>
+  <div class="new-video-row">
+    <button class="new-video-btn" onclick="resetApp()">Generate from another video</button>
+  </div>
+</div>
+
+<!-- ===== PAYWALL (injected dynamically) ===== -->
+
+<script>
+(function(){
+  'use strict';
+
+  // ==============================
+  // STRIPE LINKS
+  // ==============================
+  var SINGLE_VIDEO_LINK = 'https://buy.stripe.com/test_bJe28tdAagezaP0bxtcAo05';
+  var PRO_LINK = 'https://buy.stripe.com/test_aFa14panY5zVcX8595cAo02';
+
+  // ==============================
+  // STATE
+  // ==============================
+  var currentResult = null;
+  var currentTitle = '';
+
+  // ==============================
+  // CREDIT HELPERS
+  // ==============================
+  function getFreeUsed() {
+    try { return localStorage.getItem('tg_free_used') === 'true'; } catch(e) { return false; }
+  }
+  function setFreeUsed() {
+    try { localStorage.setItem('tg_free_used', 'true'); } catch(e) {}
+  }
+  function getCredits() {
+    try { return parseInt(localStorage.getItem('tg_credits') || '0', 10); } catch(e) { return 0; }
+  }
+  function setCredits(n) {
+    try { localStorage.setItem('tg_credits', String(n)); } catch(e) {}
+  }
+  function canGenerate() {
+    if (window.TGPro && TGPro.isPro()) return true;
+    if (getCredits() > 0) return true;
+    if (!getFreeUsed()) return true;
+    return false;
+  }
+  function consumeCredit() {
+    if (window.TGPro && TGPro.isPro()) return; // Pro = unlimited
+    if (!getFreeUsed()) { setFreeUsed(); return; } // First free
+    var c = getCredits();
+    if (c > 0) setCredits(c - 1);
+  }
+
+  // ==============================
+  // PAYMENT RETURN (per-video $5 credits)
+  // ==============================
+  function handleCreditReturn() {
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get('session_id');
+    if (!sessionId || !sessionId.startsWith('cs_')) return;
+
+    // Don't double-process sessions we've already handled
+    var handled = null;
+    try { handled = localStorage.getItem('tg_handled_session'); } catch(e) {}
+    if (handled === sessionId) {
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    // Check if this is a subscription or a one-time payment
+    fetch('/api/verify?session_id=' + encodeURIComponent(sessionId))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.verified && d.subscriptionId) {
+          // It's a subscription — pro.js handlePaymentReturn already handles this
+          return;
+        }
+        // One-time payment — add a credit
+        setCredits(getCredits() + 1);
+        try { localStorage.setItem('tg_handled_session', sessionId); } catch(e) {}
+        showToast('Credit added! Generate your video.');
+      })
+      .catch(function(){})
+      .finally(function() {
+        window.history.replaceState({}, '', window.location.pathname);
+      });
+  }
+
+  // ==============================
+  // PAYWALL
+  // ==============================
+  function showPaywall() {
+    if (document.getElementById('paywall-overlay')) return;
+    var div = document.createElement('div');
+    div.className = 'paywall-overlay';
+    div.id = 'paywall-overlay';
+    div.innerHTML =
+      '<div class="paywall-card">' +
+        '<h2>Your free video is used</h2>' +
+        '<p>Upgrade to keep generating social content from any YouTube video.</p>' +
+        '<div class="paywall-btns">' +
+          '<a href="' + SINGLE_VIDEO_LINK + '" class="paywall-btn secondary">Generate this video &mdash; $5</a>' +
+          '<a href="' + PRO_LINK + '" class="paywall-btn primary">Go unlimited &mdash; $49/mo</a>' +
+        '</div>' +
+        '<button class="paywall-restore" onclick="TGPro.showRestoreModal()">Already subscribed? Restore access</button>' +
+      '</div>';
+    document.body.appendChild(div);
+  }
+  function hidePaywall() {
+    var el = document.getElementById('paywall-overlay');
+    if (el) el.remove();
+  }
+
+  // ==============================
+  // TOAST
+  // ==============================
+  function showToast(msg) {
+    if (window.TGPro && TGPro._showToast) { TGPro._showToast(msg); return; }
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 28px;border-radius:100px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;z-index:10000;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 3000);
+  }
+
+  // ==============================
+  // EXTRACT VIDEO ID
+  // ==============================
+  function extractVideoId(url) {
+    url = url.trim();
+    // Direct ID (11 chars)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+    try {
+      var u = new URL(url);
+      // youtube.com/watch?v=
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      // youtu.be/
+      if (u.hostname === 'youtu.be') return u.pathname.split('/')[1];
+      // youtube.com/shorts/ or /embed/ or /v/
+      var m = u.pathname.match(/\/(shorts|embed|v)\/([a-zA-Z0-9_-]{11})/);
+      if (m) return m[2];
+    } catch(e) {}
+    // Fallback regex
+    var r = url.match(/(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return r ? r[1] : null;
+  }
+
+  // ==============================
+  // GENERATE
+  // ==============================
+  window.handleGenerate = async function() {
+    var urlInput = document.getElementById('url-input');
+    var url = urlInput.value.trim();
+    if (!url) { showError('Please paste a YouTube URL.'); return; }
+
+    var videoId = extractVideoId(url);
+    if (!videoId) { showError('Could not find a valid YouTube video ID in that URL.'); return; }
+
+    // Check if user can generate
+    if (!canGenerate()) { showPaywall(); return; }
+
+    hidePaywall();
+    showProcessing('Fetching transcript...');
+
+    try {
+      // Step 1: Fetch transcript
+      var tRes = await fetch('/api/transcript?v=' + videoId);
+      var tData = await tRes.json();
+      if (!tRes.ok || !tData.segments) {
+        throw new Error(tData.error || 'Could not fetch transcript for this video.');
+      }
+
+      currentTitle = tData.title || 'Video';
+      var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
+
+      // Step 2: Generate content
+      updateProcessing('Generating content for all platforms...', 'AI is writing tweets, posts, articles, and quotes');
+
+      var gRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcriptText })
+      });
+      var gData = await gRes.json();
+      if (!gRes.ok) {
+        throw new Error(gData.error || 'Content generation failed.');
+      }
+
+      // Consume credit
+      consumeCredit();
+
+      currentResult = gData;
+      renderResults(gData, currentTitle);
+
+    } catch(err) {
+      hideProcessing();
+      showError(err.message);
+    }
+  };
+
+  // ==============================
+  // UI HELPERS
+  // ==============================
+  function showError(msg) {
+    var el = document.getElementById('error-section');
+    document.getElementById('error-text').textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(function(){ el.classList.add('hidden'); }, 8000);
+  }
+
+  function showProcessing(msg) {
+    document.getElementById('input-section').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('error-section').classList.add('hidden');
+    var sec = document.getElementById('processing-section');
+    document.getElementById('processing-msg').textContent = msg;
+    document.getElementById('processing-sub').textContent = 'This may take a moment';
+    sec.classList.remove('hidden');
+  }
+  function updateProcessing(msg, sub) {
+    document.getElementById('processing-msg').textContent = msg;
+    if (sub) document.getElementById('processing-sub').textContent = sub;
+  }
+  function hideProcessing() {
+    document.getElementById('processing-section').classList.add('hidden');
+    document.getElementById('input-section').classList.remove('hidden');
+  }
+
+  // ==============================
+  // RENDER RESULTS
+  // ==============================
+  function renderResults(data, title) {
+    document.getElementById('processing-section').classList.add('hidden');
+    document.getElementById('input-section').classList.add('hidden');
+    var sec = document.getElementById('results-section');
+    sec.classList.remove('hidden');
+    sec.classList.add('fade-in');
+    document.getElementById('results-title').textContent = title;
+
+    var grid = document.getElementById('platform-grid');
+    grid.innerHTML = '';
+
+    // Twitter
+    if (data.twitter && data.twitter.tweets) {
+      grid.appendChild(buildTwitterCard(data.twitter.tweets));
+    }
+    // LinkedIn
+    if (data.linkedin && data.linkedin.content) {
+      grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
+    }
+    // Facebook
+    if (data.facebook && data.facebook.content) {
+      grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
+    }
+    // Instagram
+    if (data.instagram && data.instagram.content) {
+      grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
+    }
+    // Blog
+    if (data.blog) {
+      grid.appendChild(buildBlogCard(data.blog));
+    }
+    // Quotes
+    if (data.quotes && data.quotes.length) {
+      grid.appendChild(buildQuotesCard(data.quotes));
+    }
+  }
+
+  function buildTwitterCard(tweets) {
+    var card = makeCard('Twitter / X', '\u{1D54F}', tweets.join('\n\n'));
+    var body = card.querySelector('.card-body');
+    var list = document.createElement('ol');
+    list.className = 'tweet-list';
+    tweets.forEach(function(t, i) {
+      var li = document.createElement('li');
+      li.className = 'tweet-item';
+      li.innerHTML = '<span class="tweet-num">' + (i+1) + '/' + tweets.length + '</span>' + escapeHtml(t);
+      list.appendChild(li);
+    });
+    body.innerHTML = '';
+    body.appendChild(list);
+    return card;
+  }
+
+  function buildTextCard(name, icon, content) {
+    var card = makeCard(name, icon, content);
+    var body = card.querySelector('.card-body');
+    var pre = document.createElement('div');
+    pre.className = 'content-text';
+    pre.textContent = content;
+    body.innerHTML = '';
+    body.appendChild(pre);
+    return card;
+  }
+
+  function buildBlogCard(blog) {
+    var fullText = '# ' + (blog.title || '') + '\n\n' + (blog.content || '');
+    var card = makeCard('Blog Post', '\u{270D}\u{FE0F}', fullText);
+    card.classList.add('full-width');
+    var body = card.querySelector('.card-body');
+    body.classList.add('tall');
+    body.innerHTML = '<div class="blog-title">' + escapeHtml(blog.title || '') + '</div><div class="blog-body">' + renderMarkdown(blog.content || '') + '</div>';
+    return card;
+  }
+
+  function buildQuotesCard(quotes) {
+    var allText = quotes.map(function(q) { return '"' + q.text + '"'; }).join('\n\n');
+    var card = makeCard('Key Quotes', '\u{1F4AC}', allText);
+    card.classList.add('full-width');
+    var body = card.querySelector('.card-body');
+    body.innerHTML = '';
+    var list = document.createElement('div');
+    list.className = 'quote-list';
+    quotes.forEach(function(q) {
+      var qc = document.createElement('div');
+      qc.className = 'quote-card';
+      qc.innerHTML =
+        '<div class="quote-text">"' + escapeHtml(q.text) + '"</div>' +
+        '<div class="quote-meta">' +
+          '<span class="quote-ts">' + escapeHtml(q.timestamp || '') + '</span>' +
+          '<button class="quote-copy" onclick="copyText(this, ' + escapeAttr(JSON.stringify(q.tweet || q.text)) + ')">Copy</button>' +
+        '</div>';
+      list.appendChild(qc);
+    });
+    body.appendChild(list);
+    return card;
+  }
+
+  function makeCard(name, icon, copyContent) {
+    var card = document.createElement('div');
+    card.className = 'platform-card';
+    card.innerHTML =
+      '<div class="card-header">' +
+        '<div class="card-platform"><span class="card-icon">' + icon + '</span><span class="card-name">' + name + '</span></div>' +
+        '<button class="card-copy-btn" onclick="copyText(this, null, this.closest(\'.platform-card\'))">Copy</button>' +
+      '</div>' +
+      '<div class="card-body"></div>';
+    card._copyContent = copyContent;
+    return card;
+  }
+
+  // ==============================
+  // COPY
+  // ==============================
+  window.copyText = function(btn, text, cardEl) {
+    if (!text && cardEl) text = cardEl._copyContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  };
+
+  // ==============================
+  // DOWNLOAD ALL
+  // ==============================
+  window.downloadAll = function() {
+    if (!currentResult) return;
+    var parts = [];
+    var title = currentTitle || 'Video';
+    parts.push('=== ' + title + ' ===\n');
+    parts.push('Generated by TranscriptGrab\n\n');
+
+    if (currentResult.twitter && currentResult.twitter.tweets) {
+      parts.push('--- TWITTER THREAD ---\n\n');
+      currentResult.twitter.tweets.forEach(function(t, i) {
+        parts.push((i+1) + '/ ' + t + '\n\n');
+      });
+    }
+    if (currentResult.linkedin) {
+      parts.push('\n--- LINKEDIN ---\n\n' + currentResult.linkedin.content + '\n\n');
+    }
+    if (currentResult.facebook) {
+      parts.push('\n--- FACEBOOK ---\n\n' + currentResult.facebook.content + '\n\n');
+    }
+    if (currentResult.instagram) {
+      parts.push('\n--- INSTAGRAM ---\n\n' + currentResult.instagram.content + '\n\n');
+    }
+    if (currentResult.blog) {
+      parts.push('\n--- BLOG POST ---\n\n# ' + (currentResult.blog.title||'') + '\n\n' + (currentResult.blog.content||'') + '\n\n');
+    }
+    if (currentResult.quotes) {
+      parts.push('\n--- KEY QUOTES ---\n\n');
+      currentResult.quotes.forEach(function(q) {
+        parts.push('"' + q.text + '"' + (q.timestamp ? ' [' + q.timestamp + ']' : '') + '\n\n');
+      });
+    }
+
+    var blob = new Blob([parts.join('')], { type: 'text/plain' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = slugify(title) + '-content.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  // ==============================
+  // RESET
+  // ==============================
+  window.resetApp = function() {
+    currentResult = null;
+    currentTitle = '';
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('input-section').classList.remove('hidden');
+    document.getElementById('url-input').value = '';
+    document.getElementById('url-input').focus();
+
+    // Check gating again
+    if (!canGenerate()) showPaywall();
+  };
+
+  // ==============================
+  // UTILS
+  // ==============================
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  function escapeAttr(s) {
+    return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+  function slugify(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
+  }
+
+  // Simple markdown to HTML (headings, bold, italic, lists, paragraphs)
+  function renderMarkdown(md) {
+    return md
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^/, '<p>')
+      .replace(/$/, '</p>');
+  }
+
+  // ==============================
+  // ENTER KEY
+  // ==============================
+  document.getElementById('url-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleGenerate();
+  });
+
+  // ==============================
+  // INIT
+  // ==============================
+  handleCreditReturn();
+
+  // Check paywall on load (after a tick for pro.js to init)
+  setTimeout(function() {
+    if (!canGenerate()) showPaywall();
+  }, 200);
+
+})();
+</script>
+</body>
+</html>
