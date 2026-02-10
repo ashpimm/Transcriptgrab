@@ -28,7 +28,7 @@
   nav.className='suite-nav';
   nav.innerHTML=
     '<div class="suite-nav-inner">'+
-      '<a href="/" class="suite-nav-brand">TranscriptGrab</a>'+
+      '<a href="' + (_isPro ? '/app' : '/') + '" class="suite-nav-brand">TranscriptGrab</a>'+
       '<div class="suite-nav-links">' + tryLink + '</div>'+
       '<div class="suite-nav-pro-area"></div>'+
     '</div>';
