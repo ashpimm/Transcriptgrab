@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TranscriptGrab — Generate Content</title>
-<meta name="description" content="Paste a YouTube URL, get ready-to-post content for Twitter, LinkedIn, Facebook, Instagram, blog, and more.">
+<meta name="description" content="Paste a YouTube URL, get ready-to-post content for Twitter, LinkedIn, Facebook, Instagram, TikTok, blog, and more.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -28,27 +28,39 @@
   .app-hero p { font-size: 15px; color: var(--text-3); line-height: 1.5; }
 
   /* ===== INPUT SECTION ===== */
-  .input-section { max-width: 640px; margin: 24px auto 0; padding: 0 24px; }
-  .input-row { display: flex; gap: 10px; }
+  .input-section { max-width: 540px; margin: 24px auto 0; padding: 0 24px; display: flex; flex-direction: column; align-items: center; }
   .url-input {
-    flex: 1; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border);
+    width: 100%; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border);
     border-radius: 100px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--text);
-    outline: none; transition: all 0.2s;
+    outline: none; transition: all 0.2s; text-align: center;
   }
   .url-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
   .url-input::placeholder { color: var(--text-5); }
+
+  /* ===== FORMAT PICKER ===== */
+  .format-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
+  .format-pill {
+    padding: 8px 18px; border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-3);
+    cursor: pointer; transition: all 0.2s; background: var(--surface); user-select: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .format-pill:hover { border-color: var(--text-4); color: var(--text-2); }
+  .format-pill.selected { background: var(--text); color: var(--white); border-color: var(--text); }
+  .format-pill .pill-icon { font-size: 14px; }
+
   .generate-btn {
-    padding: 16px 32px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
+    margin-top: 20px; padding: 16px 48px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
     font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+    transition: all 0.2s; white-space: nowrap;
   }
   .generate-btn:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
   .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  .input-hint { font-size: 12px; color: var(--text-5); margin-top: 10px; text-align: center; }
+  .input-hint { font-size: 12px; color: var(--text-5); margin-top: 12px; }
 
   /* ===== ERROR ===== */
-  .error-msg { max-width: 640px; margin: 16px auto 0; padding: 0 24px; }
+  .error-msg { max-width: 540px; margin: 16px auto 0; padding: 0 24px; }
   .error-msg p { background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--error); }
 
   /* ===== PROCESSING STATE ===== */
@@ -101,7 +113,7 @@
   .tweet-item:last-child { border-bottom: none; }
   .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--text-4); display: block; margin-bottom: 4px; }
 
-  /* Text content (LinkedIn, Facebook, Instagram) */
+  /* Text content (LinkedIn, Facebook, Instagram, TikTok) */
   .content-text { font-size: 14px; line-height: 1.7; color: var(--text-2); white-space: pre-wrap; word-wrap: break-word; }
 
   /* Blog */
@@ -112,6 +124,10 @@
   .blog-body p { margin-bottom: 12px; }
   .blog-body ul, .blog-body ol { margin: 8px 0 12px 20px; }
   .blog-body li { margin-bottom: 4px; }
+
+  /* TikTok */
+  .tiktok-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); margin-bottom: 6px; }
+  .tiktok-section-label + .content-text { margin-bottom: 20px; }
 
   /* Quotes */
   .quote-list { display: flex; flex-direction: column; gap: 12px; }
@@ -181,8 +197,6 @@
   /* ===== RESPONSIVE ===== */
   @media (max-width: 600px) {
     .app-hero { padding: 32px 24px 4px; }
-    .input-row { flex-direction: column; }
-    .generate-btn { width: 100%; }
     .platform-grid { grid-template-columns: 1fr; }
     .results-header { flex-direction: column; gap: 12px; align-items: flex-start; }
     .paywall-card { padding: 36px 24px; }
@@ -196,15 +210,24 @@
 <!-- ===== HERO ===== -->
 <section class="app-hero">
   <h1>Turn any YouTube video into content.</h1>
-  <p>Paste a URL. Get tweets, LinkedIn posts, blog articles, Instagram captions, and quotable moments.</p>
+  <p>Paste a URL, pick your platforms, and generate.</p>
 </section>
 
 <!-- ===== INPUT ===== -->
 <div class="input-section" id="input-section">
-  <div class="input-row">
-    <input type="text" class="url-input" id="url-input" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
-    <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
+  <input type="text" class="url-input" id="url-input" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
+
+  <div class="format-picker" id="format-picker">
+    <button class="format-pill selected" data-format="twitter"><span class="pill-icon">&#120143;</span> Twitter</button>
+    <button class="format-pill selected" data-format="linkedin"><span class="pill-icon">in</span> LinkedIn</button>
+    <button class="format-pill" data-format="facebook"><span class="pill-icon">f</span> Facebook</button>
+    <button class="format-pill" data-format="instagram"><span class="pill-icon">&#128247;</span> Instagram</button>
+    <button class="format-pill" data-format="tiktok"><span class="pill-icon">&#9835;</span> TikTok</button>
+    <button class="format-pill" data-format="blog"><span class="pill-icon">&#9997;&#65039;</span> Blog</button>
+    <button class="format-pill" data-format="quotes"><span class="pill-icon">&#128172;</span> Quotes</button>
   </div>
+
+  <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
   <p class="input-hint" id="input-hint">Paste any YouTube video URL</p>
 </div>
 
@@ -232,8 +255,6 @@
   </div>
 </div>
 
-<!-- ===== PAYWALL (injected dynamically) ===== -->
-
 <script>
 (function(){
   'use strict';
@@ -243,6 +264,32 @@
   // ==============================
   var SINGLE_VIDEO_LINK = 'https://buy.stripe.com/test_bJe28tdAagezaP0bxtcAo05';
   var PRO_LINK = 'https://buy.stripe.com/test_aFa14panY5zVcX8595cAo02';
+
+  // ==============================
+  // FORMAT PICKER
+  // ==============================
+  var FORMATS = {
+    twitter:   { name: 'Twitter / X', icon: '\u{1D54F}' },
+    linkedin:  { name: 'LinkedIn',    icon: 'in' },
+    facebook:  { name: 'Facebook',    icon: 'f' },
+    instagram: { name: 'Instagram',   icon: '\u{1F4F7}' },
+    tiktok:    { name: 'TikTok',      icon: '\u{266B}' },
+    blog:      { name: 'Blog Post',   icon: '\u{270D}\u{FE0F}' },
+    quotes:    { name: 'Key Quotes',  icon: '\u{1F4AC}' }
+  };
+
+  document.getElementById('format-picker').addEventListener('click', function(e) {
+    var pill = e.target.closest('.format-pill');
+    if (!pill) return;
+    pill.classList.toggle('selected');
+  });
+
+  function getSelectedFormats() {
+    var pills = document.querySelectorAll('.format-pill.selected');
+    var formats = [];
+    pills.forEach(function(p) { formats.push(p.getAttribute('data-format')); });
+    return formats;
+  }
 
   // ==============================
   // STATE
@@ -272,21 +319,20 @@
     return false;
   }
   function consumeCredit() {
-    if (window.TGPro && TGPro.isPro()) return; // Pro = unlimited
-    if (!getFreeUsed()) { setFreeUsed(); return; } // First free
+    if (window.TGPro && TGPro.isPro()) return;
+    if (!getFreeUsed()) { setFreeUsed(); return; }
     var c = getCredits();
     if (c > 0) setCredits(c - 1);
   }
 
   // ==============================
-  // PAYMENT RETURN (per-video $5 credits)
+  // PAYMENT RETURN
   // ==============================
   function handleCreditReturn() {
     var params = new URLSearchParams(window.location.search);
     var sessionId = params.get('session_id');
     if (!sessionId || !sessionId.startsWith('cs_')) return;
 
-    // Don't double-process sessions we've already handled
     var handled = null;
     try { handled = localStorage.getItem('tg_handled_session'); } catch(e) {}
     if (handled === sessionId) {
@@ -294,15 +340,10 @@
       return;
     }
 
-    // Check if this is a subscription or a one-time payment
     fetch('/api/verify?session_id=' + encodeURIComponent(sessionId))
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        if (d.verified && d.subscriptionId) {
-          // It's a subscription — pro.js handlePaymentReturn already handles this
-          return;
-        }
-        // One-time payment — add a credit
+        if (d.verified && d.subscriptionId) return;
         setCredits(getCredits() + 1);
         try { localStorage.setItem('tg_handled_session', sessionId); } catch(e) {}
         showToast('Credit added! Generate your video.');
@@ -355,19 +396,14 @@
   // ==============================
   function extractVideoId(url) {
     url = url.trim();
-    // Direct ID (11 chars)
     if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
     try {
       var u = new URL(url);
-      // youtube.com/watch?v=
       if (u.searchParams.get('v')) return u.searchParams.get('v');
-      // youtu.be/
       if (u.hostname === 'youtu.be') return u.pathname.split('/')[1];
-      // youtube.com/shorts/ or /embed/ or /v/
       var m = u.pathname.match(/\/(shorts|embed|v)\/([a-zA-Z0-9_-]{11})/);
       if (m) return m[2];
     } catch(e) {}
-    // Fallback regex
     var r = url.match(/(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     return r ? r[1] : null;
   }
@@ -376,14 +412,15 @@
   // GENERATE
   // ==============================
   window.handleGenerate = async function() {
-    var urlInput = document.getElementById('url-input');
-    var url = urlInput.value.trim();
+    var url = document.getElementById('url-input').value.trim();
     if (!url) { showError('Please paste a YouTube URL.'); return; }
 
     var videoId = extractVideoId(url);
     if (!videoId) { showError('Could not find a valid YouTube video ID in that URL.'); return; }
 
-    // Check if user can generate
+    var formats = getSelectedFormats();
+    if (formats.length === 0) { showError('Select at least one format.'); return; }
+
     if (!canGenerate()) { showPaywall(); return; }
 
     hidePaywall();
@@ -400,22 +437,21 @@
       currentTitle = tData.title || 'Video';
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
 
-      // Step 2: Generate content
-      updateProcessing('Generating content for all platforms...', 'AI is writing tweets, posts, articles, and quotes');
+      // Step 2: Generate selected formats
+      var label = formats.length === 1 ? formats[0] : formats.length + ' formats';
+      updateProcessing('Generating ' + label + '...', 'This may take a moment');
 
       var gRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: transcriptText })
+        body: JSON.stringify({ transcript: transcriptText, formats: formats })
       });
       var gData = await gRes.json();
       if (!gRes.ok) {
         throw new Error(gData.error || 'Content generation failed.');
       }
 
-      // Consume credit
       consumeCredit();
-
       currentResult = gData;
       renderResults(gData, currentTitle);
 
@@ -467,27 +503,24 @@
     var grid = document.getElementById('platform-grid');
     grid.innerHTML = '';
 
-    // Twitter
     if (data.twitter && data.twitter.tweets) {
       grid.appendChild(buildTwitterCard(data.twitter.tweets));
     }
-    // LinkedIn
     if (data.linkedin && data.linkedin.content) {
       grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
     }
-    // Facebook
     if (data.facebook && data.facebook.content) {
       grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
     }
-    // Instagram
     if (data.instagram && data.instagram.content) {
       grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
     }
-    // Blog
+    if (data.tiktok) {
+      grid.appendChild(buildTikTokCard(data.tiktok));
+    }
     if (data.blog) {
       grid.appendChild(buildBlogCard(data.blog));
     }
-    // Quotes
     if (data.quotes && data.quotes.length) {
       grid.appendChild(buildQuotesCard(data.quotes));
     }
@@ -517,6 +550,18 @@
     pre.textContent = content;
     body.innerHTML = '';
     body.appendChild(pre);
+    return card;
+  }
+
+  function buildTikTokCard(tiktok) {
+    var copyText = (tiktok.caption || '') + '\n\n---\n\n' + (tiktok.script || '');
+    var card = makeCard('TikTok', '\u{266B}', copyText);
+    var body = card.querySelector('.card-body');
+    body.innerHTML =
+      '<div class="tiktok-section-label">Caption</div>' +
+      '<div class="content-text">' + escapeHtml(tiktok.caption || '') + '</div>' +
+      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
+      '<div class="content-text">' + escapeHtml(tiktok.script || '') + '</div>';
     return card;
   }
 
@@ -604,6 +649,9 @@
     if (currentResult.instagram) {
       parts.push('\n--- INSTAGRAM ---\n\n' + currentResult.instagram.content + '\n\n');
     }
+    if (currentResult.tiktok) {
+      parts.push('\n--- TIKTOK ---\n\nCaption:\n' + (currentResult.tiktok.caption||'') + '\n\nScript:\n' + (currentResult.tiktok.script||'') + '\n\n');
+    }
     if (currentResult.blog) {
       parts.push('\n--- BLOG POST ---\n\n# ' + (currentResult.blog.title||'') + '\n\n' + (currentResult.blog.content||'') + '\n\n');
     }
@@ -632,8 +680,6 @@
     document.getElementById('input-section').classList.remove('hidden');
     document.getElementById('url-input').value = '';
     document.getElementById('url-input').focus();
-
-    // Check gating again
     if (!canGenerate()) showPaywall();
   };
 
@@ -652,7 +698,6 @@
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
   }
 
-  // Simple markdown to HTML (headings, bold, italic, lists, paragraphs)
   function renderMarkdown(md) {
     return md
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
@@ -678,8 +723,6 @@
   // INIT
   // ==============================
   handleCreditReturn();
-
-  // Check paywall on load (after a tick for pro.js to init)
   setTimeout(function() {
     if (!canGenerate()) showPaywall();
   }, 200);
