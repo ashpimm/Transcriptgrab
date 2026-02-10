@@ -15,10 +15,8 @@ export default function handler(req, res) {
   // Set state as HttpOnly cookie (10 min TTL)
   res.setHeader('Set-Cookie', `tg_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
 
-  // Build the redirect URI from the request host
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host;
-  const redirectUri = `${protocol}://${host}/api/auth/callback`;
+  // Use production domain — Vercel preview URLs won't match Google's allowed redirect URIs
+  const redirectUri = `https://transcriptgrab.vercel.app/api/auth/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,

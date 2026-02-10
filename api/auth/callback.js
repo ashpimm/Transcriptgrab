@@ -25,9 +25,7 @@ export default async function handler(req, res) {
   const clearStateCookie = 'tg_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
 
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host;
-    const redirectUri = `${protocol}://${host}/api/auth/callback`;
+    const redirectUri = `https://transcriptgrab.vercel.app/api/auth/callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
