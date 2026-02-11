@@ -101,7 +101,8 @@
           '<div class="suite-nav-dropdown" id="nav-dropdown">' +
             '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + escapeHtml(_user.email || '') + '</div>' +
             (_user.tier === 'pro'
-              ? '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + _user.monthly_usage + ' / ' + _user.usage_limit + ' videos this month</div>'
+              ? '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + _user.monthly_usage + ' / ' + _user.usage_limit + ' videos this month</div>' +
+                '<a href="/api/checkout" class="suite-nav-drop-item" style="text-decoration:none;">Manage Subscription</a>'
               : (_user.credits > 0
                 ? '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + _user.credits + ' credit' + (_user.credits !== 1 ? 's' : '') + ' remaining</div>'
                 : '')) +

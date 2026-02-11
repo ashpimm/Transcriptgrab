@@ -401,6 +401,23 @@
     if (window.TGPro) TGPro.hideUpgradeModal();
   }
 
+  function showNoCaptions() {
+    if (document.getElementById('nocaptions-overlay')) return;
+    var div = document.createElement('div');
+    div.className = 'paywall-overlay';
+    div.id = 'nocaptions-overlay';
+    div.innerHTML =
+      '<div class="paywall-card">' +
+        '<h2>No captions available</h2>' +
+        '<p>This video doesn\u2019t have captions or subtitles enabled, so we can\u2019t extract a transcript.</p>' +
+        '<p style="font-size:13px;color:var(--text-4);margin-bottom:24px;">Try a different video, or look for one with auto-generated or manual captions.</p>' +
+        '<div class="paywall-btns">' +
+          '<button class="paywall-btn primary" onclick="document.getElementById(\'nocaptions-overlay\').remove();resetApp();">Try another video</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(div);
+  }
+
   // ==============================
   // TOAST
   // ==============================
@@ -480,6 +497,11 @@
       var tRes = await fetch('/api/transcript?v=' + videoId, { credentials: 'same-origin' });
       var tData = await tRes.json();
       if (!tRes.ok || !tData.segments) {
+        if (tData.no_captions) {
+          hideProcessing();
+          showNoCaptions();
+          return;
+        }
         throw new Error(tData.error || 'Could not fetch transcript for this video.');
       }
 

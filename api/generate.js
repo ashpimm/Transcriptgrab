@@ -95,32 +95,27 @@ export default async function handler(req, res) {
   // ===== SERVER-SIDE GATING =====
   let user = null;
   let creditToken = null;
-  try {
-    user = await getSession(req);
-  } catch (e) {
-    console.error('Session check failed:', e.message);
+
+  // Check for $5 single credit cookie first (works for all users, signed-in or not)
+  const cookies = parseCookies(req);
+  if (cookies.tg_credit) {
+    const credit = await getSingleCredit(cookies.tg_credit);
+    if (credit) {
+      creditToken = cookies.tg_credit;
+      // Allowed — will consume after successful generation
+    }
   }
 
-  if (!user) {
-    // Anonymous user — check for single credit cookie first
-    const cookies = parseCookies(req);
-    if (cookies.tg_credit) {
-      const credit = await getSingleCredit(cookies.tg_credit);
-      if (credit) {
-        creditToken = cookies.tg_credit;
-        // Allowed — will consume after successful generation
-      } else {
-        // Invalid/used credit cookie — check free usage
-        const freeUsed = req.headers['x-free-used'] === 'true';
-        if (freeUsed) {
-          return res.status(402).json({
-            error: 'Purchase a video or upgrade to Pro.',
-            upgrade: true,
-          });
-        }
-      }
-    } else {
-      // No credit cookie — check free usage
+  // If no valid credit cookie, check session and normal gating
+  if (!creditToken) {
+    try {
+      user = await getSession(req);
+    } catch (e) {
+      console.error('Session check failed:', e.message);
+    }
+
+    if (!user) {
+      // Anonymous: check if they've used their free generation
       const freeUsed = req.headers['x-free-used'] === 'true';
       if (freeUsed) {
         return res.status(402).json({
@@ -128,23 +123,23 @@ export default async function handler(req, res) {
           upgrade: true,
         });
       }
-    }
-    // Allow anonymous free generation (first video) or credit-holder
-  } else {
-    // Signed-in user: check credits/subscription
-    const check = canGenerate(user);
-    if (!check.allowed) {
-      if (check.reason === 'monthly_limit') {
-        return res.status(403).json({
-          error: 'Monthly limit reached (200 videos). Resets next month.',
-          monthly_limit: true,
-        });
-      }
-      if (check.reason === 'upgrade') {
-        return res.status(402).json({
-          error: 'No credits remaining. Purchase a video or upgrade to Pro.',
-          upgrade: true,
-        });
+      // Allow anonymous free generation (first video)
+    } else {
+      // Signed-in user: check credits/subscription
+      const check = canGenerate(user);
+      if (!check.allowed) {
+        if (check.reason === 'monthly_limit') {
+          return res.status(403).json({
+            error: 'Monthly limit reached (200 videos). Resets next month.',
+            monthly_limit: true,
+          });
+        }
+        if (check.reason === 'upgrade') {
+          return res.status(402).json({
+            error: 'No credits remaining. Purchase a video or upgrade to Pro.',
+            upgrade: true,
+          });
+        }
       }
     }
   }

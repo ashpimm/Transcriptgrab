@@ -81,7 +81,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await fetchTranscript(videoId);
+    let result = await fetchTranscript(videoId);
+
+    // Retry once on transient failures (Supadata can be flaky on first request)
+    if (!result.success && !result.noCaptions) {
+      await new Promise(r => setTimeout(r, 1500));
+      result = await fetchTranscript(videoId);
+    }
 
     if (result.success) {
       return res.status(200).json({
@@ -92,6 +98,7 @@ export default async function handler(req, res) {
 
     return res.status(404).json({
       error: result.error,
+      no_captions: result.noCaptions || false,
       source: 'none',
     });
   } catch (error) {
@@ -124,7 +131,7 @@ async function fetchTranscript(videoId) {
     const rawSegments = Array.isArray(content) ? content : content?.segments || content?.transcript || [];
 
     if (!rawSegments.length) {
-      return { success: false, error: 'No captions available for this video.' };
+      return { success: false, noCaptions: true, error: 'This video doesn\'t have captions available.' };
     }
 
     const segments = rawSegments
@@ -136,7 +143,7 @@ async function fetchTranscript(videoId) {
       }));
 
     if (segments.length === 0) {
-      return { success: false, error: 'No captions available for this video.' };
+      return { success: false, noCaptions: true, error: 'This video doesn\'t have captions available.' };
     }
 
     const title = await getVideoTitle(videoId) || `Video ${videoId}`;

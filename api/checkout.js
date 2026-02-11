@@ -9,11 +9,37 @@ export default async function handler(req, res) {
   const host = req.headers.host || '';
   const allowed = !origin || (function () { try { return new URL(origin).host === host; } catch { return false; } })();
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // ===== GET: Stripe Customer Portal (manage subscription) =====
+  if (req.method === 'GET') {
+    try {
+      const user = await getSession(req);
+      if (!user || !user.stripe_customer_id) {
+        return res.writeHead(302, { Location: '/app' }).end();
+      }
+
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: user.stripe_customer_id,
+        return_url: `${baseUrl}/app`,
+      });
+
+      return res.writeHead(302, { Location: portalSession.url }).end();
+    } catch (err) {
+      console.error('Billing portal error:', err);
+      return res.writeHead(302, { Location: '/app' }).end();
+    }
+  }
+
+  // ===== POST: Create checkout session =====
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

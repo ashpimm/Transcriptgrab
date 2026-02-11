@@ -67,7 +67,7 @@
       document.body.style.overflow = 'hidden';
       overlay.querySelector('.tg-modal-backdrop').addEventListener('click', function(){ TGPro.hideUpgradeModal(); });
 
-      // $5 click — straight to anonymous Stripe checkout
+      // $5 click — always anonymous checkout, no sign-in needed
       var singleBtn = document.getElementById('tg-buy-single');
       if (singleBtn) {
         singleBtn.addEventListener('click', function() {
