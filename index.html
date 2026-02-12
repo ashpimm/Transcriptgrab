@@ -24,27 +24,136 @@
   ::selection { background: var(--text); color: var(--white); }
 
   /* ===== HERO ===== */
-  .hero { text-align: center; padding: 100px 40px 80px; max-width: 1000px; margin: 0 auto; }
-  .hero-title { font-size: clamp(44px, 8vw, 80px); font-weight: 900; letter-spacing: -0.04em; line-height: 1; color: var(--text); margin-bottom: 24px; }
-  .hero-subtitle { font-size: 19px; font-weight: 400; color: var(--text-3); line-height: 1.6; max-width: 560px; margin: 0 auto 40px; }
-  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .hero { text-align: center; padding: 48px 40px 40px; max-width: 1000px; margin: 0 auto; position: relative; }
+  .hero::before { content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%); width: 900px; height: 600px; background: radial-gradient(ellipse, rgba(0,113,227,0.045) 0%, transparent 65%); pointer-events: none; z-index: 0; }
+  .hero > * { position: relative; z-index: 1; }
+  .hero-title { font-size: clamp(34px, 6vw, 56px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; color: var(--text); margin-bottom: 14px; }
+  .hero-accent { color: var(--cta); }
+  .hero-subtitle { font-size: 16px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 500px; margin: 0 auto 32px; }
+  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); letter-spacing: -0.01em; text-decoration: none; }
   .btn-blue { background: var(--cta); color: var(--white); }
   .btn-blue:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
 
+  /* ===== DEMO WINDOW ===== */
+  .demo-window { max-width: 640px; margin: 0 auto; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 16px 64px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+  .demo-chrome { display: flex; align-items: center; gap: 12px; padding: 11px 16px; background: var(--accent-subtle); border-bottom: 1px solid var(--border-light); }
+  .demo-dots { display: flex; gap: 6px; }
+  .demo-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+  .demo-bar { flex: 1; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); background: var(--surface); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-light); }
+  .demo-content { position: relative; height: 360px; overflow: hidden; }
+
+  /* Demo phases */
+  .demo-phase { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; animation-duration: 16s; animation-iteration-count: infinite; animation-fill-mode: both; }
+
+  /* Phase 1: Input */
+  .demo-phase-input { animation-name: phaseInput; align-items: center; gap: 12px; padding: 28px 32px 20px; }
+  .demo-fake-input { width: 100%; max-width: 400px; padding: 11px 18px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); text-align: center; overflow: hidden; }
+  .demo-typing-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); display: inline-block; overflow: hidden; white-space: nowrap; width: 0; border-right: 2px solid var(--cta); animation: demoType 16s steps(38) infinite; }
+  .demo-pills-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; max-width: 460px; }
+  .demo-pill { padding: 4px 11px; border-radius: 100px; font-size: 10px; font-weight: 500; font-family: 'Outfit', sans-serif; border: 1px solid var(--border); color: var(--text-4); background: var(--surface); }
+  .demo-pill.sel { background: var(--text); color: var(--white); border-color: var(--text); }
+  .demo-gen { padding: 10px 32px; background: var(--cta); color: var(--white); border-radius: 100px; font-size: 13px; font-weight: 600; font-family: 'Outfit', sans-serif; }
+
+  /* Phase 2: Processing */
+  .demo-phase-proc { animation-name: phaseProc; align-items: center; justify-content: center; }
+  .demo-spinner-wrap { text-align: center; }
+  .demo-spin { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--cta); border-radius: 50%; margin: 0 auto 14px; animation: spin 0.8s linear infinite; }
+  .demo-proc-label { font-size: 14px; font-weight: 500; color: var(--text-3); margin-bottom: 4px; }
+  .demo-proc-sub { font-size: 12px; color: var(--text-5); }
+
+  /* Phase 3: Results */
+  .demo-phase-results { animation-name: phaseResults; padding: 14px 20px 20px; display: block; }
+  .demo-results-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+  .demo-results-title { font-size: 13px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+  .demo-results-dl { padding: 4px 12px; border-radius: 100px; font-size: 9px; font-weight: 600; font-family: 'Outfit', sans-serif; background: var(--accent); color: var(--white); }
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .demo-result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; opacity: 0; }
+  .demo-result-card.demo-fw { grid-column: 1 / -1; }
+  .demo-rc-head { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--border-light); font-size: 10px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+  .demo-rc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+  .demo-rc-body { padding: 8px 10px; font-size: 9.5px; line-height: 1.5; color: var(--text-3); }
+  .demo-rc-copy { margin-left: auto; padding: 2px 8px; border-radius: 100px; font-size: 8px; font-weight: 600; font-family: 'Outfit', sans-serif; background: var(--accent-subtle); border: 1px solid var(--border); color: var(--text-4); flex-shrink: 0; }
+  .demo-rc1 { animation: cr1 16s ease infinite; }
+  .demo-rc2 { animation: cr2 16s ease infinite; }
+  .demo-rc3 { animation: cr3 16s ease infinite; }
+  .demo-rc4 { animation: cr4 16s ease infinite; }
+  .demo-rc5 { animation: cr5 16s ease infinite; }
+  .demo-rc6 { animation: cr6 16s ease infinite; }
+  .demo-rc7 { animation: cr7 16s ease infinite; }
+
+  /* Demo keyframes — 16s total cycle */
+  @keyframes phaseInput {
+    0% { opacity: 0; transform: translateY(10px); }
+    2% { opacity: 1; transform: translateY(0); }
+    25% { opacity: 1; transform: translateY(0); }
+    30% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 0; }
+  }
+  @keyframes phaseProc {
+    0%, 28% { opacity: 0; transform: translateY(10px); }
+    32% { opacity: 1; transform: translateY(0); }
+    42% { opacity: 1; transform: translateY(0); }
+    47% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 0; }
+  }
+  @keyframes phaseResults {
+    0%, 44% { opacity: 0; }
+    49% { opacity: 1; }
+    88% { opacity: 1; }
+    94% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes demoType {
+    0%, 2% { width: 0; }
+    20% { width: 100%; }
+    25%, 100% { width: 100%; border-color: transparent; }
+  }
+  /* Staggered card reveals — each row offset by ~2% (~0.32s) */
+  @keyframes cr1 {
+    0%, 47% { opacity: 0; transform: translateY(12px); }
+    52% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr2 {
+    0%, 49% { opacity: 0; transform: translateY(12px); }
+    54% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr3 {
+    0%, 51% { opacity: 0; transform: translateY(12px); }
+    56% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr4 {
+    0%, 53% { opacity: 0; transform: translateY(12px); }
+    58% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr5 {
+    0%, 55% { opacity: 0; transform: translateY(12px); }
+    60% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr6 {
+    0%, 57% { opacity: 0; transform: translateY(12px); }
+    62% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes cr7 {
+    0%, 59% { opacity: 0; transform: translateY(12px); }
+    64% { opacity: 1; transform: translateY(0); }
+    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* ===== SECTIONS ===== */
   .section { max-width: 1000px; margin: 0 auto; padding: 0 40px; }
   .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-4); text-align: center; margin-bottom: 16px; }
   .section-title { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 48px; line-height: 1.2; }
 
-  /* ===== HOW IT WORKS ===== */
-  .steps-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 80px; }
-  .step-item { text-align: center; padding: 24px 16px; }
-  .step-n { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 2px solid var(--border); border-radius: 50%; font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
-  .step-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
-  .step-item p { font-size: 13px; color: var(--text-4); line-height: 1.5; }
 
   /* ===== OUTPUT SHOWCASE ===== */
   .output-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 80px; }
@@ -101,9 +210,24 @@
   footer a:hover { color: var(--text); }
 
   @media (max-width: 600px) {
-    .hero { padding: 56px 24px 48px; }
-    .hero-title { font-size: 40px; }
-    .steps-row { grid-template-columns: 1fr; gap: 0; }
+    .hero { padding: 32px 24px 32px; }
+    .hero-title { font-size: 32px; }
+    .hero-ctas { margin-bottom: 28px; }
+    .demo-content { height: 320px; }
+    .demo-phase-input { padding: 20px 14px 16px; gap: 10px; }
+    .demo-phase-results { padding: 10px 12px 16px; }
+    .demo-grid { gap: 6px; }
+    .demo-fake-input { padding: 9px 12px; }
+    .demo-typing-text { font-size: 9px; }
+    .demo-pill { padding: 3px 8px; font-size: 9px; }
+    .demo-pills-row { gap: 4px; }
+    .demo-rc-head { padding: 5px 8px; font-size: 9px; }
+    .demo-rc-body { padding: 6px 8px; font-size: 8.5px; }
+    .demo-rc-copy { padding: 1px 6px; font-size: 7px; }
+    .demo-gen { padding: 7px 20px; font-size: 11px; }
+    .demo-results-head { margin-bottom: 8px; }
+    .demo-results-title { font-size: 11px; }
+    .demo-results-dl { font-size: 8px; padding: 3px 10px; }
     .output-grid { grid-template-columns: 1fr 1fr; }
     .pricing-grid { grid-template-columns: 1fr; }
     .price-card { padding: 28px 24px; }
@@ -116,41 +240,87 @@
 
 <!-- ===== HERO ===== -->
 <section class="hero">
-  <h1 class="hero-title">Turn any YouTube video into ready-to-post content.</h1>
-  <p class="hero-subtitle">Paste a URL. Get tweets, LinkedIn posts, blog articles, Instagram captions, and quotable moments — instantly.</p>
+  <h1 class="hero-title">One video.<br><span class="hero-accent">Every platform.</span></h1>
+  <p class="hero-subtitle">Paste a YouTube URL — get tweets, LinkedIn posts, blog articles, and more. Instantly.</p>
+
+  <div class="demo-window">
+    <div class="demo-chrome">
+      <div class="demo-dots"><span></span><span></span><span></span></div>
+      <div class="demo-bar">transcriptgrab.com/app</div>
+    </div>
+    <div class="demo-content">
+      <!-- Phase 1: Input -->
+      <div class="demo-phase demo-phase-input">
+        <div class="demo-fake-input">
+          <span class="demo-typing-text">https://youtube.com/watch?v=dQw4w9...</span>
+        </div>
+        <div class="demo-pills-row">
+          <span class="demo-pill sel">&#120143; Twitter</span>
+          <span class="demo-pill sel">in LinkedIn</span>
+          <span class="demo-pill">f Facebook</span>
+          <span class="demo-pill sel">&#128247; Instagram</span>
+          <span class="demo-pill">&#9835; TikTok</span>
+          <span class="demo-pill sel">&#9997;&#65039; Blog</span>
+          <span class="demo-pill sel">&#128172; Quotes</span>
+          <span class="demo-pill">&#128196; Transcript</span>
+        </div>
+        <div class="demo-gen">Generate Content</div>
+      </div>
+
+      <!-- Phase 2: Processing -->
+      <div class="demo-phase demo-phase-proc">
+        <div class="demo-spinner-wrap">
+          <div class="demo-spin"></div>
+          <div class="demo-proc-label">Generating 5 formats...</div>
+          <div class="demo-proc-sub">This may take a moment</div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Results (matches app.html platform-grid layout) -->
+      <div class="demo-phase demo-phase-results">
+        <div class="demo-results-head">
+          <span class="demo-results-title">Your content is ready</span>
+          <span class="demo-results-dl">Download All</span>
+        </div>
+        <div class="demo-grid">
+          <!-- Row: Twitter | LinkedIn -->
+          <div class="demo-result-card demo-rc1">
+            <div class="demo-rc-head"><span class="demo-rc-icon">&#120143;</span> Twitter <span class="demo-rc-copy">Copy</span></div>
+            <div class="demo-rc-body">1/ The biggest mistake creators make is repurposing content manually...</div>
+          </div>
+          <div class="demo-result-card demo-rc2">
+            <div class="demo-rc-head"><span class="demo-rc-icon">in</span> LinkedIn <span class="demo-rc-copy">Copy</span></div>
+            <div class="demo-rc-body">I repurposed a 10-minute video into a week of content. Here's how...</div>
+          </div>
+          <!-- Row: Instagram | Quotes -->
+          <div class="demo-result-card demo-rc3">
+            <div class="demo-rc-head"><span class="demo-rc-icon">&#128247;</span> Instagram <span class="demo-rc-copy">Copy</span></div>
+            <div class="demo-rc-body">The secret to consistent content? Stop starting from scratch every time...</div>
+          </div>
+          <div class="demo-result-card demo-rc4">
+            <div class="demo-rc-head"><span class="demo-rc-icon">&#128172;</span> Key Quotes <span class="demo-rc-copy">Copy</span></div>
+            <div class="demo-rc-body">"You're working 10x harder than you need to if you create from scratch every day."</div>
+          </div>
+          <!-- Full-width: Blog -->
+          <div class="demo-result-card demo-fw demo-rc5">
+            <div class="demo-rc-head"><span class="demo-rc-icon">&#9997;&#65039;</span> Blog Post <span class="demo-rc-copy">Copy</span></div>
+            <div class="demo-rc-body"><strong>How to 10x Your Content Without Burning Out</strong> &mdash; Most creators think more content means more work. But the smartest ones...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="hero-ctas">
     <a href="/app" class="btn btn-blue">Try Free</a>
     <a href="#pricing" class="btn btn-ghost">See Pricing</a>
   </div>
 </section>
 
-<!-- ===== HOW IT WORKS ===== -->
-<div class="section">
-  <div class="section-label">How it works</div>
-  <h2 class="section-title">Three steps. That's it.</h2>
-  <div class="steps-row">
-    <div class="step-item">
-      <div class="step-n">1</div>
-      <h4>Paste a URL</h4>
-      <p>Drop any YouTube video link.</p>
-    </div>
-    <div class="step-item">
-      <div class="step-n">2</div>
-      <h4>Hit Generate</h4>
-      <p>AI creates content for every platform at once.</p>
-    </div>
-    <div class="step-item">
-      <div class="step-n">3</div>
-      <h4>Copy & post</h4>
-      <p>Ready-to-use content. Copy or download everything.</p>
-    </div>
-  </div>
-</div>
-
 <!-- ===== WHAT YOU GET ===== -->
 <div class="section">
   <div class="section-label">What you get</div>
-  <h2 class="section-title">Six formats from<br>one video.</h2>
+  <h2 class="section-title">Six formats from one video</h2>
   <div class="output-grid">
     <div class="output-card">
       <span class="output-icon">&#120143;</span>
