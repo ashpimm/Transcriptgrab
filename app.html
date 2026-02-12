@@ -107,6 +107,22 @@
   .card-body { padding: 20px; max-height: 400px; overflow-y: auto; }
   .card-body.tall { max-height: 600px; }
 
+  /* Variation tabs */
+  .variation-tabs { display: flex; gap: 4px; margin-left: auto; margin-right: 12px; }
+  .variation-tab {
+    width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--surface); font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--text-3); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .variation-tab:hover { border-color: var(--text-4); color: var(--text); }
+  .variation-tab.active { background: var(--cta); color: var(--white); border-color: var(--cta); }
+  .variation-label {
+    padding: 6px 20px; font-size: 12px; font-weight: 600; color: var(--text-4);
+    background: var(--accent-subtle); border-bottom: 1px solid var(--border-light);
+    letter-spacing: 0.02em;
+  }
+
   /* Twitter thread */
   .tweet-list { list-style: none; }
   .tweet-item { padding: 14px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; line-height: 1.5; color: var(--text-2); }
@@ -715,11 +731,26 @@
         var data = item.result;
         if (data._transcript) grid.appendChild(buildTranscriptCard(data._transcript));
         if (data.twitter && data.twitter.tweets) grid.appendChild(buildTwitterCard(data.twitter.tweets));
-        if (data.linkedin && data.linkedin.content) grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
-        if (data.facebook && data.facebook.content) grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
-        if (data.instagram && data.instagram.content) grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
-        if (data.tiktok) grid.appendChild(buildTikTokCard(data.tiktok));
-        if (data.blog) grid.appendChild(buildBlogCard(data.blog));
+        if (data.linkedin) {
+          if (Array.isArray(data.linkedin)) grid.appendChild(buildVariationTextCard('LinkedIn', 'in', data.linkedin));
+          else if (data.linkedin.content) grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
+        }
+        if (data.facebook) {
+          if (Array.isArray(data.facebook)) grid.appendChild(buildVariationTextCard('Facebook', 'f', data.facebook));
+          else if (data.facebook.content) grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
+        }
+        if (data.instagram) {
+          if (Array.isArray(data.instagram)) grid.appendChild(buildVariationTextCard('Instagram', '\u{1F4F7}', data.instagram));
+          else if (data.instagram.content) grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
+        }
+        if (data.tiktok) {
+          if (Array.isArray(data.tiktok)) grid.appendChild(buildVariationTikTokCard(data.tiktok));
+          else grid.appendChild(buildTikTokCard(data.tiktok));
+        }
+        if (data.blog) {
+          if (Array.isArray(data.blog)) grid.appendChild(buildVariationBlogCard(data.blog));
+          else grid.appendChild(buildBlogCard(data.blog));
+        }
         if (data.quotes && data.quotes.length) grid.appendChild(buildQuotesCard(data.quotes));
 
         wrapper.appendChild(grid);
@@ -755,11 +786,26 @@
         parts.push('--- TWITTER THREAD ---\n\n');
         data.twitter.tweets.forEach(function(t, i) { parts.push((i+1) + '/ ' + t + '\n\n'); });
       }
-      if (data.linkedin) parts.push('--- LINKEDIN ---\n\n' + data.linkedin.content + '\n\n');
-      if (data.facebook) parts.push('--- FACEBOOK ---\n\n' + data.facebook.content + '\n\n');
-      if (data.instagram) parts.push('--- INSTAGRAM ---\n\n' + data.instagram.content + '\n\n');
-      if (data.tiktok) parts.push('--- TIKTOK ---\n\nCaption:\n' + (data.tiktok.caption||'') + '\n\nScript:\n' + (data.tiktok.script||'') + '\n\n');
-      if (data.blog) parts.push('--- BLOG POST ---\n\n# ' + (data.blog.title||'') + '\n\n' + (data.blog.content||'') + '\n\n');
+      if (data.linkedin) {
+        parts.push('--- LINKEDIN ---\n\n');
+        writeVariations(parts, data.linkedin, function(v) { return v.content; });
+      }
+      if (data.facebook) {
+        parts.push('--- FACEBOOK ---\n\n');
+        writeVariations(parts, data.facebook, function(v) { return v.content; });
+      }
+      if (data.instagram) {
+        parts.push('--- INSTAGRAM ---\n\n');
+        writeVariations(parts, data.instagram, function(v) { return v.content; });
+      }
+      if (data.tiktok) {
+        parts.push('--- TIKTOK ---\n\n');
+        writeVariations(parts, data.tiktok, function(v) { return 'Caption:\n' + (v.caption||'') + '\n\nScript:\n' + (v.script||''); });
+      }
+      if (data.blog) {
+        parts.push('--- BLOG POST ---\n\n');
+        writeVariations(parts, data.blog, function(v) { return '# ' + (v.title||'') + '\n\n' + (v.content||''); });
+      }
       if (data.quotes) {
         parts.push('--- KEY QUOTES ---\n\n');
         data.quotes.forEach(function(q) { parts.push('"' + q.text + '"' + (q.timestamp ? ' [' + q.timestamp + ']' : '') + '\n\n'); });
@@ -823,20 +869,25 @@
     if (data.twitter && data.twitter.tweets) {
       grid.appendChild(buildTwitterCard(data.twitter.tweets));
     }
-    if (data.linkedin && data.linkedin.content) {
-      grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
+    if (data.linkedin) {
+      if (Array.isArray(data.linkedin)) grid.appendChild(buildVariationTextCard('LinkedIn', 'in', data.linkedin));
+      else if (data.linkedin.content) grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
     }
-    if (data.facebook && data.facebook.content) {
-      grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
+    if (data.facebook) {
+      if (Array.isArray(data.facebook)) grid.appendChild(buildVariationTextCard('Facebook', 'f', data.facebook));
+      else if (data.facebook.content) grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
     }
-    if (data.instagram && data.instagram.content) {
-      grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
+    if (data.instagram) {
+      if (Array.isArray(data.instagram)) grid.appendChild(buildVariationTextCard('Instagram', '\u{1F4F7}', data.instagram));
+      else if (data.instagram.content) grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
     }
     if (data.tiktok) {
-      grid.appendChild(buildTikTokCard(data.tiktok));
+      if (Array.isArray(data.tiktok)) grid.appendChild(buildVariationTikTokCard(data.tiktok));
+      else grid.appendChild(buildTikTokCard(data.tiktok));
     }
     if (data.blog) {
-      grid.appendChild(buildBlogCard(data.blog));
+      if (Array.isArray(data.blog)) grid.appendChild(buildVariationBlogCard(data.blog));
+      else grid.appendChild(buildBlogCard(data.blog));
     }
     if (data.quotes && data.quotes.length) {
       grid.appendChild(buildQuotesCard(data.quotes));
@@ -930,6 +981,140 @@
     return card;
   }
 
+  function buildVariationTextCard(name, icon, variations) {
+    var card = makeCard(name, icon, variations[0].content);
+    var header = card.querySelector('.card-header');
+    var copyBtn = header.querySelector('.card-copy-btn');
+
+    // Insert tab pills before copy button
+    var tabs = document.createElement('div');
+    tabs.className = 'variation-tabs';
+    variations.forEach(function(v, i) {
+      var tab = document.createElement('button');
+      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
+      tab.textContent = i + 1;
+      tab.setAttribute('data-idx', i);
+      tab.onclick = function() {
+        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
+        bodyContent.textContent = variations[i].content;
+        card._copyContent = variations[i].content;
+      };
+      tabs.appendChild(tab);
+    });
+    header.insertBefore(tabs, copyBtn);
+
+    // Angle label bar
+    var labelEl = document.createElement('div');
+    labelEl.className = 'variation-label';
+    labelEl.textContent = variations[0].label || 'Variation 1';
+    header.parentNode.insertBefore(labelEl, header.nextSibling);
+
+    // Body content
+    var body = card.querySelector('.card-body');
+    var bodyContent = document.createElement('div');
+    bodyContent.className = 'content-text';
+    bodyContent.textContent = variations[0].content;
+    body.innerHTML = '';
+    body.appendChild(bodyContent);
+
+    return card;
+  }
+
+  function buildVariationTikTokCard(variations) {
+    var first = variations[0];
+    var copyText = (first.caption || '') + '\n\n---\n\n' + (first.script || '');
+    var card = makeCard('TikTok', '\u{266B}', copyText);
+    var header = card.querySelector('.card-header');
+    var copyBtn = header.querySelector('.card-copy-btn');
+
+    var tabs = document.createElement('div');
+    tabs.className = 'variation-tabs';
+    variations.forEach(function(v, i) {
+      var tab = document.createElement('button');
+      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
+      tab.textContent = i + 1;
+      tab.setAttribute('data-idx', i);
+      tab.onclick = function() {
+        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
+        captionEl.textContent = variations[i].caption || '';
+        scriptEl.textContent = variations[i].script || '';
+        card._copyContent = (variations[i].caption || '') + '\n\n---\n\n' + (variations[i].script || '');
+      };
+      tabs.appendChild(tab);
+    });
+    header.insertBefore(tabs, copyBtn);
+
+    var labelEl = document.createElement('div');
+    labelEl.className = 'variation-label';
+    labelEl.textContent = first.label || 'Variation 1';
+    header.parentNode.insertBefore(labelEl, header.nextSibling);
+
+    var body = card.querySelector('.card-body');
+    body.innerHTML =
+      '<div class="tiktok-section-label">Caption</div>' +
+      '<div class="content-text" id=""></div>' +
+      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
+      '<div class="content-text"></div>';
+    var textEls = body.querySelectorAll('.content-text');
+    var captionEl = textEls[0];
+    var scriptEl = textEls[1];
+    captionEl.textContent = first.caption || '';
+    scriptEl.textContent = first.script || '';
+
+    return card;
+  }
+
+  function buildVariationBlogCard(variations) {
+    var first = variations[0];
+    var fullText = '# ' + (first.title || '') + '\n\n' + (first.content || '');
+    var card = makeCard('Blog Post', '\u{270D}\u{FE0F}', fullText);
+    card.classList.add('full-width');
+    var header = card.querySelector('.card-header');
+    var copyBtn = header.querySelector('.card-copy-btn');
+
+    var tabs = document.createElement('div');
+    tabs.className = 'variation-tabs';
+    variations.forEach(function(v, i) {
+      var tab = document.createElement('button');
+      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
+      tab.textContent = i + 1;
+      tab.setAttribute('data-idx', i);
+      tab.onclick = function() {
+        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
+        titleEl.textContent = variations[i].title || '';
+        blogBody.innerHTML = renderMarkdown(variations[i].content || '');
+        card._copyContent = '# ' + (variations[i].title || '') + '\n\n' + (variations[i].content || '');
+      };
+      tabs.appendChild(tab);
+    });
+    header.insertBefore(tabs, copyBtn);
+
+    var labelEl = document.createElement('div');
+    labelEl.className = 'variation-label';
+    labelEl.textContent = first.label || 'Variation 1';
+    header.parentNode.insertBefore(labelEl, header.nextSibling);
+
+    var body = card.querySelector('.card-body');
+    body.classList.add('tall');
+    var titleEl = document.createElement('div');
+    titleEl.className = 'blog-title';
+    titleEl.textContent = first.title || '';
+    var blogBody = document.createElement('div');
+    blogBody.className = 'blog-body';
+    blogBody.innerHTML = renderMarkdown(first.content || '');
+    body.innerHTML = '';
+    body.appendChild(titleEl);
+    body.appendChild(blogBody);
+
+    return card;
+  }
+
   function makeCard(name, icon, copyContent) {
     var card = document.createElement('div');
     card.className = 'platform-card';
@@ -957,6 +1142,20 @@
   };
 
   // ==============================
+  // DOWNLOAD HELPERS
+  // ==============================
+  function writeVariations(parts, data, formatter) {
+    if (Array.isArray(data)) {
+      data.forEach(function(v, i) {
+        parts.push('[Variation ' + (i + 1) + ': ' + (v.label || 'Untitled') + ']\n\n');
+        parts.push(formatter(v) + '\n\n');
+      });
+    } else {
+      parts.push(formatter(data) + '\n\n');
+    }
+  }
+
+  // ==============================
   // DOWNLOAD ALL
   // ==============================
   window.downloadAll = function() {
@@ -976,19 +1175,24 @@
       });
     }
     if (currentResult.linkedin) {
-      parts.push('\n--- LINKEDIN ---\n\n' + currentResult.linkedin.content + '\n\n');
+      parts.push('\n--- LINKEDIN ---\n\n');
+      writeVariations(parts, currentResult.linkedin, function(v) { return v.content; });
     }
     if (currentResult.facebook) {
-      parts.push('\n--- FACEBOOK ---\n\n' + currentResult.facebook.content + '\n\n');
+      parts.push('\n--- FACEBOOK ---\n\n');
+      writeVariations(parts, currentResult.facebook, function(v) { return v.content; });
     }
     if (currentResult.instagram) {
-      parts.push('\n--- INSTAGRAM ---\n\n' + currentResult.instagram.content + '\n\n');
+      parts.push('\n--- INSTAGRAM ---\n\n');
+      writeVariations(parts, currentResult.instagram, function(v) { return v.content; });
     }
     if (currentResult.tiktok) {
-      parts.push('\n--- TIKTOK ---\n\nCaption:\n' + (currentResult.tiktok.caption||'') + '\n\nScript:\n' + (currentResult.tiktok.script||'') + '\n\n');
+      parts.push('\n--- TIKTOK ---\n\n');
+      writeVariations(parts, currentResult.tiktok, function(v) { return 'Caption:\n' + (v.caption||'') + '\n\nScript:\n' + (v.script||''); });
     }
     if (currentResult.blog) {
-      parts.push('\n--- BLOG POST ---\n\n# ' + (currentResult.blog.title||'') + '\n\n' + (currentResult.blog.content||'') + '\n\n');
+      parts.push('\n--- BLOG POST ---\n\n');
+      writeVariations(parts, currentResult.blog, function(v) { return '# ' + (v.title||'') + '\n\n' + (v.content||''); });
     }
     if (currentResult.quotes) {
       parts.push('\n--- KEY QUOTES ---\n\n');
