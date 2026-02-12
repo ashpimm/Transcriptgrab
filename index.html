@@ -51,7 +51,7 @@
   /* Phase 1: Input */
   .demo-phase-input { animation-name: phaseInput; align-items: center; gap: 12px; padding: 28px 32px 20px; }
   .demo-fake-input { width: 100%; max-width: 400px; padding: 11px 18px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); text-align: center; overflow: hidden; }
-  .demo-typing-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); display: inline-block; overflow: hidden; white-space: nowrap; width: 0; border-right: 2px solid var(--cta); animation: demoType 16s steps(38) infinite; }
+  .demo-typing-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); display: inline-block; overflow: hidden; white-space: nowrap; width: 0; border-right: 2px solid var(--cta); animation: demoType 16s steps(34) infinite; }
   .demo-pills-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; max-width: 460px; }
   .demo-pill { padding: 4px 11px; border-radius: 100px; font-size: 10px; font-weight: 500; font-family: 'Outfit', sans-serif; border: 1px solid var(--border); color: var(--text-4); background: var(--surface); }
   .demo-pill.sel { background: var(--text); color: var(--white); border-color: var(--text); }
@@ -108,8 +108,8 @@
   }
   @keyframes demoType {
     0%, 2% { width: 0; }
-    20% { width: 100%; }
-    25%, 100% { width: 100%; border-color: transparent; }
+    20% { width: 34ch; }
+    25%, 100% { width: 34ch; border-color: transparent; }
   }
   /* Staggered card reveals — each row offset by ~2% (~0.32s) */
   @keyframes cr1 {
@@ -252,7 +252,7 @@
       <!-- Phase 1: Input -->
       <div class="demo-phase demo-phase-input">
         <div class="demo-fake-input">
-          <span class="demo-typing-text">https://youtube.com/watch?v=dQw4w9...</span>
+          <span class="demo-typing-text">https://youtube.com/watch?v=dQw4w9</span>
         </div>
         <div class="demo-pills-row">
           <span class="demo-pill sel">&#120143; Twitter</span>
