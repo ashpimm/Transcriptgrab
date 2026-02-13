@@ -4,7 +4,8 @@
       "WebSearch",
       "Bash(npm uninstall:*)",
       "Bash(ls:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(findstr:*)"
     ]
   }
 }
