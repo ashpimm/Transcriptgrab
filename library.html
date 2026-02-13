@@ -358,7 +358,7 @@
       '</div>';
 
     try {
-      var res = await fetch('/api/library/video?v=' + videoId, { credentials: 'same-origin' });
+      var res = await fetch('/api/library?v=' + videoId, { credentials: 'same-origin' });
       if (!res.ok) throw new Error('Failed to load content');
       var data = await res.json();
 
@@ -411,7 +411,7 @@
       this.disabled = true;
 
       try {
-        var res = await fetch('/api/library/video?v=' + videoId, {
+        var res = await fetch('/api/library?v=' + videoId, {
           method: 'DELETE',
           credentials: 'same-origin'
         });

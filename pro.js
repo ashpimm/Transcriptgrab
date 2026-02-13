@@ -73,7 +73,7 @@
         singleBtn.addEventListener('click', function() {
           singleBtn.disabled = true;
           singleBtn.querySelector('.tg-plan-desc').textContent = 'Redirecting...';
-          window.location.href = '/api/checkout-single';
+          window.location.href = '/api/checkout?flow=single';
         });
       }
       // $49 click — if signed in, checkout; if not, OAuth with plan=pro
