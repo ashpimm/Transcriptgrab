@@ -7,6 +7,7 @@
 <meta name="description" content="Paste a YouTube URL, get ready-to-post content for Twitter, LinkedIn, Facebook, Instagram, TikTok, blog, and more.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/content-cards.css">
 <style>
   :root {
     --white: #ffffff; --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8; --border-light: #f0f0f0;
@@ -80,88 +81,6 @@
   }
   .download-all-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
-  .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-  .platform-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    overflow: hidden; box-shadow: var(--shadow-sm); transition: all var(--transition);
-  }
-  .platform-card:hover { box-shadow: var(--shadow-md); }
-  .platform-card.full-width { grid-column: 1 / -1; }
-
-  .card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--border-light);
-  }
-  .card-platform { display: flex; align-items: center; gap: 10px; }
-  .card-icon { font-size: 18px; width: 28px; text-align: center; }
-  .card-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
-  .card-copy-btn {
-    padding: 6px 16px; background: var(--accent-subtle); border: 1px solid var(--border); border-radius: 100px;
-    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text);
-    cursor: pointer; transition: all 0.2s;
-  }
-  .card-copy-btn:hover { background: var(--border); }
-  .card-copy-btn.copied { background: var(--success); color: var(--white); border-color: var(--success); }
-
-  .card-body { padding: 20px; max-height: 400px; overflow-y: auto; }
-  .card-body.tall { max-height: 600px; }
-
-  /* Variation tabs */
-  .variation-tabs { display: flex; gap: 4px; margin-left: auto; margin-right: 12px; }
-  .variation-tab {
-    width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
-    background: var(--surface); font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 700;
-    color: var(--text-3); cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-  }
-  .variation-tab:hover { border-color: var(--text-4); color: var(--text); }
-  .variation-tab.active { background: var(--cta); color: var(--white); border-color: var(--cta); }
-  .variation-label {
-    padding: 6px 20px; font-size: 12px; font-weight: 600; color: var(--text-4);
-    background: var(--accent-subtle); border-bottom: 1px solid var(--border-light);
-    letter-spacing: 0.02em;
-  }
-
-  /* Twitter thread */
-  .tweet-list { list-style: none; }
-  .tweet-item { padding: 14px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; line-height: 1.5; color: var(--text-2); }
-  .tweet-item:last-child { border-bottom: none; }
-  .tweet-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--text-4); display: block; margin-bottom: 4px; }
-
-  /* Text content (LinkedIn, Facebook, Instagram, TikTok) */
-  .content-text { font-size: 14px; line-height: 1.7; color: var(--text-2); white-space: pre-wrap; word-wrap: break-word; }
-
-  /* Blog */
-  .blog-title { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 16px; line-height: 1.3; }
-  .blog-body { font-size: 14px; line-height: 1.8; color: var(--text-2); }
-  .blog-body h2 { font-size: 18px; font-weight: 700; margin: 24px 0 8px; color: var(--text); }
-  .blog-body h3 { font-size: 16px; font-weight: 700; margin: 20px 0 6px; color: var(--text); }
-  .blog-body p { margin-bottom: 12px; }
-  .blog-body ul, .blog-body ol { margin: 8px 0 12px 20px; }
-  .blog-body li { margin-bottom: 4px; }
-
-  /* TikTok */
-  .tiktok-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); margin-bottom: 6px; }
-  .tiktok-section-label + .content-text { margin-bottom: 20px; }
-
-  /* Quotes */
-  .quote-list { display: flex; flex-direction: column; gap: 12px; }
-  .quote-card {
-    background: var(--accent-subtle); border-radius: var(--radius-sm); padding: 16px;
-    position: relative;
-  }
-  .quote-text { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--text); margin-bottom: 8px; }
-  .quote-meta { display: flex; align-items: center; justify-content: space-between; }
-  .quote-ts { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); }
-  .quote-copy {
-    padding: 4px 12px; background: var(--white); border: 1px solid var(--border); border-radius: 100px;
-    font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-3);
-    cursor: pointer; transition: all 0.2s;
-  }
-  .quote-copy:hover { border-color: var(--text-4); color: var(--text); }
-  .quote-copy.copied { background: var(--success); color: var(--white); border-color: var(--success); }
-
   /* ===== PAYWALL ===== */
   .paywall-overlay {
     position: fixed; inset: 0; z-index: 9000;
@@ -202,42 +121,15 @@
   }
   .new-video-btn:hover { background: var(--border); }
 
-  /* ===== BULK MODE ===== */
-  .mode-toggle { display: flex; justify-content: center; gap: 0; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 100px; overflow: hidden; width: fit-content; }
-  .mode-btn {
-    padding: 8px 24px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600;
-    border: none; cursor: pointer; transition: all 0.2s; background: var(--surface); color: var(--text-3);
+  /* ===== SAVED BADGE ===== */
+  .saved-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--success);
+    padding: 6px 16px; border: 1px solid rgba(52,199,89,0.2); border-radius: 100px;
+    background: rgba(52,199,89,0.06);
   }
-  .mode-btn.active { background: var(--text); color: var(--white); }
-  .mode-btn:hover:not(.active) { color: var(--text); }
-  .mode-btn .pro-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 5px; border-radius: 100px; background: var(--cta); color: var(--white); margin-left: 6px; vertical-align: middle; }
-
-  .bulk-hint { font-size: 12px; color: var(--text-5); margin-top: 12px; }
-
-  /* Bulk progress */
-  .bulk-progress { max-width: 600px; margin: 0 auto; padding: 0 40px; }
-  .bulk-progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .bulk-progress-header h3 { font-size: 16px; font-weight: 700; }
-  .bulk-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
-  .bulk-progress-fill { height: 100%; background: var(--cta); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
-  .bulk-progress-status { font-size: 13px; color: var(--text-3); margin-bottom: 8px; }
-  .bulk-video-list { list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-  .bulk-video-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px;
-  }
-  .bulk-video-item .bv-status { width: 20px; text-align: center; flex-shrink: 0; }
-  .bulk-video-item .bv-title { flex: 1; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bulk-video-item.done { border-color: var(--success); }
-  .bulk-video-item.active { border-color: var(--cta); }
-  .bulk-video-item.error { border-color: var(--error); }
-
-  /* Bulk results */
-  .bulk-results { max-width: 1200px; margin: 0 auto; padding: 0 40px 80px; }
-  .bulk-results-header { padding-top: 32px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
-  .bulk-results-header h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
-  .bulk-video-result { margin-bottom: 32px; }
-  .bulk-video-result h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+  .saved-badge a { color: var(--cta); text-decoration: none; font-weight: 600; margin-left: 4px; }
+  .saved-badge a:hover { text-decoration: underline; }
 
   /* ===== HIDDEN ===== */
   .hidden { display: none !important; }
@@ -259,6 +151,7 @@
 <body>
 <script src="/nav.js"></script>
 <script src="/pro.js"></script>
+<script src="/content-cards.js"></script>
 
 <!-- ===== HERO ===== -->
 <section class="app-hero">
@@ -268,11 +161,6 @@
 
 <!-- ===== INPUT ===== -->
 <div class="input-section" id="input-section">
-  <div class="mode-toggle hidden" id="mode-toggle">
-    <button class="mode-btn active" data-mode="single" onclick="setMode('single')">Single Video</button>
-    <button class="mode-btn" data-mode="bulk" onclick="setMode('bulk')">Bulk <span class="pro-tag">PRO</span></button>
-  </div>
-
   <input type="text" class="url-input" id="url-input" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
 
   <div class="format-picker" id="format-picker">
@@ -288,29 +176,6 @@
 
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
   <p class="input-hint" id="input-hint">Paste any YouTube video URL</p>
-</div>
-
-<!-- ===== BULK PROGRESS ===== -->
-<div class="bulk-progress hidden" id="bulk-progress">
-  <div class="bulk-progress-header">
-    <h3>Bulk Processing</h3>
-    <span id="bulk-counter" style="font-size:13px;color:#999;">0 / 0</span>
-  </div>
-  <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulk-fill"></div></div>
-  <p class="bulk-progress-status" id="bulk-status">Resolving videos...</p>
-  <ul class="bulk-video-list" id="bulk-list"></ul>
-</div>
-
-<!-- ===== BULK RESULTS ===== -->
-<div class="bulk-results hidden" id="bulk-results">
-  <div class="bulk-results-header">
-    <h2>Bulk Results</h2>
-    <button class="download-all-btn" onclick="downloadBulkAll()">Download All</button>
-  </div>
-  <div id="bulk-results-content"></div>
-  <div class="new-video-row">
-    <button class="new-video-btn" onclick="resetApp()">Start over</button>
-  </div>
 </div>
 
 <!-- ===== ERROR ===== -->
@@ -329,7 +194,10 @@
 <div class="results hidden" id="results-section">
   <div class="results-header">
     <h2 id="results-title">Your content is ready</h2>
-    <button class="download-all-btn" onclick="downloadAll()">Download All</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="saved-badge hidden" id="saved-badge">Saved to Library <a href="/library" id="saved-link">View</a></span>
+      <button class="download-all-btn" onclick="downloadAll()">Download All</button>
+    </div>
   </div>
   <div class="platform-grid" id="platform-grid"></div>
   <div class="new-video-row">
@@ -344,16 +212,6 @@
   // ==============================
   // FORMAT PICKER
   // ==============================
-  var FORMATS = {
-    twitter:   { name: 'Twitter / X', icon: '\u{1D54F}' },
-    linkedin:  { name: 'LinkedIn',    icon: 'in' },
-    facebook:  { name: 'Facebook',    icon: 'f' },
-    instagram: { name: 'Instagram',   icon: '\u{1F4F7}' },
-    tiktok:    { name: 'TikTok',      icon: '\u{266B}' },
-    blog:      { name: 'Blog Post',   icon: '\u{270D}\u{FE0F}' },
-    quotes:    { name: 'Key Quotes',  icon: '\u{1F4AC}' }
-  };
-
   document.getElementById('format-picker').addEventListener('click', function(e) {
     var pill = e.target.closest('.format-pill');
     if (!pill) return;
@@ -372,9 +230,8 @@
   // ==============================
   var currentResult = null;
   var currentTitle = '';
+  var currentVideoId = '';
   var currentTranscript = '';
-  var currentMode = 'single';
-  var bulkResults = [];
 
   // ==============================
   // CREDIT HELPERS
@@ -397,16 +254,7 @@
     if (!getFreeUsed()) return true;
     return false;
   }
-  function consumeCredit() {
-    if (window.TGPro && TGPro.isPro()) return;
-    if (!getFreeUsed()) { setFreeUsed(); return; }
-    var c = getCredits();
-    if (c > 0) setCredits(c - 1);
-  }
 
-  // ==============================
-  // PAYMENT RETURN
-  // ==============================
   // ==============================
   // PAYWALL
   // ==============================
@@ -435,18 +283,6 @@
   }
 
   // ==============================
-  // TOAST
-  // ==============================
-  function showToast(msg) {
-    if (window.TGPro && TGPro._showToast) { TGPro._showToast(msg); return; }
-    var t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 28px;border-radius:100px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;z-index:10000;';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function(){ t.remove(); }, 3000);
-  }
-
-  // ==============================
   // EXTRACT VIDEO ID
   // ==============================
   function extractVideoId(url) {
@@ -464,31 +300,9 @@
   }
 
   // ==============================
-  // MODE TOGGLE
-  // ==============================
-  window.setMode = function(mode) {
-    currentMode = mode;
-    var btns = document.querySelectorAll('.mode-btn');
-    btns.forEach(function(b) {
-      b.classList.toggle('active', b.getAttribute('data-mode') === mode);
-    });
-    var input = document.getElementById('url-input');
-    var hint = document.getElementById('input-hint');
-    if (mode === 'bulk') {
-      input.placeholder = 'https://youtube.com/@channel or playlist URL...';
-      hint.textContent = 'Paste a YouTube channel or playlist URL';
-    } else {
-      input.placeholder = 'https://youtube.com/watch?v=...';
-      hint.textContent = 'Paste any YouTube video URL';
-    }
-  };
-
-  // ==============================
   // GENERATE
   // ==============================
   window.handleGenerate = async function() {
-    if (currentMode === 'bulk') { return handleBulkGenerate(); }
-
     var url = document.getElementById('url-input').value.trim();
     if (!url) { showError('Please paste a YouTube URL.'); return; }
 
@@ -522,6 +336,7 @@
       }
 
       currentTitle = tData.title || 'Video';
+      currentVideoId = videoId;
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
       currentTranscript = tData.segments.map(function(s) {
         var mins = Math.floor(s.start / 60);
@@ -544,7 +359,12 @@
             'Content-Type': 'application/json',
             'x-free-used': getFreeUsed() ? 'true' : 'false'
           },
-          body: JSON.stringify({ transcript: transcriptText, formats: aiFormats })
+          body: JSON.stringify({
+            transcript: transcriptText,
+            formats: aiFormats,
+            videoId: videoId,
+            videoTitle: currentTitle
+          })
         });
         gData = await gRes.json();
         if (gRes.status === 402) {
@@ -570,255 +390,12 @@
       }
 
       currentResult = gData;
-      renderResults(gData, currentTitle);
+      renderResults(gData, currentTitle, videoId);
 
     } catch(err) {
       hideProcessing();
       showError(err.message);
     }
-  };
-
-  // ==============================
-  // BULK GENERATE
-  // ==============================
-  async function handleBulkGenerate() {
-    var url = document.getElementById('url-input').value.trim();
-    if (!url) { showError('Please paste a YouTube channel or playlist URL.'); return; }
-
-    var formats = getSelectedFormats();
-    if (formats.length === 0) { showError('Select at least one format.'); return; }
-    var wantTranscript = formats.indexOf('transcript') !== -1;
-    var aiFormats = formats.filter(function(f) { return f !== 'transcript'; });
-
-    // Get subscription ID
-    var proData = null;
-    try { proData = JSON.parse(localStorage.getItem('tg_pro') || 'null'); } catch(e) {}
-    var subId = proData && proData.subscriptionId ? proData.subscriptionId : '';
-    if (!subId) { showError('Pro subscription required for bulk processing.'); return; }
-
-    // Hide input, show bulk progress
-    document.getElementById('input-section').classList.add('hidden');
-    document.getElementById('error-section').classList.add('hidden');
-    var progressSec = document.getElementById('bulk-progress');
-    progressSec.classList.remove('hidden');
-    document.getElementById('bulk-status').textContent = 'Resolving videos...';
-    document.getElementById('bulk-counter').textContent = '0 / 0';
-    document.getElementById('bulk-fill').style.width = '0%';
-    document.getElementById('bulk-list').innerHTML = '';
-
-    try {
-      // Step 1: Resolve channel/playlist URL
-      var rRes = await fetch('/api/resolve?url=' + encodeURIComponent(url));
-      var rData = await rRes.json();
-      if (!rRes.ok || !rData.videos || rData.videos.length === 0) {
-        throw new Error(rData.error || 'No videos found at that URL.');
-      }
-
-      var videos = rData.videos;
-      var total = videos.length;
-      document.getElementById('bulk-counter').textContent = '0 / ' + total;
-
-      // Populate video list
-      var listEl = document.getElementById('bulk-list');
-      videos.forEach(function(v) {
-        var li = document.createElement('li');
-        li.className = 'bulk-video-item';
-        li.id = 'bv-' + v.videoId;
-        li.innerHTML = '<span class="bv-status">\u2022</span><span class="bv-title">' + escapeHtml(v.title || v.videoId) + '</span>';
-        listEl.appendChild(li);
-      });
-
-      // Step 2: Process each video
-      bulkResults = [];
-      for (var i = 0; i < total; i++) {
-        var video = videos[i];
-        var itemEl = document.getElementById('bv-' + video.videoId);
-        if (itemEl) {
-          itemEl.classList.add('active');
-          itemEl.querySelector('.bv-status').innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;display:inline-block;vertical-align:middle;"></div>';
-        }
-
-        document.getElementById('bulk-status').textContent = 'Processing: ' + (video.title || video.videoId);
-        document.getElementById('bulk-counter').textContent = (i + 1) + ' / ' + total;
-        document.getElementById('bulk-fill').style.width = ((i / total) * 100) + '%';
-
-        try {
-          // Fetch transcript (bulk mode with subscription header)
-          var tRes = await fetch('/api/transcript?v=' + video.videoId + '&mode=bulk', {
-            headers: { 'x-subscription-id': subId }
-          });
-          var tData = await tRes.json();
-          if (!tRes.ok || !tData.segments) {
-            throw new Error(tData.error || 'No transcript available');
-          }
-
-          var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
-          var timestamped = tData.segments.map(function(s) {
-            var mins = Math.floor(s.start / 60);
-            var secs = Math.floor(s.start % 60);
-            var ts = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
-            return '[' + ts + '] ' + s.text;
-          }).join('\n');
-
-          var gData = {};
-
-          // Generate AI content (if any AI formats selected)
-          if (aiFormats.length > 0) {
-            var gRes = await fetch('/api/generate', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ transcript: transcriptText, formats: aiFormats })
-            });
-            gData = await gRes.json();
-            if (!gRes.ok) {
-              throw new Error(gData.error || 'Generation failed');
-            }
-          }
-
-          if (wantTranscript) {
-            gData._transcript = timestamped;
-          }
-
-          bulkResults.push({ videoId: video.videoId, title: tData.title || video.title || video.videoId, result: gData });
-          if (itemEl) { itemEl.classList.remove('active'); itemEl.classList.add('done'); itemEl.querySelector('.bv-status').innerHTML = '\u2713'; }
-
-        } catch(videoErr) {
-          bulkResults.push({ videoId: video.videoId, title: video.title || video.videoId, result: null, error: videoErr.message });
-          if (itemEl) { itemEl.classList.remove('active'); itemEl.classList.add('error'); itemEl.querySelector('.bv-status').innerHTML = '\u2717'; }
-        }
-      }
-
-      // Done
-      document.getElementById('bulk-fill').style.width = '100%';
-      document.getElementById('bulk-status').textContent = 'Complete! ' + bulkResults.filter(function(r){ return r.result; }).length + ' of ' + total + ' succeeded.';
-
-      // Show results after short delay
-      setTimeout(function() {
-        progressSec.classList.add('hidden');
-        renderBulkResults();
-      }, 800);
-
-    } catch(err) {
-      progressSec.classList.add('hidden');
-      document.getElementById('input-section').classList.remove('hidden');
-      showError(err.message);
-    }
-  }
-
-  function renderBulkResults() {
-    var sec = document.getElementById('bulk-results');
-    var content = document.getElementById('bulk-results-content');
-    content.innerHTML = '';
-
-    bulkResults.forEach(function(item) {
-      var wrapper = document.createElement('div');
-      wrapper.className = 'bulk-video-result';
-
-      var h3 = document.createElement('h3');
-      h3.textContent = item.title;
-      wrapper.appendChild(h3);
-
-      if (item.error || !item.result) {
-        var errP = document.createElement('p');
-        errP.style.cssText = 'color:var(--error);font-size:13px;';
-        errP.textContent = 'Failed: ' + (item.error || 'Unknown error');
-        wrapper.appendChild(errP);
-      } else {
-        var grid = document.createElement('div');
-        grid.className = 'platform-grid';
-
-        var data = item.result;
-        if (data._transcript) grid.appendChild(buildTranscriptCard(data._transcript));
-        if (data.twitter && data.twitter.tweets) grid.appendChild(buildTwitterCard(data.twitter.tweets));
-        if (data.linkedin) {
-          if (Array.isArray(data.linkedin)) grid.appendChild(buildVariationTextCard('LinkedIn', 'in', data.linkedin));
-          else if (data.linkedin.content) grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
-        }
-        if (data.facebook) {
-          if (Array.isArray(data.facebook)) grid.appendChild(buildVariationTextCard('Facebook', 'f', data.facebook));
-          else if (data.facebook.content) grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
-        }
-        if (data.instagram) {
-          if (Array.isArray(data.instagram)) grid.appendChild(buildVariationTextCard('Instagram', '\u{1F4F7}', data.instagram));
-          else if (data.instagram.content) grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
-        }
-        if (data.tiktok) {
-          if (Array.isArray(data.tiktok)) grid.appendChild(buildVariationTikTokCard(data.tiktok));
-          else grid.appendChild(buildTikTokCard(data.tiktok));
-        }
-        if (data.blog) {
-          if (Array.isArray(data.blog)) grid.appendChild(buildVariationBlogCard(data.blog));
-          else grid.appendChild(buildBlogCard(data.blog));
-        }
-        if (data.quotes && data.quotes.length) grid.appendChild(buildQuotesCard(data.quotes));
-
-        wrapper.appendChild(grid);
-      }
-
-      content.appendChild(wrapper);
-    });
-
-    sec.classList.remove('hidden');
-    sec.classList.add('fade-in');
-  }
-
-  window.downloadBulkAll = function() {
-    if (!bulkResults.length) return;
-    var parts = [];
-    parts.push('=== BULK EXPORT ===\n');
-    parts.push('Generated by TranscriptGrab\n');
-    parts.push(bulkResults.length + ' videos processed\n\n');
-
-    bulkResults.forEach(function(item, idx) {
-      parts.push('========================================\n');
-      parts.push('VIDEO ' + (idx + 1) + ': ' + item.title + '\n');
-      parts.push('========================================\n\n');
-
-      if (item.error || !item.result) {
-        parts.push('FAILED: ' + (item.error || 'Unknown error') + '\n\n');
-        return;
-      }
-
-      var data = item.result;
-      if (data._transcript) parts.push('--- TRANSCRIPT ---\n\n' + data._transcript + '\n\n');
-      if (data.twitter && data.twitter.tweets) {
-        parts.push('--- TWITTER THREAD ---\n\n');
-        data.twitter.tweets.forEach(function(t, i) { parts.push((i+1) + '/ ' + t + '\n\n'); });
-      }
-      if (data.linkedin) {
-        parts.push('--- LINKEDIN ---\n\n');
-        writeVariations(parts, data.linkedin, function(v) { return v.content; });
-      }
-      if (data.facebook) {
-        parts.push('--- FACEBOOK ---\n\n');
-        writeVariations(parts, data.facebook, function(v) { return v.content; });
-      }
-      if (data.instagram) {
-        parts.push('--- INSTAGRAM ---\n\n');
-        writeVariations(parts, data.instagram, function(v) { return v.content; });
-      }
-      if (data.tiktok) {
-        parts.push('--- TIKTOK ---\n\n');
-        writeVariations(parts, data.tiktok, function(v) { return 'Caption:\n' + (v.caption||'') + '\n\nScript:\n' + (v.script||''); });
-      }
-      if (data.blog) {
-        parts.push('--- BLOG POST ---\n\n');
-        writeVariations(parts, data.blog, function(v) { return '# ' + (v.title||'') + '\n\n' + (v.content||''); });
-      }
-      if (data.quotes) {
-        parts.push('--- KEY QUOTES ---\n\n');
-        data.quotes.forEach(function(q) { parts.push('"' + q.text + '"' + (q.timestamp ? ' [' + q.timestamp + ']' : '') + '\n\n'); });
-      }
-      parts.push('\n');
-    });
-
-    var blob = new Blob([parts.join('')], { type: 'text/plain' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'transcriptgrab-bulk-export.txt';
-    a.click();
-    URL.revokeObjectURL(a.href);
   };
 
   // ==============================
@@ -852,7 +429,7 @@
   // ==============================
   // RENDER RESULTS
   // ==============================
-  function renderResults(data, title) {
+  function renderResults(data, title, videoId) {
     document.getElementById('processing-section').classList.add('hidden');
     document.getElementById('input-section').classList.add('hidden');
     var sec = document.getElementById('results-section');
@@ -860,286 +437,18 @@
     sec.classList.add('fade-in');
     document.getElementById('results-title').textContent = title;
 
+    // Show saved badge for signed-in users
+    var badge = document.getElementById('saved-badge');
+    if (window.TGUser && TGUser.isSignedIn() && videoId) {
+      document.getElementById('saved-link').href = '/library?v=' + videoId;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
     var grid = document.getElementById('platform-grid');
-    grid.innerHTML = '';
-
-    if (data._transcript) {
-      grid.appendChild(buildTranscriptCard(data._transcript));
-    }
-    if (data.twitter && data.twitter.tweets) {
-      grid.appendChild(buildTwitterCard(data.twitter.tweets));
-    }
-    if (data.linkedin) {
-      if (Array.isArray(data.linkedin)) grid.appendChild(buildVariationTextCard('LinkedIn', 'in', data.linkedin));
-      else if (data.linkedin.content) grid.appendChild(buildTextCard('LinkedIn', 'in', data.linkedin.content));
-    }
-    if (data.facebook) {
-      if (Array.isArray(data.facebook)) grid.appendChild(buildVariationTextCard('Facebook', 'f', data.facebook));
-      else if (data.facebook.content) grid.appendChild(buildTextCard('Facebook', 'f', data.facebook.content));
-    }
-    if (data.instagram) {
-      if (Array.isArray(data.instagram)) grid.appendChild(buildVariationTextCard('Instagram', '\u{1F4F7}', data.instagram));
-      else if (data.instagram.content) grid.appendChild(buildTextCard('Instagram', '\u{1F4F7}', data.instagram.content));
-    }
-    if (data.tiktok) {
-      if (Array.isArray(data.tiktok)) grid.appendChild(buildVariationTikTokCard(data.tiktok));
-      else grid.appendChild(buildTikTokCard(data.tiktok));
-    }
-    if (data.blog) {
-      if (Array.isArray(data.blog)) grid.appendChild(buildVariationBlogCard(data.blog));
-      else grid.appendChild(buildBlogCard(data.blog));
-    }
-    if (data.quotes && data.quotes.length) {
-      grid.appendChild(buildQuotesCard(data.quotes));
-    }
+    TGCards.renderCards(data, grid);
   }
-
-  function buildTwitterCard(tweets) {
-    var card = makeCard('Twitter / X', '\u{1D54F}', tweets.join('\n\n'));
-    var body = card.querySelector('.card-body');
-    var list = document.createElement('ol');
-    list.className = 'tweet-list';
-    tweets.forEach(function(t, i) {
-      var li = document.createElement('li');
-      li.className = 'tweet-item';
-      li.innerHTML = '<span class="tweet-num">' + (i+1) + '/' + tweets.length + '</span>' + escapeHtml(t);
-      list.appendChild(li);
-    });
-    body.innerHTML = '';
-    body.appendChild(list);
-    return card;
-  }
-
-  function buildTranscriptCard(text) {
-    var card = makeCard('Transcript', '\u{1F4C4}', text);
-    card.classList.add('full-width');
-    var body = card.querySelector('.card-body');
-    body.classList.add('tall');
-    var pre = document.createElement('div');
-    pre.className = 'content-text';
-    pre.style.fontFamily = '"IBM Plex Mono", monospace';
-    pre.style.fontSize = '12px';
-    pre.textContent = text;
-    body.innerHTML = '';
-    body.appendChild(pre);
-    return card;
-  }
-
-  function buildTextCard(name, icon, content) {
-    var card = makeCard(name, icon, content);
-    var body = card.querySelector('.card-body');
-    var pre = document.createElement('div');
-    pre.className = 'content-text';
-    pre.textContent = content;
-    body.innerHTML = '';
-    body.appendChild(pre);
-    return card;
-  }
-
-  function buildTikTokCard(tiktok) {
-    var copyText = (tiktok.caption || '') + '\n\n---\n\n' + (tiktok.script || '');
-    var card = makeCard('TikTok', '\u{266B}', copyText);
-    var body = card.querySelector('.card-body');
-    body.innerHTML =
-      '<div class="tiktok-section-label">Caption</div>' +
-      '<div class="content-text">' + escapeHtml(tiktok.caption || '') + '</div>' +
-      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
-      '<div class="content-text">' + escapeHtml(tiktok.script || '') + '</div>';
-    return card;
-  }
-
-  function buildBlogCard(blog) {
-    var fullText = '# ' + (blog.title || '') + '\n\n' + (blog.content || '');
-    var card = makeCard('Blog Post', '\u{270D}\u{FE0F}', fullText);
-    card.classList.add('full-width');
-    var body = card.querySelector('.card-body');
-    body.classList.add('tall');
-    body.innerHTML = '<div class="blog-title">' + escapeHtml(blog.title || '') + '</div><div class="blog-body">' + renderMarkdown(blog.content || '') + '</div>';
-    return card;
-  }
-
-  function buildQuotesCard(quotes) {
-    var allText = quotes.map(function(q) { return '"' + q.text + '"'; }).join('\n\n');
-    var card = makeCard('Key Quotes', '\u{1F4AC}', allText);
-    card.classList.add('full-width');
-    var body = card.querySelector('.card-body');
-    body.innerHTML = '';
-    var list = document.createElement('div');
-    list.className = 'quote-list';
-    quotes.forEach(function(q) {
-      var qc = document.createElement('div');
-      qc.className = 'quote-card';
-      qc.innerHTML =
-        '<div class="quote-text">"' + escapeHtml(q.text) + '"</div>' +
-        '<div class="quote-meta">' +
-          '<span class="quote-ts">' + escapeHtml(q.timestamp || '') + '</span>' +
-          '<button class="quote-copy" onclick="copyText(this, ' + escapeAttr(JSON.stringify(q.tweet || q.text)) + ')">Copy</button>' +
-        '</div>';
-      list.appendChild(qc);
-    });
-    body.appendChild(list);
-    return card;
-  }
-
-  function buildVariationTextCard(name, icon, variations) {
-    var card = makeCard(name, icon, variations[0].content);
-    var header = card.querySelector('.card-header');
-    var copyBtn = header.querySelector('.card-copy-btn');
-
-    // Insert tab pills before copy button
-    var tabs = document.createElement('div');
-    tabs.className = 'variation-tabs';
-    variations.forEach(function(v, i) {
-      var tab = document.createElement('button');
-      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
-      tab.textContent = i + 1;
-      tab.setAttribute('data-idx', i);
-      tab.onclick = function() {
-        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
-        tab.classList.add('active');
-        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
-        bodyContent.textContent = variations[i].content;
-        card._copyContent = variations[i].content;
-      };
-      tabs.appendChild(tab);
-    });
-    header.insertBefore(tabs, copyBtn);
-
-    // Angle label bar
-    var labelEl = document.createElement('div');
-    labelEl.className = 'variation-label';
-    labelEl.textContent = variations[0].label || 'Variation 1';
-    header.parentNode.insertBefore(labelEl, header.nextSibling);
-
-    // Body content
-    var body = card.querySelector('.card-body');
-    var bodyContent = document.createElement('div');
-    bodyContent.className = 'content-text';
-    bodyContent.textContent = variations[0].content;
-    body.innerHTML = '';
-    body.appendChild(bodyContent);
-
-    return card;
-  }
-
-  function buildVariationTikTokCard(variations) {
-    var first = variations[0];
-    var copyText = (first.caption || '') + '\n\n---\n\n' + (first.script || '');
-    var card = makeCard('TikTok', '\u{266B}', copyText);
-    var header = card.querySelector('.card-header');
-    var copyBtn = header.querySelector('.card-copy-btn');
-
-    var tabs = document.createElement('div');
-    tabs.className = 'variation-tabs';
-    variations.forEach(function(v, i) {
-      var tab = document.createElement('button');
-      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
-      tab.textContent = i + 1;
-      tab.setAttribute('data-idx', i);
-      tab.onclick = function() {
-        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
-        tab.classList.add('active');
-        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
-        captionEl.textContent = variations[i].caption || '';
-        scriptEl.textContent = variations[i].script || '';
-        card._copyContent = (variations[i].caption || '') + '\n\n---\n\n' + (variations[i].script || '');
-      };
-      tabs.appendChild(tab);
-    });
-    header.insertBefore(tabs, copyBtn);
-
-    var labelEl = document.createElement('div');
-    labelEl.className = 'variation-label';
-    labelEl.textContent = first.label || 'Variation 1';
-    header.parentNode.insertBefore(labelEl, header.nextSibling);
-
-    var body = card.querySelector('.card-body');
-    body.innerHTML =
-      '<div class="tiktok-section-label">Caption</div>' +
-      '<div class="content-text" id=""></div>' +
-      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
-      '<div class="content-text"></div>';
-    var textEls = body.querySelectorAll('.content-text');
-    var captionEl = textEls[0];
-    var scriptEl = textEls[1];
-    captionEl.textContent = first.caption || '';
-    scriptEl.textContent = first.script || '';
-
-    return card;
-  }
-
-  function buildVariationBlogCard(variations) {
-    var first = variations[0];
-    var fullText = '# ' + (first.title || '') + '\n\n' + (first.content || '');
-    var card = makeCard('Blog Post', '\u{270D}\u{FE0F}', fullText);
-    card.classList.add('full-width');
-    var header = card.querySelector('.card-header');
-    var copyBtn = header.querySelector('.card-copy-btn');
-
-    var tabs = document.createElement('div');
-    tabs.className = 'variation-tabs';
-    variations.forEach(function(v, i) {
-      var tab = document.createElement('button');
-      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
-      tab.textContent = i + 1;
-      tab.setAttribute('data-idx', i);
-      tab.onclick = function() {
-        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
-        tab.classList.add('active');
-        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
-        titleEl.textContent = variations[i].title || '';
-        blogBody.innerHTML = renderMarkdown(variations[i].content || '');
-        card._copyContent = '# ' + (variations[i].title || '') + '\n\n' + (variations[i].content || '');
-      };
-      tabs.appendChild(tab);
-    });
-    header.insertBefore(tabs, copyBtn);
-
-    var labelEl = document.createElement('div');
-    labelEl.className = 'variation-label';
-    labelEl.textContent = first.label || 'Variation 1';
-    header.parentNode.insertBefore(labelEl, header.nextSibling);
-
-    var body = card.querySelector('.card-body');
-    body.classList.add('tall');
-    var titleEl = document.createElement('div');
-    titleEl.className = 'blog-title';
-    titleEl.textContent = first.title || '';
-    var blogBody = document.createElement('div');
-    blogBody.className = 'blog-body';
-    blogBody.innerHTML = renderMarkdown(first.content || '');
-    body.innerHTML = '';
-    body.appendChild(titleEl);
-    body.appendChild(blogBody);
-
-    return card;
-  }
-
-  function makeCard(name, icon, copyContent) {
-    var card = document.createElement('div');
-    card.className = 'platform-card';
-    card.innerHTML =
-      '<div class="card-header">' +
-        '<div class="card-platform"><span class="card-icon">' + icon + '</span><span class="card-name">' + name + '</span></div>' +
-        '<button class="card-copy-btn" onclick="copyText(this, null, this.closest(\'.platform-card\'))">Copy</button>' +
-      '</div>' +
-      '<div class="card-body"></div>';
-    card._copyContent = copyContent;
-    return card;
-  }
-
-  // ==============================
-  // COPY
-  // ==============================
-  window.copyText = function(btn, text, cardEl) {
-    if (!text && cardEl) text = cardEl._copyContent;
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(function() {
-      btn.textContent = 'Copied!';
-      btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-    });
-  };
 
   // ==============================
   // DOWNLOAD HELPERS
@@ -1215,11 +524,9 @@
   window.resetApp = function() {
     currentResult = null;
     currentTitle = '';
+    currentVideoId = '';
     currentTranscript = '';
-    bulkResults = [];
     document.getElementById('results-section').classList.add('hidden');
-    document.getElementById('bulk-progress').classList.add('hidden');
-    document.getElementById('bulk-results').classList.add('hidden');
     document.getElementById('input-section').classList.remove('hidden');
     document.getElementById('url-input').value = '';
     document.getElementById('url-input').focus();
@@ -1228,30 +535,8 @@
   // ==============================
   // UTILS
   // ==============================
-  function escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-  function escapeAttr(s) {
-    return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  }
   function slugify(s) {
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
-  }
-
-  function renderMarkdown(md) {
-    return md
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>');
   }
 
   // ==============================
@@ -1262,14 +547,12 @@
   });
 
   // ==============================
-  // INIT
+  // INIT — pre-fill from URL params (regenerate from library)
   // ==============================
-  // Show bulk toggle for Pro users (slight delay for pro.js to load)
-  setTimeout(function() {
-    if (window.TGPro && TGPro.isPro()) {
-      document.getElementById('mode-toggle').classList.remove('hidden');
-    }
-  }, 150);
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('v')) {
+    document.getElementById('url-input').value = 'https://youtube.com/watch?v=' + params.get('v');
+  }
 
 })();
 </script>

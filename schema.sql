@@ -36,3 +36,51 @@ CREATE TABLE single_credits (
   used BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- GENERATIONS (content workspace)
+-- ============================================
+CREATE TABLE generations (
+  id            SERIAL PRIMARY KEY,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  video_id      VARCHAR(11) NOT NULL,
+  video_title   VARCHAR(500) DEFAULT '',
+  video_thumb   VARCHAR(512) DEFAULT '',
+  platforms     VARCHAR(100)[] DEFAULT '{}',
+  content       JSONB NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, video_id)
+);
+CREATE INDEX idx_generations_user_id ON generations(user_id);
+CREATE INDEX idx_generations_user_created ON generations(user_id, created_at DESC);
+
+-- ============================================
+-- SOCIAL CONNECTIONS (future: auto-posting)
+-- ============================================
+CREATE TABLE social_connections (
+  id                 SERIAL PRIMARY KEY,
+  user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform           VARCHAR(30) NOT NULL,
+  platform_user_id   VARCHAR(255),
+  platform_username  VARCHAR(255),
+  access_token       TEXT,
+  refresh_token      TEXT,
+  token_expires_at   TIMESTAMPTZ,
+  connected_at       TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, platform)
+);
+
+CREATE TABLE post_status (
+  id                   SERIAL PRIMARY KEY,
+  generation_id        INTEGER NOT NULL REFERENCES generations(id) ON DELETE CASCADE,
+  platform             VARCHAR(30) NOT NULL,
+  variation_index      INTEGER DEFAULT 0,
+  status               VARCHAR(20) DEFAULT 'draft',
+  social_connection_id INTEGER REFERENCES social_connections(id) ON DELETE SET NULL,
+  posted_at            TIMESTAMPTZ,
+  external_post_id     VARCHAR(255),
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(generation_id, platform, variation_index)
+);

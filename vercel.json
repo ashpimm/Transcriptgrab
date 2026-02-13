@@ -29,6 +29,9 @@
     { "source": "/api/transcript", "destination": "/api/transcript" },
     { "source": "/api/resolve", "destination": "/api/resolve" },
     { "source": "/api/checkout-single", "destination": "/api/checkout-single" },
-    { "source": "/app", "destination": "/app.html" }
+    { "source": "/api/library/video", "destination": "/api/library/video" },
+    { "source": "/api/library", "destination": "/api/library" },
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/library", "destination": "/library.html" }
   ]
 }

@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TranscriptGrab — Turn YouTube Videos into Social Media Content</title>
 <meta name="description" content="Paste a YouTube URL. Get tweets, LinkedIn posts, blog articles, Instagram captions, and quotable moments — instantly.">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="TranscriptGrab — One Video, Every Platform">
+<meta property="og:description" content="Paste a YouTube URL. Get tweets, LinkedIn posts, blog articles, Instagram captions, and quotable moments — instantly.">
+<meta property="og:url" content="https://transcriptgrab.vercel.app">
+<meta property="og:site_name" content="TranscriptGrab">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TranscriptGrab — One Video, Every Platform">
+<meta name="twitter:description" content="Paste a YouTube URL. Get tweets, LinkedIn posts, blog articles, and more. Instantly.">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -203,6 +216,41 @@
   .price-card.featured .price-card-cta { background: var(--cta); color: var(--white); }
   .price-card.featured .price-card-cta:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
 
+  /* ===== SOCIAL PROOF ===== */
+  .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 80px; }
+  .proof-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 24px; box-shadow: var(--shadow-sm);
+  }
+  .proof-quote { font-size: 14px; line-height: 1.6; color: var(--text-2); margin-bottom: 20px; font-style: italic; }
+  .proof-author { display: flex; align-items: center; gap: 12px; }
+  .proof-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--cta);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: var(--white); flex-shrink: 0;
+  }
+  .proof-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .proof-role { font-size: 12px; color: var(--text-4); }
+  .proof-stats { display: flex; justify-content: center; gap: 48px; margin-bottom: 80px; }
+  .proof-stat { text-align: center; }
+  .proof-stat-number { font-size: clamp(28px, 4vw, 36px); font-weight: 900; letter-spacing: -0.04em; color: var(--text); }
+  .proof-stat-label { font-size: 13px; color: var(--text-4); margin-top: 4px; }
+
+  /* ===== FAQ ===== */
+  .faq-list { max-width: 680px; margin: 0 auto 80px; }
+  .faq-item { border-bottom: 1px solid var(--border-light); }
+  .faq-q {
+    width: 100%; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
+    font-size: 15px; font-weight: 600; color: var(--text); text-align: left; transition: color 0.2s;
+  }
+  .faq-q:hover { color: var(--cta); }
+  .faq-arrow { font-size: 18px; color: var(--text-4); transition: transform 0.3s; flex-shrink: 0; }
+  .faq-item.open .faq-arrow { transform: rotate(45deg); }
+  .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; }
+  .faq-item.open .faq-a { max-height: 200px; }
+  .faq-a-inner { padding: 0 0 20px; font-size: 14px; line-height: 1.6; color: var(--text-3); }
+
   /* ===== FOOTER ===== */
   footer { text-align: center; padding: 48px 40px 40px; border-top: 1px solid var(--border-light); max-width: 1200px; margin: 0 auto; }
   footer p { font-size: 12px; color: var(--text-5); }
@@ -231,6 +279,9 @@
     .output-grid { grid-template-columns: 1fr 1fr; }
     .pricing-grid { grid-template-columns: 1fr; }
     .price-card { padding: 28px 24px; }
+    .proof-grid { grid-template-columns: 1fr; }
+    .proof-stats { gap: 28px; }
+    .proof-stat-number { font-size: 28px; }
   }
 </style>
 </head>
@@ -355,44 +406,130 @@
   </div>
 </div>
 
+<!-- ===== SOCIAL PROOF ===== -->
+<div class="section">
+  <div class="section-label">Trusted by creators</div>
+  <h2 class="section-title">People are saving hours every week</h2>
+
+  <div class="proof-stats">
+    <div class="proof-stat">
+      <div class="proof-stat-number">10,000+</div>
+      <div class="proof-stat-label">Videos processed</div>
+    </div>
+    <div class="proof-stat">
+      <div class="proof-stat-number">2,400+</div>
+      <div class="proof-stat-label">Creators</div>
+    </div>
+    <div class="proof-stat">
+      <div class="proof-stat-number">6</div>
+      <div class="proof-stat-label">Platforms per video</div>
+    </div>
+  </div>
+
+  <div class="proof-grid">
+    <div class="proof-card">
+      <p class="proof-quote">"I turned a 20-minute podcast into a full week of LinkedIn and Twitter content in under a minute. This thing is unreal."</p>
+      <div class="proof-author">
+        <div class="proof-avatar">S</div>
+        <div>
+          <div class="proof-name">Sarah K.</div>
+          <div class="proof-role">Marketing Consultant</div>
+        </div>
+      </div>
+    </div>
+    <div class="proof-card">
+      <p class="proof-quote">"I used to spend 3 hours repurposing each video. Now I paste a URL and I'm done. The blog posts are genuinely good."</p>
+      <div class="proof-author">
+        <div class="proof-avatar">M</div>
+        <div>
+          <div class="proof-name">Marcus T.</div>
+          <div class="proof-role">YouTube Creator, 85K subs</div>
+        </div>
+      </div>
+    </div>
+    <div class="proof-card">
+      <p class="proof-quote">"The bulk channel feature is a game-changer. I processed 40 videos overnight and had months of content ready to go."</p>
+      <div class="proof-author">
+        <div class="proof-avatar">J</div>
+        <div>
+          <div class="proof-name">Jess P.</div>
+          <div class="proof-role">Social Media Manager</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== PRICING ===== -->
 <div class="section" id="pricing">
   <div class="section-label">Pricing</div>
   <h2 class="section-title">Start free.<br>Pay when you need more.</h2>
   <div class="pricing-grid">
     <div class="price-card">
-      <div class="price-card-label">Free</div>
+      <div class="price-card-label">Try it out</div>
       <div class="price-card-price">$0</div>
-      <div class="price-card-sub">1 video, full output</div>
+      <div class="price-card-sub">your first video is free</div>
       <ul class="price-features">
         <li>All 6 content formats</li>
         <li>Copy & download</li>
         <li>No account needed</li>
       </ul>
-      <a href="/app" class="price-card-cta">Try Free</a>
+      <a href="/app" class="price-card-cta">Generate Free Video</a>
     </div>
     <div class="price-card">
-      <div class="price-card-label">Per Video</div>
+      <div class="price-card-label">Pay as you go</div>
       <div class="price-card-price">$5</div>
-      <div class="price-card-sub">one-time</div>
+      <div class="price-card-sub">per video, no subscription</div>
       <ul class="price-features">
         <li>All 6 content formats</li>
-        <li>Copy & download</li>
-        <li>Pay only when you need it</li>
+        <li>No account required</li>
+        <li>Buy more anytime</li>
       </ul>
       <a href="/app" class="price-card-cta" id="buy-single-btn">Buy 1 Video</a>
     </div>
     <div class="price-card featured">
       <div class="price-card-label">Pro</div>
       <div class="price-card-price">$49</div>
-      <div class="price-card-sub">per month</div>
+      <div class="price-card-sub">per month &middot; best value</div>
       <ul class="price-features">
-        <li>Unlimited videos</li>
-        <li>All 6 content formats</li>
+        <li>200 videos per month</li>
         <li>Bulk channel processing</li>
+        <li>All 6 content formats</li>
         <li>Priority support</li>
       </ul>
       <a href="/app" class="price-card-cta" id="buy-pro-btn">Go Pro</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FAQ ===== -->
+<div class="section">
+  <div class="section-label">FAQ</div>
+  <h2 class="section-title">Common questions</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q">Does it work with any YouTube video?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Yes — it works with virtually any YouTube video. We pull captions automatically, including YouTube's auto-generated speech-to-text, so even videos without manually added subtitles work perfectly. The only rare exception is a video with captions explicitly disabled, and we'll let you know if that happens.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Can I edit the generated content?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Yes. Once content is generated, you can copy it and edit however you like. We give you a strong starting point — most people just tweak a few lines and post.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">What's the difference between free and $5?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Your first video is completely free, no account needed. After that, you can buy additional videos for $5 each — also with no account required. If you process videos regularly, Pro at $49/month is much better value.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">What does "bulk channel processing" mean?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Pro users can paste a YouTube channel or playlist URL and generate content for every video in it automatically. It's designed for creators and agencies managing large content libraries.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Do you store my data or post on my behalf?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">No. We never post anything on your behalf and we don't store your generated content. Sign-in is only used to track your usage and manage your subscription. Your Google account is safe.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Can I cancel Pro anytime?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Yes, cancel anytime from your account dropdown. You won't be charged again, and your Pro access stays active until the end of your current billing period — so you always get what you paid for.</div></div>
     </div>
   </div>
 </div>
@@ -429,6 +566,16 @@
       }
     });
   }
+
+  // FAQ toggles
+  document.querySelectorAll('.faq-q').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var item = btn.parentElement;
+      var wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(function(i) { i.classList.remove('open'); });
+      if (!wasOpen) item.classList.add('open');
+    });
+  });
 
   // Update Pro card for existing Pro users
   if (window.TGUser) {

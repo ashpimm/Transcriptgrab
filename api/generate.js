@@ -1,7 +1,7 @@
 // api/generate.js — Generate selected platform content from a transcript.
 
 import { handleCors, callGemini } from './_shared.js';
-import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie } from './_db.js';
+import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration } from './_db.js';
 
 const FORMAT_PROMPTS = {
   twitter: {
@@ -81,7 +81,7 @@ export const config = { maxDuration: 60 };
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  const { transcript, formats } = req.body || {};
+  const { transcript, formats, videoId, videoTitle } = req.body || {};
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
@@ -174,6 +174,16 @@ Return JSON with this exact structure:
         await consumeCredit(user);
       } catch (e) {
         console.error('Credit consumption failed:', e.message);
+      }
+    }
+
+    // Save to workspace for signed-in users (non-fatal)
+    if (user && videoId) {
+      try {
+        const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        await saveGeneration(user.id, videoId, videoTitle || '', thumb, requested, result);
+      } catch (e) {
+        console.error('Generation save failed:', e.message);
       }
     }
 

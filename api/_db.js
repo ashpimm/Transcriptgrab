@@ -258,4 +258,57 @@ export function clearCreditCookie(res) {
   }
 }
 
+// ============================================
+// GENERATIONS (content workspace)
+// ============================================
+export async function saveGeneration(userId, videoId, videoTitle, videoThumb, platforms, content) {
+  const sql = getSQL();
+  const rows = await sql`
+    INSERT INTO generations (user_id, video_id, video_title, video_thumb, platforms, content)
+    VALUES (${userId}, ${videoId}, ${videoTitle || ''}, ${videoThumb || ''}, ${platforms || []}, ${JSON.stringify(content)})
+    ON CONFLICT (user_id, video_id) DO UPDATE SET
+      video_title = EXCLUDED.video_title,
+      video_thumb = EXCLUDED.video_thumb,
+      platforms = EXCLUDED.platforms,
+      content = EXCLUDED.content,
+      updated_at = NOW()
+    RETURNING id
+  `;
+  return rows[0];
+}
+
+export async function getGenerations(userId, limit = 50, offset = 0) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT id, video_id, video_title, video_thumb, platforms, created_at, updated_at
+    FROM generations
+    WHERE user_id = ${userId}
+    ORDER BY updated_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  const countRows = await sql`
+    SELECT COUNT(*)::int AS total FROM generations WHERE user_id = ${userId}
+  `;
+  return { videos: rows, total: countRows[0].total };
+}
+
+export async function getGeneration(userId, videoId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT * FROM generations
+    WHERE user_id = ${userId} AND video_id = ${videoId}
+  `;
+  return rows[0] || null;
+}
+
+export async function deleteGeneration(userId, videoId) {
+  const sql = getSQL();
+  const rows = await sql`
+    DELETE FROM generations
+    WHERE user_id = ${userId} AND video_id = ${videoId}
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 export { getSQL };

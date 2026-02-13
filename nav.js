@@ -114,12 +114,16 @@
       rightHtml = '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
 
+    var linksHtml =
+      '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">' + appLink + '</a>';
+    if (_user) {
+      linksHtml += '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>';
+    }
+
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
         '<a href="' + brandHref + '" class="suite-nav-brand">TranscriptGrab</a>' +
-        '<div class="suite-nav-links">' +
-          '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">' + appLink + '</a>' +
-        '</div>' +
+        '<div class="suite-nav-links">' + linksHtml + '</div>' +
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
 
