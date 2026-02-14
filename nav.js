@@ -44,7 +44,7 @@
   // ============================================
   var css = document.createElement('style');
   css.textContent =
-    '.suite-nav{background:#fff;border-bottom:1px solid #e8e8e8;position:relative;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}' +
+    '.suite-nav{background:rgba(255,255,255,0.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(0,0,0,0.06);position:sticky;top:0;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}' +
     '.suite-nav-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:52px;gap:8px;}' +
     '.suite-nav-brand{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#999;text-decoration:none;flex-shrink:0;transition:color 0.2s;}' +
     '.suite-nav-brand:hover{color:#111;}' +
@@ -61,7 +61,7 @@
     '.suite-nav-pro-badge{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0071e3;padding:2px 8px;border:1px solid #0071e320;border-radius:100px;background:#0071e308;}' +
     '.suite-nav-gopro{font-size:12px;font-weight:600;color:#fff;background:#0071e3;text-decoration:none;padding:6px 16px;border-radius:100px;transition:all 0.2s;white-space:nowrap;}' +
     '.suite-nav-gopro:hover{background:#0077ED;transform:translateY(-1px);}' +
-    '.suite-nav-dropdown{position:absolute;top:100%;right:0;margin-top:8px;background:#fff;border:1px solid #e8e8e8;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.1);min-width:180px;padding:8px;z-index:1001;display:none;}' +
+    '.suite-nav-dropdown{position:absolute;top:100%;right:0;margin-top:8px;background:rgba(255,255,255,0.85);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(0,0,0,0.06);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.1),0 0 0 1px rgba(0,0,0,0.02);min-width:180px;padding:8px;z-index:1001;display:none;}' +
     '.suite-nav-dropdown.show{display:block;}' +
     '.suite-nav-drop-item{display:block;width:100%;padding:10px 14px;font-family:"Outfit",sans-serif;font-size:13px;font-weight:500;color:#666;border:none;background:none;cursor:pointer;text-align:left;border-radius:8px;transition:all 0.15s;}' +
     '.suite-nav-drop-item:hover{background:#f5f5f5;color:#111;}' +
