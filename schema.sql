@@ -56,6 +56,26 @@ CREATE INDEX idx_generations_user_id ON generations(user_id);
 CREATE INDEX idx_generations_user_created ON generations(user_id, created_at DESC);
 
 -- ============================================
+-- LINKED CHANNELS (auto-generate from channel)
+-- ============================================
+CREATE TABLE linked_channels (
+  id              SERIAL PRIMARY KEY,
+  user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  channel_url     VARCHAR(512) NOT NULL,
+  channel_name    VARCHAR(255) DEFAULT '',
+  default_formats VARCHAR(100)[] DEFAULT '{twitter,linkedin}',
+  known_video_ids TEXT[] DEFAULT '{}',
+  enabled         BOOLEAN DEFAULT TRUE,
+  last_checked_at TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+CREATE INDEX idx_linked_channels_enabled ON linked_channels(enabled);
+
+ALTER TABLE generations ADD COLUMN auto_generated BOOLEAN DEFAULT FALSE;
+
+-- ============================================
 -- SOCIAL CONNECTIONS (future: auto-posting)
 -- ============================================
 CREATE TABLE social_connections (

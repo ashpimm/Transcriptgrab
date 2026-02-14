@@ -1,6 +1,6 @@
 // api/auth/me.js — Return current user info from session cookie
 
-import { getSession } from '../_db.js';
+import { getSession, getLinkedChannel } from '../_db.js';
 
 export default async function handler(req, res) {
   // CORS
@@ -20,6 +20,25 @@ export default async function handler(req, res) {
       return res.status(200).json({ user: null });
     }
 
+    // Fetch linked channel for Pro users
+    let linked_channel = null;
+    if (user.tier === 'pro') {
+      try {
+        const ch = await getLinkedChannel(user.id);
+        if (ch) {
+          linked_channel = {
+            channel_url: ch.channel_url,
+            channel_name: ch.channel_name,
+            default_formats: ch.default_formats,
+            enabled: ch.enabled,
+            video_count: ch.known_video_ids?.length || 0,
+          };
+        }
+      } catch (e) {
+        console.error('Linked channel fetch error:', e.message);
+      }
+    }
+
     return res.status(200).json({
       user: {
         id: user.id,
@@ -30,6 +49,7 @@ export default async function handler(req, res) {
         credits: user.credits,
         monthly_usage: user.monthly_usage,
         usage_limit: user.tier === 'pro' ? 200 : 0,
+        linked_channel,
       },
     });
   } catch (err) {

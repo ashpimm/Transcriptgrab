@@ -147,6 +147,100 @@
   .confirm-btn.delete { background: var(--error); color: var(--white); }
   .confirm-btn.delete:hover { opacity: 0.9; transform: translateY(-1px); }
 
+  /* ===== CHANNEL CARD ===== */
+  .channel-section { margin-bottom: 24px; padding-top: 40px; }
+  .channel-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; transition: all var(--transition);
+  }
+  .channel-card:hover { box-shadow: var(--shadow-sm); }
+
+  /* Unlinked state */
+  .channel-unlinked { text-align: center; padding: 32px 24px; }
+  .channel-unlinked h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .channel-unlinked p { font-size: 13px; color: var(--text-3); margin-bottom: 20px; }
+  .channel-link-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .channel-link-btn:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,113,227,0.2); }
+
+  /* Linked state */
+  .channel-linked { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .channel-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .channel-status-dot.active { background: var(--success); }
+  .channel-status-dot.paused { background: var(--text-5); }
+  .channel-details { flex: 1; min-width: 0; }
+  .channel-name { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+  .channel-url-text { font-size: 12px; color: var(--text-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+  .channel-formats { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .channel-format-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 100px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    background: rgba(0,113,227,0.08); color: var(--cta); border: 1px solid rgba(0,113,227,0.15);
+  }
+  .channel-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+  .channel-action-btn {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface);
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-3);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .channel-action-btn:hover { border-color: var(--text-4); color: var(--text); }
+  .channel-action-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+  /* Channel modal */
+  .channel-modal-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(250,250,250,0.97);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .channel-modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px 32px; max-width: 480px; width: 100%; text-align: center;
+    box-shadow: var(--shadow-lg); animation: slideUp 0.2s ease;
+  }
+  .channel-modal h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+  .channel-modal p { font-size: 13px; color: var(--text-3); margin-bottom: 24px; }
+  .channel-modal-input {
+    width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text);
+    background: var(--bg); outline: none; transition: border-color 0.2s;
+  }
+  .channel-modal-input:focus { border-color: var(--cta); }
+  .channel-modal-input::placeholder { color: var(--text-5); }
+  .channel-modal-label { font-size: 13px; font-weight: 600; color: var(--text-2); margin: 20px 0 10px; display: block; text-align: left; }
+  .channel-modal .format-picker { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .channel-modal .format-pill {
+    padding: 8px 18px; border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-3);
+    background: var(--surface); cursor: pointer; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .channel-modal .format-pill:hover { border-color: var(--text-4); color: var(--text-2); }
+  .channel-modal .format-pill.selected { background: var(--text); color: var(--white); border-color: var(--text); }
+  .channel-modal .format-pill .pill-icon { font-size: 14px; }
+  .channel-modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+  .channel-modal-btn {
+    padding: 12px 28px; border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .channel-modal-btn.cancel { background: var(--accent-subtle); color: var(--text-3); border: 1px solid var(--border); }
+  .channel-modal-btn.cancel:hover { background: var(--border); color: var(--text); }
+  .channel-modal-btn.submit { background: var(--cta); color: var(--white); }
+  .channel-modal-btn.submit:hover { background: var(--cta-hover); transform: translateY(-1px); }
+  .channel-modal-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .channel-modal-error { font-size: 12px; color: var(--error); margin-top: 12px; }
+
+  /* Auto badge */
+  .auto-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 100px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    background: rgba(0,113,227,0.08); color: var(--cta); border: 1px solid rgba(0,113,227,0.15);
+  }
+
   .hidden { display: none !important; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -197,6 +291,34 @@
     <a href="/app" class="cta-btn">Generate Content</a>
   </div>
 
+  <!-- Channel section (Pro only) -->
+  <div class="channel-section hidden" id="channel-section">
+    <!-- Unlinked state -->
+    <div class="channel-card hidden" id="channel-unlinked">
+      <div class="channel-unlinked">
+        <h3>Auto-generate from your channel</h3>
+        <p>Link your YouTube channel and new uploads get content generated automatically.</p>
+        <button class="channel-link-btn" onclick="openChannelModal()">Link Channel</button>
+      </div>
+    </div>
+    <!-- Linked state -->
+    <div class="channel-card hidden" id="channel-linked">
+      <div class="channel-linked">
+        <span class="channel-status-dot" id="channel-dot"></span>
+        <div class="channel-details">
+          <div class="channel-name" id="channel-name"></div>
+          <div class="channel-url-text" id="channel-url-text"></div>
+          <div class="channel-formats" id="channel-formats"></div>
+        </div>
+        <div class="channel-actions">
+          <button class="channel-action-btn" onclick="openEditFormats()">Edit Formats</button>
+          <button class="channel-action-btn" id="channel-pause-btn" onclick="toggleChannelPause()"></button>
+          <button class="channel-action-btn danger" onclick="confirmUnlink()">Unlink</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Library content -->
   <div class="hidden" id="lib-content">
     <div class="lib-header">
@@ -214,6 +336,7 @@
   var videos = [];
   var expandedId = null;
   var contentCache = {};
+  var channelData = null;
 
   // ==============================
   // INIT
@@ -224,6 +347,9 @@
       return;
     }
     loadLibrary();
+    if (TGUser.user && TGUser.user.tier === 'pro') {
+      loadChannel();
+    }
   });
 
   // ==============================
@@ -279,6 +405,9 @@
       var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
       var badgesHtml = '';
+      if (v.auto_generated) {
+        badgesHtml += '<span class="auto-badge">AUTO</span>';
+      }
       if (v.platforms && v.platforms.length) {
         v.platforms.forEach(function(p) {
           badgesHtml += '<span class="platform-badge">' + escapeHtml(p) + '</span>';
@@ -454,6 +583,236 @@
   function escapeAttr(s) {
     return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+
+  // ==============================
+  // CHANNEL MANAGEMENT
+  // ==============================
+  async function loadChannel() {
+    try {
+      var res = await fetch('/api/channel', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      var data = await res.json();
+      channelData = data.channel;
+      renderChannel();
+    } catch(e) {
+      // Non-fatal
+    }
+  }
+
+  function renderChannel() {
+    var section = document.getElementById('channel-section');
+    var unlinked = document.getElementById('channel-unlinked');
+    var linked = document.getElementById('channel-linked');
+
+    section.classList.remove('hidden');
+
+    if (!channelData) {
+      unlinked.classList.remove('hidden');
+      linked.classList.add('hidden');
+      return;
+    }
+
+    unlinked.classList.add('hidden');
+    linked.classList.remove('hidden');
+
+    var dot = document.getElementById('channel-dot');
+    dot.className = 'channel-status-dot ' + (channelData.enabled ? 'active' : 'paused');
+
+    document.getElementById('channel-name').textContent = channelData.channel_name || 'Linked Channel';
+    document.getElementById('channel-url-text').textContent = channelData.channel_url;
+
+    var formatsEl = document.getElementById('channel-formats');
+    formatsEl.innerHTML = '';
+    if (channelData.default_formats) {
+      channelData.default_formats.forEach(function(f) {
+        formatsEl.innerHTML += '<span class="channel-format-badge">' + escapeHtml(f) + '</span>';
+      });
+    }
+
+    var pauseBtn = document.getElementById('channel-pause-btn');
+    pauseBtn.textContent = channelData.enabled ? 'Pause' : 'Resume';
+  }
+
+  // ===== LINK CHANNEL MODAL =====
+  var FORMAT_PILLS = [
+    { id: 'twitter', icon: '&#120143;', label: 'Twitter' },
+    { id: 'linkedin', icon: 'in', label: 'LinkedIn' },
+    { id: 'facebook', icon: 'f', label: 'Facebook' },
+    { id: 'instagram', icon: '&#128247;', label: 'Instagram' },
+    { id: 'tiktok', icon: '&#9835;', label: 'TikTok' },
+    { id: 'blog', icon: '&#9997;&#65039;', label: 'Blog' },
+    { id: 'quotes', icon: '&#128172;', label: 'Quotes' },
+  ];
+
+  window.openChannelModal = function(editMode) {
+    var overlay = document.createElement('div');
+    overlay.className = 'channel-modal-overlay';
+    overlay.id = 'channel-modal-overlay';
+
+    var title = editMode ? 'Edit Formats' : 'Link Channel';
+    var desc = editMode ? 'Choose which formats to auto-generate.' : 'Paste your YouTube channel URL and choose default formats.';
+
+    var urlInput = editMode ? '' :
+      '<input class="channel-modal-input" id="channel-url-input" type="text" placeholder="https://youtube.com/@yourchannel">' +
+      '<label class="channel-modal-label">Default formats</label>';
+
+    var pillsHtml = '';
+    var defaults = editMode && channelData ? channelData.default_formats : ['twitter', 'linkedin'];
+    FORMAT_PILLS.forEach(function(f) {
+      var sel = defaults.indexOf(f.id) !== -1 ? ' selected' : '';
+      pillsHtml += '<button class="format-pill' + sel + '" data-format="' + f.id + '"><span class="pill-icon">' + f.icon + '</span> ' + f.label + '</button>';
+    });
+
+    overlay.innerHTML =
+      '<div class="channel-modal">' +
+        '<h3>' + title + '</h3>' +
+        '<p>' + desc + '</p>' +
+        urlInput +
+        '<div class="format-picker" id="channel-format-picker">' + pillsHtml + '</div>' +
+        '<div class="channel-modal-error hidden" id="channel-modal-error"></div>' +
+        '<div class="channel-modal-btns">' +
+          '<button class="channel-modal-btn cancel" onclick="document.getElementById(\'channel-modal-overlay\').remove()">Cancel</button>' +
+          '<button class="channel-modal-btn submit" id="channel-submit-btn">' + (editMode ? 'Save' : 'Link Channel') + '</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+
+    // Pill click handlers
+    document.getElementById('channel-format-picker').addEventListener('click', function(e) {
+      var pill = e.target.closest('.format-pill');
+      if (!pill) return;
+      pill.classList.toggle('selected');
+    });
+
+    // Submit handler
+    document.getElementById('channel-submit-btn').onclick = async function() {
+      var btn = this;
+      var errorEl = document.getElementById('channel-modal-error');
+      errorEl.classList.add('hidden');
+
+      var selectedPills = document.querySelectorAll('#channel-format-picker .format-pill.selected');
+      var formats = [];
+      selectedPills.forEach(function(p) { formats.push(p.getAttribute('data-format')); });
+
+      if (formats.length === 0) {
+        errorEl.textContent = 'Select at least one format.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (editMode) {
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+        try {
+          var res = await fetch('/api/channel', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ formats: formats }),
+          });
+          if (!res.ok) { var d = await res.json(); throw new Error(d.error || 'Update failed'); }
+          var data = await res.json();
+          channelData = data.channel;
+          renderChannel();
+          overlay.remove();
+        } catch(e) {
+          errorEl.textContent = e.message;
+          errorEl.classList.remove('hidden');
+          btn.textContent = 'Save';
+          btn.disabled = false;
+        }
+        return;
+      }
+
+      // Link mode
+      var urlInput = document.getElementById('channel-url-input');
+      var url = urlInput.value.trim();
+      if (!url) {
+        errorEl.textContent = 'Enter a YouTube channel URL.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.textContent = 'Linking...';
+      btn.disabled = true;
+
+      try {
+        var res = await fetch('/api/channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ url: url, formats: formats }),
+        });
+        if (!res.ok) { var d = await res.json(); throw new Error(d.error || 'Link failed'); }
+        var data = await res.json();
+        channelData = data.channel;
+        renderChannel();
+        overlay.remove();
+      } catch(e) {
+        errorEl.textContent = e.message;
+        errorEl.classList.remove('hidden');
+        btn.textContent = 'Link Channel';
+        btn.disabled = false;
+      }
+    };
+  };
+
+  window.openEditFormats = function() {
+    openChannelModal(true);
+  };
+
+  window.toggleChannelPause = async function() {
+    if (!channelData) return;
+    var newState = !channelData.enabled;
+    try {
+      var res = await fetch('/api/channel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ enabled: newState }),
+      });
+      if (!res.ok) return;
+      var data = await res.json();
+      channelData = data.channel;
+      renderChannel();
+    } catch(e) {
+      // Non-fatal
+    }
+  };
+
+  window.confirmUnlink = function() {
+    var overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.id = 'confirm-overlay';
+    overlay.innerHTML =
+      '<div class="confirm-card">' +
+        '<h3>Unlink channel?</h3>' +
+        '<p>Auto-generation will stop. Your existing generated content stays in the library.</p>' +
+        '<div class="confirm-btns">' +
+          '<button class="confirm-btn cancel" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>' +
+          '<button class="confirm-btn delete" id="confirm-unlink-btn">Unlink</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('confirm-unlink-btn').onclick = async function() {
+      this.textContent = 'Unlinking...';
+      this.disabled = true;
+      try {
+        var res = await fetch('/api/channel', {
+          method: 'DELETE',
+          credentials: 'same-origin',
+        });
+        if (!res.ok) throw new Error('Unlink failed');
+        overlay.remove();
+        channelData = null;
+        renderChannel();
+      } catch(e) {
+        overlay.remove();
+      }
+    };
+  };
 
 })();
 </script>
