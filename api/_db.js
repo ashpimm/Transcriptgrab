@@ -261,16 +261,17 @@ export function clearCreditCookie(res) {
 // ============================================
 // GENERATIONS (content workspace)
 // ============================================
-export async function saveGeneration(userId, videoId, videoTitle, videoThumb, platforms, content) {
+export async function saveGeneration(userId, videoId, videoTitle, videoThumb, platforms, content, platform) {
   const sql = getSQL();
   const rows = await sql`
-    INSERT INTO generations (user_id, video_id, video_title, video_thumb, platforms, content)
-    VALUES (${userId}, ${videoId}, ${videoTitle || ''}, ${videoThumb || ''}, ${platforms || []}, ${JSON.stringify(content)})
+    INSERT INTO generations (user_id, video_id, video_title, video_thumb, platforms, content, platform)
+    VALUES (${userId}, ${videoId}, ${videoTitle || ''}, ${videoThumb || ''}, ${platforms || []}, ${JSON.stringify(content)}, ${platform || 'youtube'})
     ON CONFLICT (user_id, video_id) DO UPDATE SET
       video_title = EXCLUDED.video_title,
       video_thumb = EXCLUDED.video_thumb,
       platforms = EXCLUDED.platforms,
       content = EXCLUDED.content,
+      platform = EXCLUDED.platform,
       updated_at = NOW()
     RETURNING id
   `;
@@ -280,7 +281,7 @@ export async function saveGeneration(userId, videoId, videoTitle, videoThumb, pl
 export async function getGenerations(userId, limit = 50, offset = 0) {
   const sql = getSQL();
   const rows = await sql`
-    SELECT id, video_id, video_title, video_thumb, platforms, auto_generated, created_at, updated_at
+    SELECT id, video_id, video_title, video_thumb, platforms, platform, auto_generated, created_at, updated_at
     FROM generations
     WHERE user_id = ${userId}
     ORDER BY updated_at DESC
@@ -306,6 +307,25 @@ export async function deleteGeneration(userId, videoId) {
   const rows = await sql`
     DELETE FROM generations
     WHERE user_id = ${userId} AND video_id = ${videoId}
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+export async function getGenerationById(userId, id) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT * FROM generations
+    WHERE user_id = ${userId} AND id = ${id}
+  `;
+  return rows[0] || null;
+}
+
+export async function deleteGenerationById(userId, id) {
+  const sql = getSQL();
+  const rows = await sql`
+    DELETE FROM generations
+    WHERE user_id = ${userId} AND id = ${id}
     RETURNING id
   `;
   return rows.length > 0;

@@ -176,14 +176,14 @@
 
 <!-- ===== HERO ===== -->
 <section class="app-hero">
-  <h1>Turn any YouTube video into content.</h1>
+  <h1>Turn any video into content.</h1>
   <p>Paste a URL, pick your platforms, and generate.</p>
 </section>
 
 <!-- ===== INPUT ===== -->
 <div class="input-section" id="input-section">
   <div class="url-input-wrap">
-    <input type="text" class="url-input" id="url-input" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
+    <input type="text" class="url-input" id="url-input" placeholder="Paste a YouTube, TikTok, or Instagram URL..." autocomplete="off" spellcheck="false">
     <button class="paste-btn" id="paste-btn" title="Paste from clipboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
     </button>
@@ -201,7 +201,7 @@
   </div>
 
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
-  <p class="input-hint" id="input-hint">Paste any YouTube video URL</p>
+  <p class="input-hint" id="input-hint">Paste any video URL</p>
 </div>
 
 <!-- ===== ERROR ===== -->
@@ -257,6 +257,8 @@
   var currentResult = null;
   var currentTitle = '';
   var currentVideoId = '';
+  var currentVideoUrl = '';
+  var currentPlatform = '';
   var currentTranscript = '';
 
   // ==============================
@@ -309,20 +311,64 @@
   }
 
   // ==============================
-  // EXTRACT VIDEO ID
+  // PARSE VIDEO URL (multi-platform)
   // ==============================
-  function extractVideoId(url) {
+  function parseVideoUrl(url) {
     url = url.trim();
-    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
-    try {
-      var u = new URL(url);
-      if (u.searchParams.get('v')) return u.searchParams.get('v');
-      if (u.hostname === 'youtu.be') return u.pathname.split('/')[1];
-      var m = u.pathname.match(/\/(shorts|embed|v)\/([a-zA-Z0-9_-]{11})/);
-      if (m) return m[2];
-    } catch(e) {}
-    var r = url.match(/(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return r ? r[1] : null;
+
+    // Bare YouTube ID
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+      return { platform: 'youtube', id: url, url: 'https://www.youtube.com/watch?v=' + url };
+    }
+
+    // Ensure URL has protocol
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+    try { var u = new URL(url); } catch(e) { return null; }
+    var host = u.hostname.replace(/^www\./, '').replace(/^m\./, '');
+
+    // YouTube
+    if (host === 'youtube.com' || host === 'youtu.be') {
+      var vid = null;
+      if (u.searchParams.get('v')) vid = u.searchParams.get('v');
+      else if (host === 'youtu.be') vid = u.pathname.split('/')[1];
+      else {
+        var m = u.pathname.match(/\/(shorts|embed|v|live)\/([a-zA-Z0-9_-]{11})/);
+        if (m) vid = m[2];
+      }
+      if (vid && /^[a-zA-Z0-9_-]{11}$/.test(vid)) {
+        return { platform: 'youtube', id: vid, url: 'https://www.youtube.com/watch?v=' + vid };
+      }
+      return null;
+    }
+
+    // TikTok
+    if (host === 'tiktok.com' || host === 'vm.tiktok.com') {
+      return { platform: 'tiktok', id: url, url: url };
+    }
+
+    // Instagram
+    if (host === 'instagram.com') {
+      if (/\/(reel|p|tv)\//.test(u.pathname)) {
+        return { platform: 'instagram', id: url, url: url };
+      }
+      return null;
+    }
+
+    // Facebook
+    if (host === 'facebook.com' || host === 'fb.watch') {
+      return { platform: 'facebook', id: url, url: url };
+    }
+
+    // X / Twitter
+    if (host === 'x.com' || host === 'twitter.com') {
+      if (/\/status\/\d+/.test(u.pathname)) {
+        return { platform: 'twitter', id: url, url: url };
+      }
+      return null;
+    }
+
+    return null;
   }
 
   // ==============================
@@ -330,10 +376,10 @@
   // ==============================
   window.handleGenerate = async function() {
     var url = document.getElementById('url-input').value.trim();
-    if (!url) { showError('Please paste a YouTube URL.'); return; }
+    if (!url) { showError('Please paste a video URL.'); return; }
 
-    var videoId = extractVideoId(url);
-    if (!videoId) { showError('Could not find a valid YouTube video ID in that URL.'); return; }
+    var parsed = parseVideoUrl(url);
+    if (!parsed) { showError('Could not recognize that URL. Supported: YouTube, TikTok, Instagram, Facebook, X/Twitter.'); return; }
 
     var formats = getSelectedFormats();
     if (formats.length === 0) { showError('Select at least one format.'); return; }
@@ -350,7 +396,20 @@
 
     try {
       // Step 1: Fetch transcript
-      var tRes = await fetch('/api/transcript?v=' + videoId, { credentials: 'same-origin' });
+      var tRes = await fetch('/api/transcript?url=' + encodeURIComponent(parsed.url), { credentials: 'same-origin' });
+
+      // Handle 202 async (large video processing)
+      if (tRes.status === 202) {
+        updateProcessing('Video is being processed...', 'This may take a few seconds. Retrying...');
+        await new Promise(function(r) { setTimeout(r, 5000); });
+        tRes = await fetch('/api/transcript?url=' + encodeURIComponent(parsed.url), { credentials: 'same-origin' });
+        if (tRes.status === 202) {
+          hideProcessing();
+          showError('This video is still being processed. Please try again in a few seconds.');
+          return;
+        }
+      }
+
       var tData = await tRes.json();
       if (!tRes.ok || !tData.segments) {
         if (tData.no_captions) {
@@ -362,7 +421,9 @@
       }
 
       currentTitle = tData.title || 'Video';
-      currentVideoId = videoId;
+      currentVideoId = parsed.platform === 'youtube' ? parsed.id : '';
+      currentVideoUrl = parsed.url;
+      currentPlatform = parsed.platform;
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
       currentTranscript = tData.segments.map(function(s) {
         var mins = Math.floor(s.start / 60);
@@ -388,8 +449,10 @@
           body: JSON.stringify({
             transcript: transcriptText,
             formats: aiFormats,
-            videoId: videoId,
-            videoTitle: currentTitle
+            videoId: currentVideoId || currentVideoUrl,
+            videoTitle: currentTitle,
+            platform: currentPlatform,
+            videoUrl: currentVideoUrl
           })
         });
         gData = await gRes.json();
@@ -416,7 +479,7 @@
       }
 
       currentResult = gData;
-      renderResults(gData, currentTitle, videoId);
+      renderResults(gData, currentTitle, currentVideoId);
 
     } catch(err) {
       hideProcessing();
@@ -465,8 +528,8 @@
 
     // Show saved badge for signed-in users
     var badge = document.getElementById('saved-badge');
-    if (window.TGUser && TGUser.isSignedIn() && videoId) {
-      document.getElementById('saved-link').href = '/library?v=' + videoId;
+    if (window.TGUser && TGUser.isSignedIn() && (videoId || currentVideoUrl)) {
+      document.getElementById('saved-link').href = '/library';
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
@@ -551,6 +614,8 @@
     currentResult = null;
     currentTitle = '';
     currentVideoId = '';
+    currentVideoUrl = '';
+    currentPlatform = '';
     currentTranscript = '';
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('input-section').classList.remove('hidden');
@@ -593,7 +658,9 @@
   // INIT — pre-fill from URL params (regenerate from library)
   // ==============================
   var params = new URLSearchParams(window.location.search);
-  if (params.get('v')) {
+  if (params.get('url')) {
+    document.getElementById('url-input').value = params.get('url');
+  } else if (params.get('v')) {
     document.getElementById('url-input').value = 'https://youtube.com/watch?v=' + params.get('v');
   }
 

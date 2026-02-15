@@ -104,3 +104,11 @@ CREATE TABLE post_status (
   updated_at           TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(generation_id, platform, variation_index)
 );
+
+-- ============================================
+-- MIGRATION: Multi-platform video support
+-- ============================================
+-- Widen video_id to store full URLs for non-YouTube platforms
+ALTER TABLE generations ALTER COLUMN video_id TYPE VARCHAR(512);
+-- Add platform column to track video source
+ALTER TABLE generations ADD COLUMN platform VARCHAR(20) DEFAULT 'youtube';

@@ -116,7 +116,7 @@ async function processChannel(ch, stats) {
         continue;
       }
 
-      const prompt = `You are an expert content repurposer. Given a YouTube video transcript, generate ready-to-post content for the following platform(s).
+      const prompt = `You are an expert content repurposer. Given a video transcript, generate ready-to-post content for the following platform(s).
 
 ${promptParts.join('\n\n')}
 

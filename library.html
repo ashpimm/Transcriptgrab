@@ -257,6 +257,11 @@
     font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
     background: rgba(0,113,227,0.08); color: var(--cta); border: 1px solid rgba(0,113,227,0.15);
   }
+  .source-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 100px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--accent-subtle); color: var(--text-4); border: 1px solid var(--border-light);
+  }
 
   .hidden { display: none !important; }
 
@@ -394,9 +399,16 @@
 
       // Auto-expand from URL param
       var params = new URLSearchParams(window.location.search);
-      var autoExpand = params.get('v');
-      if (autoExpand) {
-        expandVideo(autoExpand);
+      var autoExpandId = params.get('id');
+      if (autoExpandId) {
+        expandVideo(parseInt(autoExpandId, 10));
+      } else {
+        // Legacy: ?v= looks up by video_id
+        var autoExpandV = params.get('v');
+        if (autoExpandV) {
+          var match = videos.find(function(v) { return v.video_id === autoExpandV; });
+          if (match) expandVideo(match.id);
+        }
       }
 
     } catch(e) {
@@ -416,14 +428,34 @@
     videos.forEach(function(v) {
       var item = document.createElement('div');
       item.className = 'video-item';
-      item.id = 'vi-' + v.video_id;
+      item.id = 'vi-' + v.id;
 
       var date = new Date(v.updated_at);
       var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+      var plat = v.platform || 'youtube';
+
+      // Thumbnail: use stored thumb, fallback to YouTube thumb only for YouTube
+      var thumbSrc = v.video_thumb;
+      if (!thumbSrc && plat === 'youtube' && v.video_id && /^[a-zA-Z0-9_-]{11}$/.test(v.video_id)) {
+        thumbSrc = 'https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg';
+      }
+      if (!thumbSrc) thumbSrc = '';
+
+      // Regenerate link: YouTube uses ?v=, others use ?url=
+      var regenHref;
+      if (plat === 'youtube' && v.video_id && /^[a-zA-Z0-9_-]{11}$/.test(v.video_id)) {
+        regenHref = '/app?v=' + v.video_id;
+      } else {
+        regenHref = '/app?url=' + encodeURIComponent(v.video_id);
+      }
+
       var badgesHtml = '';
       if (v.auto_generated) {
         badgesHtml += '<span class="auto-badge">AUTO</span>';
+      }
+      if (plat !== 'youtube') {
+        badgesHtml += '<span class="source-badge">' + escapeHtml(plat) + '</span>';
       }
       if (v.platforms && v.platforms.length) {
         v.platforms.forEach(function(p) {
@@ -431,32 +463,41 @@
         });
       }
 
+      var thumbHtml = thumbSrc
+        ? '<img class="video-thumb" src="' + escapeAttr(thumbSrc) + '" alt="" loading="lazy">'
+        : '<div class="video-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-4);background:var(--accent-subtle);">' + platformIcon(plat) + '</div>';
+
       item.innerHTML =
-        '<div class="video-summary" onclick="toggleVideo(\'' + v.video_id + '\')">' +
-          '<img class="video-thumb" src="' + escapeAttr(v.video_thumb || 'https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg') + '" alt="" loading="lazy">' +
+        '<div class="video-summary" onclick="toggleVideo(' + v.id + ')">' +
+          thumbHtml +
           '<div class="video-info">' +
-            '<div class="video-title">' + escapeHtml(v.video_title || v.video_id) + '</div>' +
+            '<div class="video-title">' + escapeHtml(v.video_title || 'Video') + '</div>' +
             '<div class="video-meta">' +
               '<span class="video-date">' + dateStr + '</span>' +
               '<div class="platform-badges">' + badgesHtml + '</div>' +
             '</div>' +
           '</div>' +
           '<div class="video-actions">' +
-            '<a href="/app?v=' + v.video_id + '" class="video-action-btn" onclick="event.stopPropagation()">Regenerate</a>' +
-            '<button class="video-action-btn danger" onclick="event.stopPropagation();confirmDelete(\'' + v.video_id + '\',\'' + escapeAttr(v.video_title || v.video_id) + '\')">Delete</button>' +
+            '<a href="' + escapeAttr(regenHref) + '" class="video-action-btn" onclick="event.stopPropagation()">Regenerate</a>' +
+            '<button class="video-action-btn danger" onclick="event.stopPropagation();confirmDelete(' + v.id + ',\'' + escapeAttr(v.video_title || 'Video') + '\')">Delete</button>' +
           '</div>' +
         '</div>' +
-        '<div class="video-content" id="vc-' + v.video_id + '"></div>';
+        '<div class="video-content" id="vc-' + v.id + '"></div>';
 
       list.appendChild(item);
     });
   }
 
+  function platformIcon(plat) {
+    var icons = { youtube: '&#9654;', tiktok: '&#9835;', instagram: '&#128247;', facebook: 'f', twitter: '&#120143;' };
+    return icons[plat] || '&#9654;';
+  }
+
   // ==============================
   // EXPAND / COLLAPSE
   // ==============================
-  window.toggleVideo = function(videoId) {
-    var contentEl = document.getElementById('vc-' + videoId);
+  window.toggleVideo = function(genId) {
+    var contentEl = document.getElementById('vc-' + genId);
     if (!contentEl) return;
 
     if (contentEl.classList.contains('open')) {
@@ -471,19 +512,19 @@
       if (prev) prev.classList.remove('open');
     }
 
-    expandedId = videoId;
-    expandVideo(videoId);
+    expandedId = genId;
+    expandVideo(genId);
   };
 
-  async function expandVideo(videoId) {
-    var contentEl = document.getElementById('vc-' + videoId);
+  async function expandVideo(genId) {
+    var contentEl = document.getElementById('vc-' + genId);
     if (!contentEl) return;
 
     contentEl.classList.add('open');
-    expandedId = videoId;
+    expandedId = genId;
 
     // Scroll into view
-    var item = document.getElementById('vi-' + videoId);
+    var item = document.getElementById('vi-' + genId);
     if (item) {
       setTimeout(function() {
         item.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -491,8 +532,8 @@
     }
 
     // Check cache
-    if (contentCache[videoId]) {
-      renderVideoContent(videoId, contentCache[videoId]);
+    if (contentCache[genId]) {
+      renderVideoContent(genId, contentCache[genId]);
       return;
     }
 
@@ -504,12 +545,12 @@
       '</div>';
 
     try {
-      var res = await fetch('/api/library?v=' + videoId, { credentials: 'same-origin' });
+      var res = await fetch('/api/library?id=' + genId, { credentials: 'same-origin' });
       if (!res.ok) throw new Error('Failed to load content');
       var data = await res.json();
 
-      contentCache[videoId] = data.content;
-      renderVideoContent(videoId, data.content);
+      contentCache[genId] = data.content;
+      renderVideoContent(genId, data.content);
 
     } catch(e) {
       contentEl.innerHTML =
@@ -519,8 +560,8 @@
     }
   }
 
-  function renderVideoContent(videoId, content) {
-    var contentEl = document.getElementById('vc-' + videoId);
+  function renderVideoContent(genId, content) {
+    var contentEl = document.getElementById('vc-' + genId);
     if (!contentEl) return;
 
     var inner = document.createElement('div');
@@ -537,7 +578,7 @@
   // ==============================
   // DELETE
   // ==============================
-  window.confirmDelete = function(videoId, title) {
+  window.confirmDelete = function(genId, title) {
     var overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
     overlay.id = 'confirm-overlay';
@@ -557,25 +598,25 @@
       this.disabled = true;
 
       try {
-        var res = await fetch('/api/library?v=' + videoId, {
+        var res = await fetch('/api/library?id=' + genId, {
           method: 'DELETE',
           credentials: 'same-origin'
         });
         if (!res.ok) throw new Error('Delete failed');
 
         overlay.remove();
-        delete contentCache[videoId];
+        delete contentCache[genId];
 
         // Remove from list
-        videos = videos.filter(function(v) { return v.video_id !== videoId; });
-        if (expandedId === videoId) expandedId = null;
+        videos = videos.filter(function(v) { return v.id !== genId; });
+        if (expandedId === genId) expandedId = null;
 
         if (videos.length === 0) {
           document.getElementById('lib-content').classList.add('hidden');
           document.getElementById('empty-state').classList.remove('hidden');
         } else {
           document.getElementById('lib-count').textContent = videos.length + ' video' + (videos.length !== 1 ? 's' : '');
-          var itemEl = document.getElementById('vi-' + videoId);
+          var itemEl = document.getElementById('vi-' + genId);
           if (itemEl) {
             itemEl.style.transition = 'opacity 0.3s, transform 0.3s';
             itemEl.style.opacity = '0';

@@ -9,7 +9,7 @@ export const config = { maxDuration: 60 };
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  const { transcript, formats, videoId, videoTitle } = req.body || {};
+  const { transcript, formats, videoId, videoTitle, platform, videoUrl } = req.body || {};
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   const promptParts = requested.map(f => FORMAT_PROMPTS[f].prompt);
   const schemaParts = requested.map(f => FORMAT_PROMPTS[f].schema);
 
-  const prompt = `You are an expert content repurposer. Given a YouTube video transcript, generate ready-to-post content for the following platform(s).
+  const prompt = `You are an expert content repurposer. Given a video transcript, generate ready-to-post content for the following platform(s).
 
 ${promptParts.join('\n\n')}
 
@@ -106,10 +106,14 @@ Return JSON with this exact structure:
     }
 
     // Save to workspace for signed-in users (non-fatal)
-    if (user && videoId) {
+    if (user && (videoId || videoUrl)) {
       try {
-        const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-        await saveGeneration(user.id, videoId, videoTitle || '', thumb, requested, result);
+        const plat = platform || 'youtube';
+        const thumb = plat === 'youtube' && videoId
+          ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+          : '';
+        const saveId = videoId || videoUrl;
+        await saveGeneration(user.id, saveId, videoTitle || '', thumb, requested, result, plat);
       } catch (e) {
         console.error('Generation save failed:', e.message);
       }
