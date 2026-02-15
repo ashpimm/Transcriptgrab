@@ -1,14 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/channels",
-      "schedule": "0 * * * *"
-    }
-  ],
   "redirects": [
     { "source": "/clean", "destination": "/app", "statusCode": 301 },
     { "source": "/summary", "destination": "/app", "statusCode": 301 },
@@ -29,8 +19,6 @@
     { "source": "/api/checkout", "destination": "/api/checkout" },
     { "source": "/api/webhook", "destination": "/api/webhook" },
     { "source": "/api/channel", "destination": "/api/channel" },
-    { "source": "/api/cron/cleanup", "destination": "/api/cron/cleanup" },
-    { "source": "/api/cron/channels", "destination": "/api/cron/channels" },
     { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/transcript", "destination": "/api/transcript" },
     { "source": "/api/resolve", "destination": "/api/resolve" },
