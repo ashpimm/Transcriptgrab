@@ -111,13 +111,16 @@
           '</div>' +
         '</div>';
     } else {
-      rightHtml = '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
+      rightHtml =
+        '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">Try Free</a>' +
+        '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
 
-    var linksHtml =
-      '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">' + appLink + '</a>';
+    var linksHtml = '';
     if (_user) {
-      linksHtml += '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>';
+      linksHtml =
+        '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">App</a>' +
+        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>';
     }
 
     nav.innerHTML =

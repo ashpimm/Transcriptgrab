@@ -60,7 +60,7 @@
             '<div style="text-align:center;color:#bbb;font-size:12px;margin:16px 0 8px;font-weight:500;">or purchase</div>' +
             '<div class="tg-modal-plans">' +
               '<button class="tg-modal-plan-btn tg-plan-single" id="tg-buy-single">' +
-                '<span class="tg-plan-price">$5</span>' +
+                '<span class="tg-plan-price">$4.99</span>' +
                 '<span class="tg-plan-desc">One video</span>' +
               '</button>' +
               '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
@@ -80,7 +80,7 @@
             '<p class="tg-modal-subtitle">Choose a plan to keep generating.</p>' +
             '<div class="tg-modal-plans">' +
               '<button class="tg-modal-plan-btn tg-plan-single" id="tg-buy-single">' +
-                '<span class="tg-plan-price">$5</span>' +
+                '<span class="tg-plan-price">$4.99</span>' +
                 '<span class="tg-plan-desc">One video</span>' +
               '</button>' +
               '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
@@ -237,4 +237,9 @@
   // AUTO-INIT
   // ============================================
   TGPro.handlePaymentReturn();
+
+  // Dismiss stale modal when page is restored from bfcache (browser back button)
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted) TGPro.hideUpgradeModal();
+  });
 })();
