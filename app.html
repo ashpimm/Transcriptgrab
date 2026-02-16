@@ -280,6 +280,11 @@
     if (window.TGPro && TGPro.isPro()) return true;
     if (getCredits() > 0) return true;
     if (!getFreeUsed()) return true;
+    // Check server-side credits for signed-in users
+    if (window.TGUser && TGUser.isSignedIn()) {
+      var u = TGUser.get();
+      if (u && u.credits > 0) return true;
+    }
     return false;
   }
 

@@ -1,6 +1,6 @@
 // api/auth/me.js — Return current user info from session cookie
 
-import { getSession, getLinkedChannel } from '../_db.js';
+import { getSession, getLinkedChannel, getSQL } from '../_db.js';
 
 export default async function handler(req, res) {
   // CORS
@@ -12,6 +12,17 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Lazy cleanup: ~1 in 50 requests, delete expired sessions + old single credits
+  if (Math.random() < 0.02) {
+    try {
+      const sql = getSQL();
+      await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
+      await sql`DELETE FROM single_credits WHERE used = TRUE AND created_at < NOW() - INTERVAL '7 days'`;
+    } catch (e) {
+      // Non-fatal — just housekeeping
+    }
+  }
 
   try {
     const user = await getSession(req);

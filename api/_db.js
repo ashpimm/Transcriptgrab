@@ -121,8 +121,8 @@ export async function consumeCredit(user) {
 export async function upsertGoogleUser({ googleId, email, name, picture }) {
   const sql = getSQL();
   const rows = await sql`
-    INSERT INTO users (google_id, email, name, picture)
-    VALUES (${googleId}, ${email}, ${name || ''}, ${picture || ''})
+    INSERT INTO users (google_id, email, name, picture, credits)
+    VALUES (${googleId}, ${email}, ${name || ''}, ${picture || ''}, 3)
     ON CONFLICT (google_id) DO UPDATE SET
       email = EXCLUDED.email,
       name = EXCLUDED.name,
