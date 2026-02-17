@@ -5,7 +5,7 @@
 // GET  /api/checkout-single?session_id=... → Verify anonymous payment + set credit cookie
 
 import Stripe from 'stripe';
-import { getSession, createSingleCredit, setCreditCookie } from './_db.js';
+import { getSession, createSingleCredit, getSingleCreditBySession, setCreditCookie } from './_db.js';
 
 export default async function handler(req, res) {
   // CORS
@@ -118,6 +118,13 @@ async function handleSingleCredit(req, res) {
 
       if (session.payment_status !== 'paid') {
         return res.writeHead(302, { Location: '/app?payment=error' }).end();
+      }
+
+      // Idempotent — return existing token if session already processed
+      const existing = await getSingleCreditBySession(session.id);
+      if (existing) {
+        setCreditCookie(res, existing.token);
+        return res.writeHead(302, { Location: '/app?payment=single_success' }).end();
       }
 
       const token = await createSingleCredit(session.id);

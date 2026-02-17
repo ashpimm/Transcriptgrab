@@ -38,6 +38,15 @@ CREATE TABLE single_credits (
 );
 
 -- ============================================
+-- PROCESSED CHECKOUTS (payment idempotency)
+-- ============================================
+CREATE TABLE processed_checkouts (
+  stripe_session_id VARCHAR(255) PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- GENERATIONS (content workspace)
 -- ============================================
 CREATE TABLE generations (

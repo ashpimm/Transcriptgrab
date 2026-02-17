@@ -1,14 +1,7 @@
 // api/_shared.js — Shared helpers for all AI API endpoints.
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
-import Stripe from 'stripe';
-
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-
-// In-memory subscription cache (shared across all endpoints in same cold-start)
-const subCache = new Map();
-const CACHE_TTL = 30 * 60 * 1000;
 
 /**
  * Set CORS headers and handle OPTIONS preflight.
@@ -20,42 +13,10 @@ export function handleCors(req, res) {
   const allowed = !origin || (function () { try { return new URL(origin).host === host; } catch { return false; } })();
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-free-used');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') { res.status(200).end(); return true; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return true; }
-  return false;
-}
-
-/**
- * Verify a Stripe subscription ID. Returns true if active/trialing.
- */
-export async function verifySubscription(subId) {
-  if (!subId || !stripe) return false;
-  const cached = subCache.get(subId);
-  if (cached && (Date.now() - cached.at) < CACHE_TTL) return cached.active;
-  try {
-    const sub = await stripe.subscriptions.retrieve(subId);
-    const active = sub.status === 'active' || sub.status === 'trialing';
-    subCache.set(subId, { active, at: Date.now() });
-    return active;
-  } catch { return false; }
-}
-
-/**
- * Require a valid Pro subscription. Returns true if the request was blocked (402 sent).
- */
-export async function requirePro(req, res) {
-  const subId = req.headers['x-subscription-id'];
-  if (!subId) {
-    res.status(402).json({ error: 'Pro subscription required', upgrade: true });
-    return true;
-  }
-  const isActive = await verifySubscription(subId);
-  if (!isActive) {
-    res.status(402).json({ error: 'Subscription expired or invalid', upgrade: true });
-    return true;
-  }
   return false;
 }
 

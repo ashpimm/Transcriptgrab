@@ -10,12 +10,9 @@
     return d.innerHTML;
   }
 
-  function escapeAttr(s) {
-    return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  }
-
   function renderMarkdown(md) {
-    return md
+    var safe = escapeHtml(md);
+    return safe
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
       .replace(/^# (.+)$/gm, '<h2>$1</h2>')
@@ -116,12 +113,29 @@
     quotes.forEach(function(q) {
       var qc = document.createElement('div');
       qc.className = 'quote-card';
-      qc.innerHTML =
-        '<div class="quote-text">\u201C' + escapeHtml(q.text) + '\u201D</div>' +
-        '<div class="quote-meta">' +
-          '<span class="quote-ts">' + escapeHtml(q.timestamp || '') + '</span>' +
-          '<button class="quote-copy" onclick="TGCards.copyText(this, ' + escapeAttr(JSON.stringify(q.tweet || q.text)) + ')">Copy</button>' +
-        '</div>';
+
+      var textDiv = document.createElement('div');
+      textDiv.className = 'quote-text';
+      textDiv.textContent = '\u201C' + q.text + '\u201D';
+
+      var metaDiv = document.createElement('div');
+      metaDiv.className = 'quote-meta';
+
+      var tsSpan = document.createElement('span');
+      tsSpan.className = 'quote-ts';
+      tsSpan.textContent = q.timestamp || '';
+
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'quote-copy';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', function() {
+        TGCards.copyText(copyBtn, q.tweet || q.text);
+      });
+
+      metaDiv.appendChild(tsSpan);
+      metaDiv.appendChild(copyBtn);
+      qc.appendChild(textDiv);
+      qc.appendChild(metaDiv);
       list.appendChild(qc);
     });
     body.appendChild(list);

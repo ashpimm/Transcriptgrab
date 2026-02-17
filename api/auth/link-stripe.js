@@ -1,7 +1,7 @@
 // api/auth/link-stripe.js — Link Stripe payment to user after checkout redirect
 
 import Stripe from 'stripe';
-import { getSession, setProStatus, incrementCredits, updateUser } from '../_db.js';
+import { getSession, setProStatus, incrementCredits, updateUser, claimCheckoutSession } from '../_db.js';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -24,19 +24,28 @@ export default async function handler(req, res) {
       return res.writeHead(302, { Location: '/app?payment=incomplete' }).end();
     }
 
+    // Verify this session belongs to the current user
+    if (session.client_reference_id !== String(user.id)) {
+      return res.writeHead(302, { Location: '/app?payment=error' }).end();
+    }
+
+    // Idempotency — only grant once per session_id
+    const claimed = await claimCheckoutSession(session.id, user.id);
+    if (!claimed) {
+      return res.writeHead(302, { Location: '/app?payment=success' }).end();
+    }
+
     const customerId = typeof session.customer === 'string'
       ? session.customer
       : session.customer?.id;
 
     if (session.mode === 'subscription' && session.subscription) {
-      // Pro subscription
       const subId = typeof session.subscription === 'string'
         ? session.subscription
         : session.subscription.id;
 
       await setProStatus(user.id, customerId, subId);
     } else {
-      // One-time payment — add 1 credit
       await incrementCredits(user.id);
       if (customerId) {
         await updateUser(user.id, { stripe_customer_id: customerId });

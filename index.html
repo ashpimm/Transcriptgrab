@@ -3,22 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TranscriptGrab — Turn Any Video into Social Media Content</title>
-<meta name="description" content="Paste a video URL from YouTube, TikTok, or Instagram. Get tweets, LinkedIn posts, blog articles, and more — instantly.">
+<title>TranscriptGrab — Extract Video Transcripts & Turn Them Into Content</title>
+<meta name="description" content="Extract transcripts from YouTube, TikTok, Instagram & more. AI turns your video transcript into tweets, LinkedIn posts, blog articles & ready-to-post content in seconds.">
+<link rel="canonical" href="https://transcriptgrab.vercel.app">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="TranscriptGrab — One Video, Every Platform">
-<meta property="og:description" content="Paste a video URL from YouTube, TikTok, or Instagram. Get tweets, LinkedIn posts, blog articles, and more — instantly.">
+<meta property="og:title" content="TranscriptGrab — Video Transcript to Content for Every Platform">
+<meta property="og:description" content="Extract transcripts from YouTube, TikTok, Instagram & more. AI turns your video transcript into tweets, LinkedIn posts, blog articles & ready-to-post content in seconds.">
 <meta property="og:url" content="https://transcriptgrab.vercel.app">
 <meta property="og:site_name" content="TranscriptGrab">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="TranscriptGrab — One Video, Every Platform">
-<meta name="twitter:description" content="Paste a video URL from YouTube, TikTok, or Instagram. Get tweets, LinkedIn posts, and more. Instantly.">
+<meta name="twitter:title" content="TranscriptGrab — Video Transcript to Content for Every Platform">
+<meta name="twitter:description" content="Extract transcripts from YouTube, TikTok & Instagram. AI turns your video transcript into tweets, LinkedIn posts, blogs & more.">
 
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>T</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -186,6 +189,13 @@
   .section-title { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 48px; line-height: 1.2; }
 
 
+  /* ===== HOW IT WORKS ===== */
+  .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 80px; }
+  .step-card { text-align: center; padding: 32px 20px; }
+  .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--white); font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+  .step-card h4 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .step-card p { font-size: 13px; color: var(--text-3); line-height: 1.5; }
+
   /* ===== OUTPUT SHOWCASE ===== */
   .output-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 80px; }
   .output-card {
@@ -299,6 +309,8 @@
     .demo-results-head { margin-bottom: 8px; }
     .demo-results-title { font-size: 11px; }
     .demo-results-dl { font-size: 8px; padding: 3px 10px; }
+    .steps-grid { grid-template-columns: 1fr; gap: 8px; }
+    .step-card { padding: 20px 16px; }
     .output-grid { grid-template-columns: 1fr 1fr; }
     .pricing-grid { grid-template-columns: 1fr; }
     .price-card { padding: 28px 24px; }
@@ -307,6 +319,55 @@
     .proof-stat-number { font-size: 28px; }
   }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "TranscriptGrab",
+  "url": "https://transcriptgrab.vercel.app",
+  "description": "Extract video transcripts from YouTube, TikTok, Instagram and more. AI converts transcripts into tweets, LinkedIn posts, blog articles, and ready-to-post social media content.",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Web",
+  "offers": [
+    { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "First video free" },
+    { "@type": "Offer", "price": "4.99", "priceCurrency": "USD", "description": "Per video" },
+    { "@type": "Offer", "price": "49", "priceCurrency": "USD", "description": "Pro monthly — 200 videos per month" }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does transcript extraction work?",
+      "acceptedAnswer": { "@type": "Answer", "text": "When you paste a video URL, we automatically extract the full transcript. For YouTube, we pull existing captions including auto-generated subtitles. For TikTok, Instagram, Facebook, and X/Twitter, we use speech-to-text transcription. The transcript is then processed by AI to generate your content." }
+    },
+    {
+      "@type": "Question",
+      "name": "What platforms can I get transcripts from?",
+      "acceptedAnswer": { "@type": "Answer", "text": "TranscriptGrab extracts transcripts from YouTube, TikTok, Instagram Reels, Facebook videos, and X/Twitter. YouTube transcripts come from captions including auto-generated speech-to-text." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I get a transcript from a YouTube video?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes — just paste the YouTube URL and we extract the full transcript automatically. Works with any YouTube video that has captions or auto-generated subtitles." }
+    },
+    {
+      "@type": "Question",
+      "name": "What's the difference between free and $4.99?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Your first video is completely free, no account needed. After that, you can buy additional videos for $4.99 each. If you process videos regularly, Pro at $49/month is much better value." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I cancel Pro anytime?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, cancel anytime from your account dropdown. Your Pro access stays active until the end of your current billing period." }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <script src="/nav.js"></script>
@@ -314,8 +375,8 @@
 
 <!-- ===== HERO ===== -->
 <section class="hero">
-  <h1 class="hero-title">One video.<br><span class="hero-accent">Every platform.</span></h1>
-  <p class="hero-subtitle">Paste a video URL — YouTube, TikTok, Instagram, and more — get tweets, LinkedIn posts, blog articles, and more. Instantly.</p>
+  <h1 class="hero-title">Grab the transcript.<br><span class="hero-accent">Post everywhere.</span></h1>
+  <p class="hero-subtitle">Paste any YouTube, TikTok, or Instagram URL. We extract the transcript and turn it into tweets, LinkedIn posts, blog articles, and more — in seconds.</p>
 
   <div class="demo-window">
     <div class="demo-chrome">
@@ -390,45 +451,68 @@
   </div>
 
   <div class="hero-ctas">
-    <a href="/app" class="btn btn-blue">Try Free</a>
+    <a href="/app" class="btn btn-blue">Extract Transcript Free</a>
     <a href="#pricing" class="btn btn-ghost">See Pricing</a>
   </div>
 </section>
 
+<!-- ===== HOW IT WORKS ===== -->
+<div class="section">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">From video transcript to content in 3 steps</h2>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h4>Paste a video URL</h4>
+      <p>Drop any YouTube, TikTok, Instagram, Facebook, or X link — no downloads, no file uploads.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h4>We extract the transcript</h4>
+      <p>AI pulls the full video transcript automatically — captions, speech-to-text, any language.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h4>Get ready-to-post content</h4>
+      <p>Your transcript is converted into tweets, LinkedIn posts, blog articles, and more — in seconds.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ===== WHAT YOU GET ===== -->
 <div class="section">
   <div class="section-label">What you get</div>
-  <h2 class="section-title">Six formats from one video</h2>
+  <h2 class="section-title">Six formats from one transcript</h2>
   <div class="output-grid">
     <div class="output-card">
       <span class="output-icon">&#120143;</span>
       <h4>Twitter Thread</h4>
-      <p>Hook + numbered tweets, ready to post</p>
+      <p>Turn your video transcript into a hook + numbered tweet thread</p>
     </div>
     <div class="output-card">
       <span class="output-icon">in</span>
       <h4>LinkedIn Post</h4>
-      <p>Thought leadership with engagement hooks</p>
+      <p>Convert any transcript into thought leadership content</p>
     </div>
     <div class="output-card">
       <span class="output-icon">f</span>
       <h4>Facebook Post</h4>
-      <p>Conversational, comment-driving content</p>
+      <p>Transcript to conversational, comment-driving posts</p>
     </div>
     <div class="output-card">
       <span class="output-icon">&#128247;</span>
       <h4>Instagram Caption</h4>
-      <p>Storytelling + hashtags + CTA</p>
+      <p>Video transcript to caption with storytelling + hashtags</p>
     </div>
     <div class="output-card">
       <span class="output-icon">&#9997;&#65039;</span>
       <h4>Blog Post</h4>
-      <p>Full article with headings and structure</p>
+      <p>Full blog article generated from your video transcript</p>
     </div>
     <div class="output-card">
       <span class="output-icon">&#128172;</span>
       <h4>Key Quotes</h4>
-      <p>Tweetable, shareable standout moments</p>
+      <p>Extract the best quotes from any video transcript</p>
     </div>
   </div>
 </div>
@@ -441,15 +525,15 @@
   <div class="proof-stats">
     <div class="proof-stat">
       <div class="proof-stat-number">10,000+</div>
-      <div class="proof-stat-label">Videos processed</div>
+      <div class="proof-stat-label">Transcripts extracted</div>
     </div>
     <div class="proof-stat">
       <div class="proof-stat-number">2,400+</div>
-      <div class="proof-stat-label">Creators</div>
+      <div class="proof-stat-label">Content creators</div>
     </div>
     <div class="proof-stat">
       <div class="proof-stat-number">6</div>
-      <div class="proof-stat-label">Platforms per video</div>
+      <div class="proof-stat-label">Formats per transcript</div>
     </div>
   </div>
 
@@ -501,7 +585,7 @@
         <li>Copy & download</li>
         <li>No account needed</li>
       </ul>
-      <a href="/app" class="price-card-cta">Generate Free Video</a>
+      <a href="/app" class="price-card-cta">Extract Transcript Free</a>
     </div>
     <div class="price-card">
       <div class="price-card-label">Pay as you go</div>
@@ -535,12 +619,16 @@
   <h2 class="section-title">Common questions</h2>
   <div class="faq-list">
     <div class="faq-item">
-      <button class="faq-q">What platforms are supported?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">We support YouTube, TikTok, Instagram Reels, Facebook videos, and X/Twitter. For YouTube, we pull captions automatically, including auto-generated speech-to-text. Other platforms use audio transcription. The only rare exception is a video with no available captions or audio, and we'll let you know if that happens.</div></div>
+      <button class="faq-q">How does transcript extraction work?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">When you paste a video URL, we automatically extract the full transcript. For YouTube, we pull existing captions — including auto-generated subtitles. For TikTok, Instagram, Facebook, and X/Twitter, we use speech-to-text transcription. The transcript is then processed by AI to generate your content. No manual copying required.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">What platforms can I get transcripts from?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">TranscriptGrab extracts transcripts from YouTube, TikTok, Instagram Reels, Facebook videos, and X/Twitter. YouTube transcripts come from captions (including auto-generated speech-to-text). Other platforms use audio transcription. The only rare exception is a video with no captions or audio available — we'll let you know if that happens.</div></div>
     </div>
     <div class="faq-item">
       <button class="faq-q">Can I edit the generated content?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes. Once content is generated, you can copy it and edit however you like. We give you a strong starting point — most people just tweak a few lines and post.</div></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes. Once content is generated from your transcript, you can copy it and edit however you like. We give you a strong starting point — most people just tweak a few lines and post.</div></div>
     </div>
     <div class="faq-item">
       <button class="faq-q">What's the difference between free and $4.99?<span class="faq-arrow">+</span></button>
@@ -555,6 +643,10 @@
       <div class="faq-a"><div class="faq-a-inner">No. We never post anything on your behalf and we don't store your generated content. Sign-in is only used to track your usage and manage your subscription. Your Google account is safe.</div></div>
     </div>
     <div class="faq-item">
+      <button class="faq-q">Can I get a transcript from a YouTube video?<span class="faq-arrow">+</span></button>
+      <div class="faq-a"><div class="faq-a-inner">Yes — just paste the YouTube URL and we extract the full transcript automatically. Works with any YouTube video that has captions or auto-generated subtitles. You can also select "Transcript" as one of your output formats to get a clean, readable copy of the full transcript alongside your generated content.</div></div>
+    </div>
+    <div class="faq-item">
       <button class="faq-q">Can I cancel Pro anytime?<span class="faq-arrow">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">Yes, cancel anytime from your account dropdown. You won't be charged again, and your Pro access stays active until the end of your current billing period — so you always get what you paid for.</div></div>
     </div>
@@ -563,7 +655,7 @@
 
 <footer>
   <p>TranscriptGrab &nbsp;&middot;&nbsp; <a href="#">Privacy</a> &nbsp;&middot;&nbsp; <a href="#">Terms</a></p>
-  <p style="margin-top:8px;">Powered by video transcription & AI.</p>
+  <p style="margin-top:8px;">Video transcript extraction & AI content generation.</p>
 </footer>
 
 <script>

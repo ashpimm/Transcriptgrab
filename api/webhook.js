@@ -1,7 +1,7 @@
 // api/webhook.js — Stripe webhook for subscription lifecycle events
 
 import Stripe from 'stripe';
-import { downgradeUser, findUserByStripeCustomer, setProStatus } from './_db.js';
+import { downgradeUser, findUserByStripeCustomer, setProStatus, claimCheckoutSession, incrementCredits, updateUser } from './_db.js';
 
 export const config = {
   api: {
@@ -43,6 +43,32 @@ export default async function handler(req, res) {
 
   try {
     switch (event.type) {
+      case 'checkout.session.completed': {
+        // Authoritative credit/pro grant for signed-in users.
+        // Anonymous $5 purchases have no client_reference_id — handled by redirect only.
+        const session = event.data.object;
+        const userId = parseInt(session.client_reference_id, 10);
+        if (!userId || session.payment_status !== 'paid') break;
+
+        // Idempotent — if the redirect already claimed this, this is a no-op
+        const claimed = await claimCheckoutSession(session.id, userId);
+        if (!claimed) break;
+
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+
+        if (session.mode === 'subscription' && session.subscription) {
+          const subId = typeof session.subscription === 'string'
+            ? session.subscription : session.subscription.id;
+          await setProStatus(userId, customerId, subId);
+        } else {
+          await incrementCredits(userId);
+          if (customerId) {
+            await updateUser(userId, { stripe_customer_id: customerId });
+          }
+        }
+        break;
+      }
+
       case 'customer.subscription.updated': {
         const sub = event.data.object;
         if (sub.status === 'active' || sub.status === 'trialing') {

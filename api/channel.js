@@ -142,6 +142,6 @@ export default async function handler(req, res) {
 
   } catch (e) {
     console.error('Channel error:', e);
-    return res.status(500).json({ error: e.message || 'Failed to process request.' });
+    return res.status(500).json({ error: 'Failed to process request.' });
   }
 }

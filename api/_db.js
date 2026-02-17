@@ -214,6 +214,25 @@ export async function createSingleCredit(stripeSessionId) {
   return token;
 }
 
+export async function getSingleCreditBySession(stripeSessionId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT * FROM single_credits WHERE stripe_session_id = ${stripeSessionId}
+  `;
+  return rows[0] || null;
+}
+
+export async function claimCheckoutSession(stripeSessionId, userId) {
+  const sql = getSQL();
+  const rows = await sql`
+    INSERT INTO processed_checkouts (stripe_session_id, user_id)
+    VALUES (${stripeSessionId}, ${userId})
+    ON CONFLICT (stripe_session_id) DO NOTHING
+    RETURNING *
+  `;
+  return rows.length > 0;
+}
+
 export async function getSingleCredit(token) {
   if (!token || token.length !== 64) return null;
   const sql = getSQL();
