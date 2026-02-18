@@ -115,6 +115,14 @@ CREATE TABLE post_status (
 );
 
 -- ============================================
+-- ANONYMOUS FREE GENERATION TRACKING
+-- ============================================
+CREATE TABLE free_generations (
+  ip_hash     VARCHAR(64) PRIMARY KEY,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- MIGRATION: Multi-platform video support
 -- ============================================
 -- Widen video_id to store full URLs for non-YouTube platforms

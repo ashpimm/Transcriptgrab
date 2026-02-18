@@ -1,7 +1,7 @@
 // api/generate.js — Generate selected platform content from a transcript.
 
 import { handleCors, callGemini } from './_shared.js';
-import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration } from './_db.js';
+import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration, hasUsedFreeGeneration, recordFreeGeneration } from './_db.js';
 import { FORMAT_PROMPTS, VALID_FORMATS } from './_prompts.js';
 
 export const config = { maxDuration: 60 };
@@ -76,8 +76,15 @@ export default async function handler(req, res) {
     }
 
     if (!user) {
-      // Anonymous: server-set cookie tracks whether free generation was used
+      // Anonymous: check cookie first (fast), then DB (definitive)
       if (cookies.tg_free_gen) {
+        return res.status(402).json({
+          error: 'Purchase a video or upgrade to Pro.',
+          upgrade: true,
+        });
+      }
+      const usedFree = await hasUsedFreeGeneration(ip);
+      if (usedFree) {
         return res.status(402).json({
           error: 'Purchase a video or upgrade to Pro.',
           upgrade: true,
@@ -157,7 +164,7 @@ Return JSON with this exact structure:
       }
     }
 
-    // Mark anonymous free generation as used (server-side cookie)
+    // Mark anonymous free generation as used (cookie + DB)
     if (!creditToken && !user) {
       const existing = res.getHeader('Set-Cookie');
       const freeGenCookie = 'tg_free_gen=1; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000';
@@ -166,6 +173,12 @@ Return JSON with this exact structure:
         res.setHeader('Set-Cookie', [...arr, freeGenCookie]);
       } else {
         res.setHeader('Set-Cookie', freeGenCookie);
+      }
+      // Also record in DB so clearing cookies doesn't bypass it
+      try {
+        await recordFreeGeneration(ip);
+      } catch (e) {
+        console.error('Failed to record free generation:', e.message);
       }
     }
 

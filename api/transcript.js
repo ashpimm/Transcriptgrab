@@ -137,7 +137,8 @@ export default async function handler(req, res) {
 
     // Retry once on transient failures (Supadata can be flaky on first request)
     if (!result.success && !result.noCaptions && !result.async) {
-      await new Promise(r => setTimeout(r, 1500));
+      const delay = result.rateLimited ? 3000 : 1500;
+      await new Promise(r => setTimeout(r, delay));
       result = await fetchTranscript(videoUrl, platform);
     }
 
@@ -188,6 +189,9 @@ async function fetchTranscript(videoUrl, platform) {
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       console.log(`Supadata HTTP ${res.status}: ${errBody.substring(0, 200)}`);
+      if (res.status === 429) {
+        return { success: false, rateLimited: true, error: 'Transcript service is busy. Please wait a moment and try again.' };
+      }
       return { success: false, error: `Transcript service error (${res.status})` };
     }
 

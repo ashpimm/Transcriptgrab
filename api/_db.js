@@ -459,4 +459,26 @@ export async function saveAutoGeneration(userId, videoId, videoTitle, videoThumb
   return rows[0] || null;
 }
 
+// ============================================
+// ANONYMOUS FREE GENERATION TRACKING
+// ============================================
+export async function hasUsedFreeGeneration(ip) {
+  const hash = crypto.createHash('sha256').update(ip).digest('hex');
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT 1 FROM free_generations WHERE ip_hash = ${hash} LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
+export async function recordFreeGeneration(ip) {
+  const hash = crypto.createHash('sha256').update(ip).digest('hex');
+  const sql = getSQL();
+  await sql`
+    INSERT INTO free_generations (ip_hash)
+    VALUES (${hash})
+    ON CONFLICT (ip_hash) DO NOTHING
+  `;
+}
+
 export { getSQL };

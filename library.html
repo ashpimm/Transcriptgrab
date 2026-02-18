@@ -373,7 +373,7 @@
       return;
     }
     loadLibrary();
-    if (TGUser.user && TGUser.user.tier === 'pro') {
+    if (TGUser.isPro()) {
       loadChannel();
     }
   });
@@ -386,6 +386,11 @@
 
     try {
       var res = await fetch('/api/library', { credentials: 'same-origin' });
+      if (res.status === 401) {
+        document.getElementById('lib-loading').classList.add('hidden');
+        document.getElementById('auth-gate').classList.remove('hidden');
+        return;
+      }
       if (!res.ok) throw new Error('Failed to load library');
       var data = await res.json();
 
