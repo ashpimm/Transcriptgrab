@@ -75,6 +75,19 @@
   .format-pill.selected { background: var(--text); color: var(--white); border-color: var(--text); }
   .format-pill .pill-icon { font-size: 14px; }
 
+  /* ===== LANGUAGE SELECTOR ===== */
+  .lang-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .lang-label { font-size: 12px; font-weight: 500; color: var(--text-4); white-space: nowrap; }
+  .lang-select {
+    padding: 6px 28px 6px 12px; border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-2);
+    background: var(--surface); cursor: pointer; outline: none; transition: border-color 0.2s;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238f929d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  .lang-select:focus { border-color: var(--cta); }
+
   .generate-btn {
     margin-top: 20px; padding: 16px 48px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
     font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
@@ -204,6 +217,36 @@
     <button class="format-pill" data-format="transcript"><span class="pill-icon">&#128196;</span> Transcript</button>
   </div>
 
+  <div class="lang-row">
+    <span class="lang-label">Output language:</span>
+    <select class="lang-select" id="lang-select">
+      <option value="English" selected>English</option>
+      <option value="Spanish">Spanish</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="French">French</option>
+      <option value="German">German</option>
+      <option value="Italian">Italian</option>
+      <option value="Dutch">Dutch</option>
+      <option value="Hindi">Hindi</option>
+      <option value="Tamil">Tamil</option>
+      <option value="Telugu">Telugu</option>
+      <option value="Bengali">Bengali</option>
+      <option value="Arabic">Arabic</option>
+      <option value="Japanese">Japanese</option>
+      <option value="Korean">Korean</option>
+      <option value="Chinese (Simplified)">Chinese (Simplified)</option>
+      <option value="Chinese (Traditional)">Chinese (Traditional)</option>
+      <option value="Russian">Russian</option>
+      <option value="Turkish">Turkish</option>
+      <option value="Indonesian">Indonesian</option>
+      <option value="Thai">Thai</option>
+      <option value="Vietnamese">Vietnamese</option>
+      <option value="Polish">Polish</option>
+      <option value="Ukrainian">Ukrainian</option>
+      <option value="Swedish">Swedish</option>
+    </select>
+  </div>
+
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
   <p class="input-hint" id="input-hint">Paste any video URL</p>
 </div>
@@ -264,6 +307,7 @@
   var currentVideoUrl = '';
   var currentPlatform = '';
   var currentTranscript = '';
+  var currentLanguage = 'en';
 
   // ==============================
   // CREDIT HELPERS
@@ -433,6 +477,7 @@
       currentVideoId = parsed.platform === 'youtube' ? parsed.id : '';
       currentVideoUrl = parsed.url;
       currentPlatform = parsed.platform;
+      currentLanguage = tData.language || 'en';
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
       currentTranscript = tData.segments.map(function(s) {
         var mins = Math.floor(s.start / 60);
@@ -461,7 +506,9 @@
             videoId: currentVideoId || currentVideoUrl,
             videoTitle: currentTitle,
             platform: currentPlatform,
-            videoUrl: currentVideoUrl
+            videoUrl: currentVideoUrl,
+            transcriptLanguage: currentLanguage,
+            outputLanguage: document.getElementById('lang-select').value
           })
         });
         gData = await gRes.json();
@@ -626,6 +673,8 @@
     currentVideoUrl = '';
     currentPlatform = '';
     currentTranscript = '';
+    currentLanguage = 'en';
+    document.getElementById('lang-select').value = 'English';
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('input-section').classList.remove('hidden');
     document.getElementById('url-input').value = '';

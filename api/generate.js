@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment.' });
   }
 
-  const { transcript, formats, videoId, videoTitle, platform, videoUrl } = req.body || {};
+  const { transcript, formats, videoId, videoTitle, platform, videoUrl, transcriptLanguage, outputLanguage } = req.body || {};
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
@@ -108,7 +108,14 @@ export default async function handler(req, res) {
   const promptParts = requested.map(f => FORMAT_PROMPTS[f].prompt);
   const schemaParts = requested.map(f => FORMAT_PROMPTS[f].schema);
 
+  const outLang = outputLanguage || 'English';
+  const langNote = transcriptLanguage && transcriptLanguage !== 'en'
+    ? `\nIMPORTANT: The transcript below is in a non-English language (code: ${transcriptLanguage}). Understand the content fully before generating output.\n`
+    : '';
+
   const prompt = `You are an expert content repurposer. Given a video transcript, generate ready-to-post content for the following platform(s).
+${langNote}
+ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the content into ${outLang}.
 
 ${promptParts.join('\n\n')}
 

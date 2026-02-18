@@ -112,6 +112,7 @@
         '</div>';
     } else {
       rightHtml =
+        '<button class="suite-nav-signin" onclick="window.location.href=\'/api/auth/google\'">Sign in</button>' +
         '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">Try Free</a>' +
         '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
