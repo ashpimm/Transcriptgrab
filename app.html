@@ -96,6 +96,11 @@
   .generate-btn:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
   .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
+  .credit-indicator { font-size: 12px; color: var(--text-5); margin-top: 10px; }
+  .credit-indicator:empty { display: none; }
+  .credit-indicator a { color: var(--cta); text-decoration: none; font-weight: 500; }
+  .credit-indicator a:hover { text-decoration: underline; }
+
   .input-hint { font-size: 12px; color: var(--text-5); margin-top: 12px; }
 
   /* ===== ERROR ===== */
@@ -248,6 +253,7 @@
   </div>
 
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
+  <p class="credit-indicator" id="credit-indicator"></p>
   <p class="input-hint" id="input-hint">Paste any video URL</p>
 </div>
 
@@ -334,6 +340,38 @@
       if (u && u.credits > 0) return true;
     }
     return false;
+  }
+
+  // ==============================
+  // CREDIT INDICATOR
+  // ==============================
+  function updateCreditIndicator() {
+    var el = document.getElementById('credit-indicator');
+    var signedIn = window.TGUser && TGUser.isSignedIn();
+    var isPro = window.TGUser && TGUser.isPro();
+
+    if (isPro) {
+      var u = TGUser.get();
+      var used = u.monthly_usage || 0;
+      var limit = u.usage_limit || 200;
+      if (used >= limit) {
+        el.innerHTML = '<span style="color:var(--error)">Monthly limit reached (' + limit + '/' + limit + ')</span>';
+      } else {
+        el.textContent = used + ' / ' + limit + ' videos this month';
+      }
+    } else if (signedIn) {
+      var u = TGUser.get();
+      var credits = u ? u.credits : 0;
+      if (credits > 0) {
+        el.textContent = credits + ' credit' + (credits !== 1 ? 's' : '') + ' remaining';
+      } else {
+        el.textContent = 'No credits remaining';
+      }
+    } else if (!getFreeUsed()) {
+      el.textContent = '1 free generation available';
+    } else {
+      el.innerHTML = '<a href="/api/auth/google">Sign in for 3 free videos</a>';
+    }
   }
 
   // ==============================
@@ -539,6 +577,13 @@
       currentResult = gData;
       renderResults(gData, currentTitle, currentVideoId);
 
+      // Refresh credit state after generation
+      if (window.TGUser && TGUser.isSignedIn()) {
+        TGUser.refresh().then(function() { updateCreditIndicator(); });
+      } else {
+        updateCreditIndicator();
+      }
+
     } catch(err) {
       hideProcessing();
       showError(err.message);
@@ -681,6 +726,7 @@
     document.getElementById('input-section').classList.remove('hidden');
     document.getElementById('url-input').value = '';
     document.getElementById('url-input').focus();
+    updateCreditIndicator();
   };
 
   // ==============================
@@ -722,6 +768,13 @@
     document.getElementById('url-input').value = params.get('url');
   } else if (params.get('v')) {
     document.getElementById('url-input').value = 'https://youtube.com/watch?v=' + params.get('v');
+  }
+
+  // Show credit indicator once auth state is known
+  if (window.TGUser && TGUser.ready) {
+    TGUser.ready.then(function() { updateCreditIndicator(); });
+  } else {
+    updateCreditIndicator();
   }
 
 })();
