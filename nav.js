@@ -81,7 +81,7 @@
   document.body.insertBefore(nav, document.body.firstChild);
 
   function renderNav() {
-    var brandHref = (_user && _user.tier === 'pro') ? '/app' : '/';
+    var brandHref = _user ? '/app' : '/';
     var appLink = _user ? 'App' : 'Try Free';
 
     var rightHtml = '';
