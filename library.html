@@ -74,6 +74,7 @@
   .video-item {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
   }
   .video-item:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03); transform: translateY(-1px); }
 
@@ -102,7 +103,7 @@
     background: var(--accent-subtle); color: var(--text-4); border: 1px solid var(--border-light);
   }
 
-  .video-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .video-actions { display: flex; align-items: center; gap: 6px; position: absolute; top: 12px; right: 16px; z-index: 1; }
   .video-action-btn {
     padding: 6px 14px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface);
     font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-3);
@@ -278,7 +279,7 @@
     .lib-wrap { padding: 0 24px 80px; }
     .video-summary { flex-wrap: wrap; gap: 12px; }
     .video-thumb { width: 100%; height: auto; aspect-ratio: 16/9; }
-    .video-actions { width: 100%; justify-content: flex-end; }
+    .video-actions { top: 8px; right: 12px; }
     .lib-header { flex-direction: column; gap: 8px; align-items: flex-start; }
   }
 </style>
@@ -480,6 +481,10 @@
         : '<div class="video-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-4);background:var(--accent-subtle);">' + platformIcon(plat) + '</div>';
 
       item.innerHTML =
+        '<div class="video-actions">' +
+          '<a href="' + escapeAttr(regenHref) + '" class="video-action-btn" onclick="event.stopPropagation()">Regenerate</a>' +
+          '<button class="video-action-btn danger" onclick="event.stopPropagation();confirmDelete(' + v.id + ',\'' + escapeAttr(v.video_title || 'Video') + '\')">Delete</button>' +
+        '</div>' +
         '<div class="video-summary" onclick="toggleVideo(' + v.id + ')">' +
           thumbHtml +
           '<div class="video-info">' +
@@ -488,10 +493,6 @@
               '<span class="video-date">' + dateStr + '</span>' +
               '<div class="platform-badges">' + badgesHtml + '</div>' +
             '</div>' +
-          '</div>' +
-          '<div class="video-actions">' +
-            '<a href="' + escapeAttr(regenHref) + '" class="video-action-btn" onclick="event.stopPropagation()">Regenerate</a>' +
-            '<button class="video-action-btn danger" onclick="event.stopPropagation();confirmDelete(' + v.id + ',\'' + escapeAttr(v.video_title || 'Video') + '\')">Delete</button>' +
           '</div>' +
         '</div>' +
         '<div class="video-content" id="vc-' + v.id + '"></div>';
