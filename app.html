@@ -451,16 +451,18 @@
       // Step 1: Fetch transcript
       var tRes = await fetch('/api/transcript?url=' + encodeURIComponent(parsed.url), { credentials: 'same-origin' });
 
-      // Handle 202 async (large video processing)
-      if (tRes.status === 202) {
-        updateProcessing('Video is being processed...', 'This may take a few seconds. Retrying...');
-        await new Promise(function(r) { setTimeout(r, 5000); });
+      // Handle 202 async — keep polling until ready (up to ~45s)
+      var retries = 0;
+      while (tRes.status === 202 && retries < 10) {
+        retries++;
+        updateProcessing('Processing video...', 'This can take a moment for longer videos (' + retries + '/10)');
+        await new Promise(function(r) { setTimeout(r, 4000); });
         tRes = await fetch('/api/transcript?url=' + encodeURIComponent(parsed.url), { credentials: 'same-origin' });
-        if (tRes.status === 202) {
-          hideProcessing();
-          showError('This video is still being processed. Please try again in a few seconds.');
-          return;
-        }
+      }
+      if (tRes.status === 202) {
+        hideProcessing();
+        showError('This video is taking too long to process. Please try again in a minute.');
+        return;
       }
 
       var tData = await tRes.json();
