@@ -391,7 +391,10 @@
         document.getElementById('auth-gate').classList.remove('hidden');
         return;
       }
-      if (!res.ok) throw new Error('Failed to load library');
+      if (!res.ok) {
+        var errData = await res.json().catch(function() { return {}; });
+        throw new Error(errData.error || 'Library error (' + res.status + ')');
+      }
       var data = await res.json();
 
       document.getElementById('lib-loading').classList.add('hidden');
