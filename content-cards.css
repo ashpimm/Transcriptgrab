@@ -11,10 +11,10 @@
 
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--border-light);
+  padding: 16px 20px 16px 14px; border-bottom: 1px solid var(--border-light);
 }
-.card-platform { display: flex; align-items: center; gap: 10px; }
-.card-icon { font-size: 18px; width: 28px; text-align: center; }
+.card-platform { display: flex; align-items: center; gap: 5px; }
+.card-icon { font-size: 18px; width: 22px; text-align: center; }
 .card-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
 .card-actions { display: flex; align-items: center; gap: 6px; }
 .card-copy-btn {
