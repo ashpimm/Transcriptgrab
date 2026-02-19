@@ -45,10 +45,10 @@
   var css = document.createElement('style');
   css.textContent =
     '.suite-nav{background:rgba(255,255,255,0.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(0,0,0,0.06);position:sticky;top:0;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}' +
-    '.suite-nav-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:52px;gap:8px;}' +
+    '.suite-nav-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:52px;gap:8px;position:relative;}' +
     '.suite-nav-brand{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#999;text-decoration:none;flex-shrink:0;transition:color 0.2s;}' +
     '.suite-nav-brand:hover{color:#111;}' +
-    '.suite-nav-links{display:flex;align-items:center;gap:2px;}' +
+    '.suite-nav-links{display:flex;align-items:center;gap:2px;position:absolute;left:50%;transform:translateX(-50%);}' +
     '.suite-nav-link{font-size:13px;font-weight:500;color:#999;text-decoration:none;padding:6px 12px;border-radius:100px;transition:all 0.2s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}' +
     '.suite-nav-link:hover{color:#111;background:#f5f5f5;}' +
     '.suite-nav-link.active{color:#111;font-weight:600;background:#f5f5f5;}' +
