@@ -798,9 +798,7 @@
             '</div>' +
           '</div>' +
           '<div class="account-status"><span class="status-dot disconnected"></span> Not connected</div>' +
-          (isPro
-            ? '<a href="/api/social?action=connect&platform=' + platform + '" class="account-action-btn connect">Connect</a>'
-            : '<button class="account-action-btn connect" data-pro-gate="connect">Connect</button>');
+          '<button class="account-action-btn" disabled style="opacity:0.5;cursor:default;">Coming Soon</button>';
       }
 
       grid.appendChild(card);
