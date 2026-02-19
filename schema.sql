@@ -129,3 +129,11 @@ CREATE TABLE free_generations (
 ALTER TABLE generations ALTER COLUMN video_id TYPE VARCHAR(512);
 -- Add platform column to track video source
 ALTER TABLE generations ADD COLUMN platform VARCHAR(20) DEFAULT 'youtube';
+
+-- ============================================
+-- MIGRATION: Scheduled posting support
+-- ============================================
+ALTER TABLE post_status ADD COLUMN scheduled_at TIMESTAMPTZ;
+ALTER TABLE post_status ADD COLUMN scheduled_content TEXT;
+ALTER TABLE post_status ADD COLUMN qstash_message_id VARCHAR(255);
+ALTER TABLE post_status ADD COLUMN error_message TEXT;

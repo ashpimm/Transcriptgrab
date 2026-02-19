@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     const sessionParams = {
       client_reference_id: String(user.id),
       customer_email: user.email,
-      success_url: `${baseUrl}/api/auth/link-stripe?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/app`,
     };
 

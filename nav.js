@@ -122,6 +122,9 @@
       linksHtml =
         '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">App</a>' +
         '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>';
+      if (_user.tier === 'pro') {
+        linksHtml += '<a href="/dashboard" class="suite-nav-link' + (path === '/dashboard' ? ' active' : '') + '">Dashboard</a>';
+      }
     }
 
     nav.innerHTML =
@@ -148,7 +151,7 @@
     if (signoutBtn) {
       signoutBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+        fetch('/api/auth/me', { method: 'POST', credentials: 'same-origin' })
           .then(function() {
             _user = null;
             renderNav();

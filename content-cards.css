@@ -16,6 +16,7 @@
 .card-platform { display: flex; align-items: center; gap: 10px; }
 .card-icon { font-size: 18px; width: 28px; text-align: center; }
 .card-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+.card-actions { display: flex; align-items: center; gap: 6px; }
 .card-copy-btn {
   padding: 6px 16px; background: var(--accent-subtle); border: 1px solid var(--border); border-radius: 100px;
   font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text);
@@ -23,6 +24,13 @@
 }
 .card-copy-btn:hover { background: var(--border); }
 .card-copy-btn.copied { background: var(--success); color: var(--white); border-color: var(--success); }
+.card-schedule-btn {
+  padding: 6px 16px; background: var(--cta); border: 1px solid var(--cta); border-radius: 100px;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--white);
+  cursor: pointer; transition: all 0.2s;
+}
+.card-schedule-btn:hover { background: var(--cta-hover); border-color: var(--cta-hover); }
+.card-schedule-btn.scheduled { background: var(--success); border-color: var(--success); }
 
 .card-body { padding: 20px; max-height: 400px; overflow-y: auto; }
 .card-body.tall { max-height: 600px; }

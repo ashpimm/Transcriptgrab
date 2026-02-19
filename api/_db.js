@@ -369,92 +369,122 @@ export async function refreshUsage(user) {
 }
 
 // ============================================
-// LINKED CHANNELS (auto-generate from channel)
+// SOCIAL CONNECTIONS
 // ============================================
-export async function getLinkedChannel(userId) {
+export async function getSocialConnections(userId) {
+  const sql = getSQL();
+  return sql`
+    SELECT id, platform, platform_user_id, platform_username, connected_at
+    FROM social_connections
+    WHERE user_id = ${userId}
+    ORDER BY connected_at DESC
+  `;
+}
+
+export async function getSocialConnectionWithTokens(id, userId) {
   const sql = getSQL();
   const rows = await sql`
-    SELECT * FROM linked_channels WHERE user_id = ${userId}
+    SELECT * FROM social_connections
+    WHERE id = ${id} AND user_id = ${userId}
   `;
   return rows[0] || null;
 }
 
-export async function createLinkedChannel(userId, url, name, formats, knownIds) {
+export async function upsertSocialConnection(userId, platform, data) {
   const sql = getSQL();
   const rows = await sql`
-    INSERT INTO linked_channels (user_id, channel_url, channel_name, default_formats, known_video_ids)
-    VALUES (${userId}, ${url}, ${name || ''}, ${formats}, ${knownIds})
-    ON CONFLICT (user_id) DO UPDATE SET
-      channel_url = EXCLUDED.channel_url,
-      channel_name = EXCLUDED.channel_name,
-      default_formats = EXCLUDED.default_formats,
-      known_video_ids = EXCLUDED.known_video_ids,
-      enabled = TRUE,
-      updated_at = NOW()
+    INSERT INTO social_connections (user_id, platform, platform_user_id, platform_username, access_token, refresh_token, token_expires_at)
+    VALUES (${userId}, ${platform}, ${data.platformUserId || ''}, ${data.platformUsername || ''}, ${data.accessToken}, ${data.refreshToken || null}, ${data.tokenExpiresAt || null})
+    ON CONFLICT (user_id, platform) DO UPDATE SET
+      platform_user_id = EXCLUDED.platform_user_id,
+      platform_username = EXCLUDED.platform_username,
+      access_token = EXCLUDED.access_token,
+      refresh_token = EXCLUDED.refresh_token,
+      token_expires_at = EXCLUDED.token_expires_at,
+      connected_at = NOW()
     RETURNING *
   `;
   return rows[0];
 }
 
-export async function updateLinkedChannel(userId, fields) {
-  const sql = getSQL();
-  if (fields.default_formats !== undefined && fields.enabled !== undefined) {
-    await sql`
-      UPDATE linked_channels
-      SET default_formats = ${fields.default_formats}, enabled = ${fields.enabled}, updated_at = NOW()
-      WHERE user_id = ${userId}
-    `;
-  } else if (fields.default_formats !== undefined) {
-    await sql`
-      UPDATE linked_channels
-      SET default_formats = ${fields.default_formats}, updated_at = NOW()
-      WHERE user_id = ${userId}
-    `;
-  } else if (fields.enabled !== undefined) {
-    await sql`
-      UPDATE linked_channels
-      SET enabled = ${fields.enabled}, updated_at = NOW()
-      WHERE user_id = ${userId}
-    `;
-  }
-}
-
-export async function deleteLinkedChannel(userId) {
+export async function deleteSocialConnection(id, userId) {
   const sql = getSQL();
   const rows = await sql`
-    DELETE FROM linked_channels WHERE user_id = ${userId} RETURNING id
+    DELETE FROM social_connections
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING id
   `;
   return rows.length > 0;
 }
 
-export async function getAllEnabledChannels() {
-  const sql = getSQL();
-  return sql`
-    SELECT lc.*, u.id AS uid, u.tier, u.monthly_usage, u.usage_reset_at, u.credits
-    FROM linked_channels lc
-    JOIN users u ON u.id = lc.user_id
-    WHERE lc.enabled = TRUE AND u.tier = 'pro'
-    ORDER BY lc.last_checked_at ASC NULLS FIRST
-    LIMIT 50
-  `;
-}
-
-export async function markChannelChecked(channelId, newKnownIds) {
+export async function updateSocialTokens(id, accessToken, refreshToken, expiresAt) {
   const sql = getSQL();
   await sql`
-    UPDATE linked_channels
-    SET last_checked_at = NOW(), known_video_ids = ${newKnownIds}, updated_at = NOW()
-    WHERE id = ${channelId}
+    UPDATE social_connections
+    SET access_token = ${accessToken},
+        refresh_token = ${refreshToken},
+        token_expires_at = ${expiresAt}
+    WHERE id = ${id}
   `;
 }
 
-export async function saveAutoGeneration(userId, videoId, videoTitle, videoThumb, platforms, content) {
+// ============================================
+// POST SCHEDULING
+// ============================================
+export async function createScheduledPost({ generationId, platform, variationIndex, socialConnectionId, scheduledAt, scheduledContent, qstashMessageId }) {
   const sql = getSQL();
   const rows = await sql`
-    INSERT INTO generations (user_id, video_id, video_title, video_thumb, platforms, content, auto_generated)
-    VALUES (${userId}, ${videoId}, ${videoTitle || ''}, ${videoThumb || ''}, ${platforms || []}, ${JSON.stringify(content)}, TRUE)
-    ON CONFLICT (user_id, video_id) DO NOTHING
-    RETURNING id
+    INSERT INTO post_status (generation_id, platform, variation_index, social_connection_id, status, scheduled_at, scheduled_content, qstash_message_id)
+    VALUES (${generationId}, ${platform}, ${variationIndex || 0}, ${socialConnectionId}, 'scheduled', ${scheduledAt}, ${scheduledContent}, ${qstashMessageId || null})
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+export async function getScheduledPosts(userId) {
+  const sql = getSQL();
+  return sql`
+    SELECT ps.*, g.video_title, g.video_thumb, g.video_id, sc.platform_username
+    FROM post_status ps
+    JOIN generations g ON g.id = ps.generation_id
+    LEFT JOIN social_connections sc ON sc.id = ps.social_connection_id
+    WHERE g.user_id = ${userId}
+    ORDER BY COALESCE(ps.scheduled_at, ps.created_at) DESC
+  `;
+}
+
+export async function getScheduledPostById(id) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT ps.*, g.user_id, g.video_title, sc.access_token, sc.refresh_token, sc.token_expires_at, sc.platform_user_id
+    FROM post_status ps
+    JOIN generations g ON g.id = ps.generation_id
+    LEFT JOIN social_connections sc ON sc.id = ps.social_connection_id
+    WHERE ps.id = ${id}
+  `;
+  return rows[0] || null;
+}
+
+export async function updatePostStatus(id, { status, postedAt, externalPostId, errorMessage }) {
+  const sql = getSQL();
+  await sql`
+    UPDATE post_status
+    SET status = ${status},
+        posted_at = ${postedAt || null},
+        external_post_id = ${externalPostId || null},
+        error_message = ${errorMessage || null},
+        updated_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
+export async function deleteScheduledPost(id, userId) {
+  const sql = getSQL();
+  const rows = await sql`
+    DELETE FROM post_status ps
+    USING generations g
+    WHERE ps.id = ${id} AND ps.generation_id = g.id AND g.user_id = ${userId}
+    RETURNING ps.id, ps.qstash_message_id, ps.status
   `;
   return rows[0] || null;
 }

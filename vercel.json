@@ -17,7 +17,6 @@
     { "source": "/repurpose", "destination": "/app", "statusCode": 301 },
     { "source": "/analyze", "destination": "/app", "statusCode": 301 },
     { "source": "/create", "destination": "/app", "statusCode": 301 },
-    { "source": "/dashboard", "destination": "/app", "statusCode": 301 },
     { "source": "/search", "destination": "/app", "statusCode": 301 },
     { "source": "/transcripts", "destination": "/app", "statusCode": 301 }
   ],
@@ -25,17 +24,18 @@
     { "source": "/api/auth/google", "destination": "/api/auth/google" },
     { "source": "/api/auth/callback", "destination": "/api/auth/callback" },
     { "source": "/api/auth/me", "destination": "/api/auth/me" },
-    { "source": "/api/auth/logout", "destination": "/api/auth/logout" },
-    { "source": "/api/auth/link-stripe", "destination": "/api/auth/link-stripe" },
+    { "source": "/api/auth/link-stripe", "destination": "/api/auth/callback" },
     { "source": "/api/checkout", "destination": "/api/checkout" },
     { "source": "/api/webhook", "destination": "/api/webhook" },
-    { "source": "/api/channel", "destination": "/api/channel" },
     { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/transcript", "destination": "/api/transcript" },
-    { "source": "/api/resolve", "destination": "/api/resolve" },
     { "source": "/api/checkout-single", "destination": "/api/checkout" },
     { "source": "/api/library", "destination": "/api/library" },
+    { "source": "/api/social", "destination": "/api/social" },
+    { "source": "/api/social-callback", "destination": "/api/social-callback" },
+    { "source": "/api/schedule", "destination": "/api/schedule" },
     { "source": "/app", "destination": "/app.html" },
-    { "source": "/library", "destination": "/library.html" }
+    { "source": "/library", "destination": "/library.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
   ]
 }

@@ -25,16 +25,41 @@
       .replace(/$/, '</p>');
   }
 
+  // Platforms that support scheduling (text-only social platforms)
+  var SCHEDULABLE = { 'Twitter / X': 'twitter', 'Facebook': 'facebook' };
+
   function makeCard(name, icon, copyContent) {
     var card = document.createElement('div');
     card.className = 'platform-card';
+
+    var scheduleBtn = '';
+    var schedulePlatform = SCHEDULABLE[name];
+    if (schedulePlatform) {
+      scheduleBtn = '<button class="card-schedule-btn" data-schedule-platform="' + schedulePlatform + '">Schedule</button>';
+    }
+
     card.innerHTML =
       '<div class="card-header">' +
         '<div class="card-platform"><span class="card-icon">' + icon + '</span><span class="card-name">' + name + '</span></div>' +
-        '<button class="card-copy-btn" onclick="TGCards.copyText(this, null, this.closest(\'.platform-card\'))">Copy</button>' +
+        '<div class="card-actions">' +
+          scheduleBtn +
+          '<button class="card-copy-btn" onclick="TGCards.copyText(this, null, this.closest(\'.platform-card\'))">Copy</button>' +
+        '</div>' +
       '</div>' +
       '<div class="card-body"></div>';
     card._copyContent = copyContent;
+    card._schedulePlatform = schedulePlatform || null;
+
+    // Bind schedule button
+    var schedBtn = card.querySelector('.card-schedule-btn');
+    if (schedBtn) {
+      schedBtn.addEventListener('click', function() {
+        if (window.TGSchedule) {
+          window.TGSchedule.openModal(schedulePlatform, card._copyContent);
+        }
+      });
+    }
+
     return card;
   }
 
