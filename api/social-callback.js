@@ -8,29 +8,29 @@ export default async function handler(req, res) {
   const { code, state, error } = req.query;
 
   if (error) {
-    return res.writeHead(302, { Location: '/dashboard?social_error=cancelled' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=cancelled' }).end();
   }
 
   if (!code || !state) {
-    return res.writeHead(302, { Location: '/dashboard?social_error=missing_params' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=missing_params' }).end();
   }
 
   // Verify session
   const user = await getSession(req);
   if (!user) {
-    return res.writeHead(302, { Location: '/dashboard?social_error=auth_required' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=auth_required' }).end();
   }
 
   // Verify CSRF state
   const cookies = parseCookies(req);
   if (!cookies.tg_social_state || cookies.tg_social_state !== state) {
-    return res.writeHead(302, { Location: '/dashboard?social_error=invalid_state' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=invalid_state' }).end();
   }
 
   // Extract platform from state prefix
   const platform = state.startsWith('twitter_') ? 'twitter' : state.startsWith('facebook_') ? 'facebook' : null;
   if (!platform) {
-    return res.writeHead(302, { Location: '/dashboard?social_error=invalid_platform' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=invalid_platform' }).end();
   }
 
   const clearCookies = [
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('Social callback error:', err);
     res.setHeader('Set-Cookie', clearCookies);
-    res.writeHead(302, { Location: '/dashboard?social_error=server_error' });
+    res.writeHead(302, { Location: '/workspace?tab=social&social_error=server_error' });
     res.end();
   }
 }
@@ -61,7 +61,7 @@ async function handleTwitterCallback(req, res, user, code, redirectUri, cookies,
   const codeVerifier = cookies.tg_pkce_verifier;
   if (!codeVerifier) {
     res.setHeader('Set-Cookie', clearCookies);
-    return res.writeHead(302, { Location: '/dashboard?social_error=missing_pkce' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=missing_pkce' }).end();
   }
 
   // Exchange code for tokens
@@ -83,7 +83,7 @@ async function handleTwitterCallback(req, res, user, code, redirectUri, cookies,
   if (!tokenRes.ok) {
     console.error('Twitter token exchange failed:', await tokenRes.text());
     res.setHeader('Set-Cookie', clearCookies);
-    return res.writeHead(302, { Location: '/dashboard?social_error=token_failed' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=token_failed' }).end();
   }
 
   const tokens = await tokenRes.json();
@@ -96,7 +96,7 @@ async function handleTwitterCallback(req, res, user, code, redirectUri, cookies,
   if (!profileRes.ok) {
     console.error('Twitter profile fetch failed:', await profileRes.text());
     res.setHeader('Set-Cookie', clearCookies);
-    return res.writeHead(302, { Location: '/dashboard?social_error=profile_failed' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=profile_failed' }).end();
   }
 
   const profile = await profileRes.json();
@@ -116,7 +116,7 @@ async function handleTwitterCallback(req, res, user, code, redirectUri, cookies,
   });
 
   res.setHeader('Set-Cookie', clearCookies);
-  res.writeHead(302, { Location: '/dashboard?connected=twitter' });
+  res.writeHead(302, { Location: '/workspace?tab=social&connected=twitter' });
   res.end();
 }
 
@@ -132,7 +132,7 @@ async function handleFacebookCallback(req, res, user, code, redirectUri, clearCo
   if (!tokenRes.ok) {
     console.error('Facebook token exchange failed:', await tokenRes.text());
     res.setHeader('Set-Cookie', clearCookies);
-    return res.writeHead(302, { Location: '/dashboard?social_error=token_failed' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=token_failed' }).end();
   }
 
   const shortToken = await tokenRes.json();
@@ -152,7 +152,7 @@ async function handleFacebookCallback(req, res, user, code, redirectUri, clearCo
   if (!pagesRes.ok) {
     console.error('Facebook pages fetch failed:', await pagesRes.text());
     res.setHeader('Set-Cookie', clearCookies);
-    return res.writeHead(302, { Location: '/dashboard?social_error=no_pages' }).end();
+    return res.writeHead(302, { Location: '/workspace?tab=social&social_error=no_pages' }).end();
   }
 
   const pagesData = await pagesRes.json();
@@ -185,6 +185,6 @@ async function handleFacebookCallback(req, res, user, code, redirectUri, clearCo
   }
 
   res.setHeader('Set-Cookie', clearCookies);
-  res.writeHead(302, { Location: '/dashboard?connected=facebook' });
+  res.writeHead(302, { Location: '/workspace?tab=social&connected=facebook' });
   res.end();
 }

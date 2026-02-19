@@ -317,7 +317,7 @@
   <div class="results-header">
     <h2 id="results-title">Your content is ready</h2>
     <div style="display:flex;align-items:center;gap:12px;">
-      <span class="saved-badge hidden" id="saved-badge">Saved to Library <a href="/library" id="saved-link">View</a></span>
+      <span class="saved-badge hidden" id="saved-badge">Saved to Library <a href="/workspace" id="saved-link">View</a></span>
       <button class="download-all-btn" onclick="downloadAll()">Download All</button>
     </div>
   </div>
@@ -676,7 +676,7 @@
     // Show saved badge for signed-in users
     var badge = document.getElementById('saved-badge');
     if (window.TGUser && TGUser.isSignedIn() && (videoId || currentVideoUrl)) {
-      document.getElementById('saved-link').href = '/library';
+      document.getElementById('saved-link').href = '/workspace';
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
@@ -884,7 +884,7 @@
     if (platformConns.length === 0) {
       accountHtml =
         '<div class="schedule-no-account">No ' + platformName + ' account connected. ' +
-        '<a href="/dashboard">Connect one first</a></div>';
+        '<a href="/workspace?tab=social">Connect one first</a></div>';
     } else {
       accountHtml =
         '<label class="schedule-label">Account</label>' +

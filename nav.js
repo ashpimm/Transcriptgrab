@@ -66,7 +66,7 @@
     '.suite-nav-drop-item{display:block;width:100%;padding:10px 14px;font-family:"Outfit",sans-serif;font-size:13px;font-weight:500;color:#666;border:none;background:none;cursor:pointer;text-align:left;border-radius:8px;transition:all 0.15s;}' +
     '.suite-nav-drop-item:hover{background:#f5f5f5;color:#111;}' +
     '@media(max-width:700px){.suite-nav-username{display:none !important;}.suite-nav-right .suite-nav-gopro{display:none !important;}}' +
-    '@media(max-width:600px){.suite-nav-inner{padding:0 24px;}}';
+    '@media(max-width:600px){.suite-nav-inner{padding:0 16px;}.suite-nav-brand{font-size:11px;}.suite-nav-link{padding:6px 8px;font-size:12px;}}';
   document.head.appendChild(css);
 
   // ============================================
@@ -91,7 +91,7 @@
         : '<div class="suite-nav-avatar" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#999;">' + (_user.name || _user.email || '?').charAt(0).toUpperCase() + '</div>';
 
       var badgeHtml = _user.tier === 'pro'
-        ? '<span class="suite-nav-pro-badge">Pro</span>'
+        ? ''
         : '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
 
       rightHtml =
@@ -121,10 +121,7 @@
     if (_user) {
       linksHtml =
         '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">App</a>' +
-        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>';
-      if (_user.tier === 'pro') {
-        linksHtml += '<a href="/dashboard" class="suite-nav-link' + (path === '/dashboard' ? ' active' : '') + '">Dashboard</a>';
-      }
+        '<a href="/workspace" class="suite-nav-link' + (path === '/workspace' ? ' active' : '') + '">Workspace</a>';
     }
 
     nav.innerHTML =

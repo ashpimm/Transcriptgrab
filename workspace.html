@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace — TranscriptGrab</title>
+<meta name="description" content="Your content library and social dashboard in one place.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>T</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/content-cards.css">
+<style>
+  :root {
+    --white: #ffffff; --bg: #f8f9fb; --surface: #ffffff; --border: #e5e7ec; --border-light: #eef0f4;
+    --text: #0f1115; --text-2: #2d3039; --text-3: #5c5f6a; --text-4: #8f929d; --text-5: #b5b8c2;
+    --accent: #0f1115; --accent-hover: #2d3039; --accent-subtle: #f3f4f7;
+    --cta: #0071e3; --cta-hover: #0077ED;
+    --success: #34c759; --error: #ff3b30;
+    --radius: 16px; --radius-sm: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.03);
+    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Outfit', -apple-system, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,113,227,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(120,90,220,0.03) 0%, transparent 50%);
+    color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--cta); color: var(--white); }
+
+  /* ===== LAYOUT ===== */
+  .ws-wrap { max-width: 900px; margin: 0 auto; padding: 0 40px 80px; }
+
+  /* ===== AUTH GATE ===== */
+  .auth-gate { text-align: center; padding: 120px 24px; }
+  .auth-gate h1 { font-size: clamp(24px, 4vw, 32px); font-weight: 900; letter-spacing: -0.04em; margin-bottom: 12px; }
+  .auth-gate p { font-size: 15px; color: var(--text-3); margin-bottom: 32px; }
+  .auth-gate .signin-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  .auth-gate .signin-btn:hover { border-color: var(--text-4); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .auth-gate .signin-btn svg { width: 18px; height: 18px; }
+
+  /* ===== LOADING STATE ===== */
+  .ws-loading { text-align: center; padding: 80px 24px; }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--cta);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  .ws-loading p { font-size: 14px; color: var(--text-4); }
+
+  /* ===== TOP-LEVEL TABS ===== */
+  .ws-tabs { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-top: 40px; margin-bottom: 28px; max-width: 280px; }
+  .ws-tab {
+    flex: 1; padding: 10px 20px; border: none; background: transparent; color: var(--text-4);
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer;
+    border-radius: 100px; transition: all 0.2s; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .ws-tab:hover { color: var(--text-3); }
+  .ws-tab.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+  .ws-tab .pro-tag {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--cta); padding: 1px 6px; border: 1px solid rgba(0,113,227,0.15); border-radius: 100px;
+    background: rgba(0,113,227,0.06);
+  }
+
+  /* ===== LIBRARY PANEL ===== */
+  .lib-header { margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; }
+  .lib-header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; }
+  .lib-count { font-size: 13px; color: var(--text-4); font-weight: 500; }
+
+  .empty-state { text-align: center; padding: 100px 24px; }
+  .empty-state h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; }
+  .empty-state p { font-size: 15px; color: var(--text-3); margin-bottom: 28px; }
+  .empty-state .cta-btn {
+    display: inline-block; padding: 14px 36px; background: var(--cta); color: var(--white); border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; text-decoration: none;
+  }
+  .empty-state .cta-btn:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
+
+  .video-list { display: flex; flex-direction: column; gap: 12px; }
+  .video-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+  }
+  .video-item:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03); transform: translateY(-1px); }
+  .video-summary {
+    display: flex; align-items: center; gap: 16px; padding: 44px 20px 16px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .video-summary:hover { background: var(--accent-subtle); }
+  .video-thumb {
+    width: 120px; height: 68px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+    background: var(--border-light); transition: transform 0.3s ease;
+  }
+  .video-summary:hover .video-thumb { transform: scale(1.03); }
+  .video-info { flex: 1; min-width: 0; }
+  .video-title {
+    font-size: 15px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .video-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+  .video-date { font-size: 12px; color: var(--text-4); font-weight: 500; }
+  .platform-badges { display: flex; gap: 4px; }
+  .platform-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 100px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--accent-subtle); color: var(--text-4); border: 1px solid var(--border-light);
+  }
+  .video-actions { display: flex; align-items: center; gap: 6px; position: absolute; top: 12px; right: 16px; z-index: 1; }
+  .video-action-btn {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface);
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-3);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .video-action-btn:hover { border-color: var(--text-4); color: var(--text); }
+  .video-action-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+  .video-content { display: none; border-top: 1px solid var(--border-light); }
+  .video-content.open { display: block; animation: slideDown 0.3s ease; }
+  .video-content-inner { padding: 20px; }
+  .video-content .platform-grid { margin-top: 0; }
+  .content-loading { text-align: center; padding: 40px 20px; }
+  .content-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--cta); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  .content-loading p { font-size: 13px; color: var(--text-4); }
+
+  .lib-error { text-align: center; padding: 80px 24px; }
+  .lib-error p { font-size: 14px; color: var(--error); }
+
+  .auto-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 100px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    background: rgba(0,113,227,0.08); color: var(--cta); border: 1px solid rgba(0,113,227,0.15);
+  }
+  .source-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 100px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--accent-subtle); color: var(--text-4); border: 1px solid var(--border-light);
+  }
+
+  /* ===== CONFIRM DIALOG ===== */
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(15,17,21,0.3); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    animation: fadeIn 0.2s ease;
+  }
+  .confirm-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px 32px; max-width: 380px; width: 100%; text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.06); animation: slideUp 0.2s ease;
+  }
+  .confirm-card h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+  .confirm-card p { font-size: 14px; color: var(--text-3); margin-bottom: 24px; }
+  .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+  .confirm-btn {
+    padding: 10px 28px; border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .confirm-btn.cancel { background: var(--accent-subtle); color: var(--text-3); border: 1px solid var(--border); }
+  .confirm-btn.cancel:hover { background: var(--border); color: var(--text); }
+  .confirm-btn.delete { background: var(--error); color: var(--white); }
+  .confirm-btn.delete:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ===== SOCIAL PANEL ===== */
+  .section-header { margin-bottom: 20px; }
+  .section-header h2 { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
+  .section-header p { font-size: 13px; color: var(--text-4); margin-top: 4px; }
+
+  .accounts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .account-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; transition: all var(--transition); position: relative;
+  }
+  .account-card:hover { box-shadow: var(--shadow-sm); }
+  .account-platform { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .account-icon {
+    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; flex-shrink: 0;
+  }
+  .account-icon.twitter { background: #0f1419; color: #fff; }
+  .account-icon.facebook { background: #1877F2; color: #fff; }
+  .account-name { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+  .account-username { font-size: 12px; color: var(--text-4); margin-top: 2px; }
+  .account-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; margin-bottom: 16px;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-dot.connected { background: var(--success); box-shadow: 0 0 0 3px rgba(52,199,89,0.2); animation: dotPulse 2s ease-in-out infinite; }
+  .status-dot.disconnected { background: var(--text-5); }
+  @keyframes dotPulse { 0%,100%{box-shadow:0 0 0 3px rgba(52,199,89,0.2)} 50%{box-shadow:0 0 0 5px rgba(52,199,89,0.1)} }
+  .account-action-btn {
+    display: block; width: 100%; padding: 10px; border-radius: 100px; border: 1px solid var(--border);
+    background: var(--surface); font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text-3); cursor: pointer; transition: all 0.2s; text-align: center; text-decoration: none;
+  }
+  .account-action-btn:hover { border-color: var(--text-4); color: var(--text); }
+  .account-action-btn.connect { background: var(--cta); color: var(--white); border-color: var(--cta); }
+  .account-action-btn.connect:hover { background: var(--cta-hover); border-color: var(--cta-hover); }
+  .account-action-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+  .tab-bar { display: flex; gap: 0; background: var(--accent-subtle); border-radius: 100px; padding: 4px; margin-bottom: 20px; max-width: 400px; }
+  .tab-btn {
+    flex: 1; padding: 8px 16px; border: none; background: transparent; color: var(--text-4);
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer;
+    border-radius: 100px; transition: all 0.2s; text-align: center;
+  }
+  .tab-btn:hover { color: var(--text-3); }
+  .tab-btn.active { background: var(--white); color: var(--text); box-shadow: var(--shadow-sm); }
+
+  .post-list { display: flex; flex-direction: column; gap: 12px; }
+  .post-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; display: flex; gap: 16px; align-items: flex-start; transition: all var(--transition);
+  }
+  .post-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .post-thumb {
+    width: 80px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0;
+    background: var(--accent-subtle);
+  }
+  .post-info { flex: 1; min-width: 0; }
+  .post-video-title { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .post-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .post-platform-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 100px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .post-platform-badge.twitter { background: #0f14190d; color: #0f1419; border: 1px solid #0f14191a; }
+  .post-platform-badge.facebook { background: #1877F20d; color: #1877F2; border: 1px solid #1877F21a; }
+  .post-time { font-size: 12px; color: var(--text-4); }
+  .post-content-preview {
+    font-size: 13px; color: var(--text-3); margin-top: 8px; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .post-status-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .post-status-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .post-status-badge.scheduled { background: rgba(0,113,227,0.08); color: var(--cta); border: 1px solid rgba(0,113,227,0.15); }
+  .post-status-badge.posted { background: rgba(52,199,89,0.08); color: #1a8a38; border: 1px solid rgba(52,199,89,0.15); }
+  .post-status-badge.failed { background: rgba(255,59,48,0.08); color: var(--error); border: 1px solid rgba(255,59,48,0.15); }
+  .post-action-btn {
+    padding: 4px 12px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface);
+    font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-4);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .post-action-btn:hover { border-color: var(--text-4); color: var(--text-3); }
+  .post-action-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+  .empty-posts { text-align: center; padding: 60px 24px; }
+  .empty-posts p { font-size: 14px; color: var(--text-4); margin-bottom: 20px; }
+  .empty-posts a { color: var(--cta); text-decoration: none; font-weight: 600; }
+  .empty-posts a:hover { text-decoration: underline; }
+
+  /* ===== TOAST ===== */
+  .ws-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--white); padding: 12px 28px; border-radius: 100px;
+    font-size: 14px; font-weight: 600; z-index: 10000; opacity: 0; transition: all 0.3s; pointer-events: none;
+  }
+  .ws-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  @media (max-width: 600px) {
+    .ws-wrap { padding: 0 24px 80px; }
+    .ws-tabs { max-width: 100%; }
+    .video-summary { flex-wrap: wrap; gap: 12px; }
+    .video-thumb { width: 100%; height: auto; aspect-ratio: 16/9; }
+    .video-actions { top: 8px; right: 12px; }
+    .lib-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .accounts-grid { grid-template-columns: 1fr; }
+    .tab-bar { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<script src="/pro.js"></script>
+<script src="/content-cards.js"></script>
+
+<div class="ws-wrap">
+  <!-- Auth gate -->
+  <div class="auth-gate hidden" id="auth-gate">
+    <h1>Your workspace</h1>
+    <p>Sign in to access your content library and social tools.</p>
+    <a href="/api/auth/google" class="signin-btn">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </a>
+  </div>
+
+  <!-- Loading state -->
+  <div class="ws-loading hidden" id="ws-loading">
+    <div class="spinner"></div>
+    <p>Loading workspace...</p>
+  </div>
+
+  <!-- Main content -->
+  <div class="hidden" id="ws-content">
+    <!-- Top-level tab bar -->
+    <div class="ws-tabs" id="ws-tabs">
+      <button class="ws-tab active" data-tab="library">Library</button>
+      <button class="ws-tab" data-tab="social">Social <span class="pro-tag" id="social-pro-tag">PRO</span></button>
+    </div>
+
+    <!-- Library Panel -->
+    <div id="panel-library">
+      <!-- Library error -->
+      <div class="lib-error hidden" id="lib-error">
+        <p id="lib-error-text">Something went wrong.</p>
+      </div>
+
+      <!-- Library empty -->
+      <div class="empty-state hidden" id="lib-empty">
+        <h2>No content yet</h2>
+        <p>Generate your first video to start building your library.</p>
+        <a href="/app" class="cta-btn">Generate Content</a>
+      </div>
+
+      <!-- Library list -->
+      <div class="hidden" id="lib-content">
+        <div class="lib-header">
+          <h1>Library</h1>
+          <span class="lib-count" id="lib-count"></span>
+        </div>
+        <div class="video-list" id="video-list"></div>
+      </div>
+    </div>
+
+    <!-- Social Panel -->
+    <div class="hidden" id="panel-social">
+      <!-- Connected Accounts -->
+      <div class="section-header">
+        <h2>Connected Accounts</h2>
+        <p>Link your social accounts to schedule posts directly.</p>
+      </div>
+      <div class="accounts-grid" id="accounts-grid"></div>
+
+      <!-- Scheduled Posts -->
+      <div class="section-header" style="padding-top:32px;">
+        <h2>Scheduled Posts</h2>
+      </div>
+      <div class="tab-bar" id="post-tabs">
+        <button class="tab-btn active" data-filter="all">All</button>
+        <button class="tab-btn" data-filter="scheduled">Scheduled</button>
+        <button class="tab-btn" data-filter="posted">Posted</button>
+        <button class="tab-btn" data-filter="failed">Failed</button>
+      </div>
+      <div class="post-list" id="post-list"></div>
+      <div class="empty-posts hidden" id="empty-posts">
+        <p>No posts yet. <a href="/app">Generate content</a> and schedule it for posting.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ==============================
+  // STATE
+  // ==============================
+  var videos = [];
+  var expandedId = null;
+  var contentCache = {};
+  var connections = [];
+  var posts = [];
+  var currentFilter = 'all';
+  var activeTab = 'library';
+  var libraryLoaded = false;
+  var socialLoaded = false;
+  var isPro = false;
+
+  var PLATFORMS = {
+    twitter: { name: 'X / Twitter', icon: '\uD835\uDD4F', cssClass: 'twitter' },
+    facebook: { name: 'Facebook', icon: 'f', cssClass: 'facebook' },
+  };
+
+  // ==============================
+  // INIT
+  // ==============================
+  TGUser.ready.then(function() {
+    if (!TGUser.isSignedIn()) {
+      document.getElementById('auth-gate').classList.remove('hidden');
+      return;
+    }
+
+    isPro = TGUser.isPro();
+
+    // Hide PRO tag if user is Pro
+    if (isPro) {
+      document.getElementById('social-pro-tag').style.display = 'none';
+    }
+
+    // Check URL params for tab routing
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'social' || params.has('connected') || params.has('social_error')) {
+      activeTab = 'social';
+    }
+
+    document.getElementById('ws-content').classList.remove('hidden');
+    switchTab(activeTab);
+  });
+
+  // Handle ?connected= and ?social_error= toasts
+  var params = new URLSearchParams(window.location.search);
+  var connectedPlatform = params.get('connected');
+  if (connectedPlatform) {
+    window.history.replaceState({}, '', '/workspace?tab=social');
+    TGUser.ready.then(function() {
+      showToast((PLATFORMS[connectedPlatform] ? PLATFORMS[connectedPlatform].name : connectedPlatform) + ' connected!');
+    });
+  }
+  var socialError = params.get('social_error');
+  if (socialError) {
+    window.history.replaceState({}, '', '/workspace?tab=social');
+    TGUser.ready.then(function() {
+      showToast('Connection failed: ' + socialError);
+    });
+  }
+
+  // ==============================
+  // TOP-LEVEL TABS
+  // ==============================
+  document.getElementById('ws-tabs').addEventListener('click', function(e) {
+    var btn = e.target.closest('.ws-tab');
+    if (!btn) return;
+    var tab = btn.getAttribute('data-tab');
+    if (tab === activeTab) return;
+    switchTab(tab);
+  });
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('#ws-tabs .ws-tab').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('#ws-tabs .ws-tab[data-tab="' + tab + '"]').classList.add('active');
+
+    if (tab === 'library') {
+      document.getElementById('panel-library').classList.remove('hidden');
+      document.getElementById('panel-social').classList.add('hidden');
+      if (!libraryLoaded) loadLibrary();
+    } else {
+      document.getElementById('panel-library').classList.add('hidden');
+      document.getElementById('panel-social').classList.remove('hidden');
+      if (!socialLoaded) loadSocial();
+    }
+  }
+
+  // ==============================
+  // LIBRARY — LOAD
+  // ==============================
+  async function loadLibrary() {
+    libraryLoaded = true;
+    document.getElementById('ws-loading').classList.remove('hidden');
+
+    try {
+      var res = await fetch('/api/library', { credentials: 'same-origin' });
+      if (res.status === 401) {
+        document.getElementById('ws-loading').classList.add('hidden');
+        document.getElementById('auth-gate').classList.remove('hidden');
+        document.getElementById('ws-content').classList.add('hidden');
+        return;
+      }
+      if (!res.ok) {
+        var errData = await res.json().catch(function() { return {}; });
+        throw new Error(errData.error || 'Library error (' + res.status + ')');
+      }
+      var data = await res.json();
+
+      document.getElementById('ws-loading').classList.add('hidden');
+
+      if (!data.videos || data.videos.length === 0) {
+        document.getElementById('lib-empty').classList.remove('hidden');
+        return;
+      }
+
+      videos = data.videos;
+      document.getElementById('lib-count').textContent = data.total + ' video' + (data.total !== 1 ? 's' : '');
+      renderVideoList();
+      document.getElementById('lib-content').classList.remove('hidden');
+
+      // Auto-expand from URL param
+      var p = new URLSearchParams(window.location.search);
+      var autoExpandId = p.get('id');
+      if (autoExpandId) {
+        expandVideo(parseInt(autoExpandId, 10));
+      } else {
+        var autoExpandV = p.get('v');
+        if (autoExpandV) {
+          var match = videos.find(function(v) { return v.video_id === autoExpandV; });
+          if (match) expandVideo(match.id);
+        }
+      }
+
+    } catch(e) {
+      document.getElementById('ws-loading').classList.add('hidden');
+      document.getElementById('lib-error-text').textContent = e.message;
+      document.getElementById('lib-error').classList.remove('hidden');
+    }
+  }
+
+  // ==============================
+  // LIBRARY — RENDER
+  // ==============================
+  function renderVideoList() {
+    var list = document.getElementById('video-list');
+    list.innerHTML = '';
+
+    videos.forEach(function(v) {
+      var item = document.createElement('div');
+      item.className = 'video-item';
+      item.id = 'vi-' + v.id;
+
+      var date = new Date(v.updated_at);
+      var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      var plat = v.platform || 'youtube';
+
+      var thumbSrc = v.video_thumb;
+      if (!thumbSrc && plat === 'youtube' && v.video_id && /^[a-zA-Z0-9_-]{11}$/.test(v.video_id)) {
+        thumbSrc = 'https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg';
+      }
+      if (!thumbSrc) thumbSrc = '';
+
+      var regenHref;
+      if (plat === 'youtube' && v.video_id && /^[a-zA-Z0-9_-]{11}$/.test(v.video_id)) {
+        regenHref = '/app?v=' + v.video_id;
+      } else {
+        regenHref = '/app?url=' + encodeURIComponent(v.video_id);
+      }
+
+      var badgesHtml = '';
+      if (v.auto_generated) {
+        badgesHtml += '<span class="auto-badge">AUTO</span>';
+      }
+      if (plat !== 'youtube') {
+        badgesHtml += '<span class="source-badge">' + escapeHtml(plat) + '</span>';
+      }
+      if (v.platforms && v.platforms.length) {
+        v.platforms.forEach(function(p) {
+          badgesHtml += '<span class="platform-badge">' + escapeHtml(p) + '</span>';
+        });
+      }
+
+      var thumbHtml = thumbSrc
+        ? '<img class="video-thumb" src="' + escapeAttr(thumbSrc) + '" alt="" loading="lazy">'
+        : '<div class="video-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-4);background:var(--accent-subtle);">' + platformIcon(plat) + '</div>';
+
+      item.innerHTML =
+        '<div class="video-actions">' +
+          '<a href="' + escapeAttr(regenHref) + '" class="video-action-btn" onclick="event.stopPropagation()">Regenerate</a>' +
+          '<button class="video-action-btn danger" onclick="event.stopPropagation();confirmDelete(' + v.id + ',\'' + escapeAttr(v.video_title || 'Video') + '\')">Delete</button>' +
+        '</div>' +
+        '<div class="video-summary" onclick="toggleVideo(' + v.id + ')">' +
+          thumbHtml +
+          '<div class="video-info">' +
+            '<div class="video-title">' + escapeHtml(v.video_title || 'Video') + '</div>' +
+            '<div class="video-meta">' +
+              '<span class="video-date">' + dateStr + '</span>' +
+              '<div class="platform-badges">' + badgesHtml + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="video-content" id="vc-' + v.id + '"></div>';
+
+      list.appendChild(item);
+    });
+  }
+
+  function platformIcon(plat) {
+    var icons = { youtube: '&#9654;', tiktok: '&#9835;', instagram: '&#128247;', facebook: 'f', twitter: '&#120143;' };
+    return icons[plat] || '&#9654;';
+  }
+
+  // ==============================
+  // LIBRARY — EXPAND / COLLAPSE
+  // ==============================
+  window.toggleVideo = function(genId) {
+    var contentEl = document.getElementById('vc-' + genId);
+    if (!contentEl) return;
+
+    if (contentEl.classList.contains('open')) {
+      contentEl.classList.remove('open');
+      expandedId = null;
+      return;
+    }
+
+    if (expandedId) {
+      var prev = document.getElementById('vc-' + expandedId);
+      if (prev) prev.classList.remove('open');
+    }
+
+    expandedId = genId;
+    expandVideo(genId);
+  };
+
+  async function expandVideo(genId) {
+    var contentEl = document.getElementById('vc-' + genId);
+    if (!contentEl) return;
+
+    contentEl.classList.add('open');
+    expandedId = genId;
+
+    var item = document.getElementById('vi-' + genId);
+    if (item) {
+      setTimeout(function() {
+        item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    if (contentCache[genId]) {
+      renderVideoContent(genId, contentCache[genId]);
+      return;
+    }
+
+    contentEl.innerHTML =
+      '<div class="content-loading">' +
+        '<div class="spinner"></div>' +
+        '<p>Loading content...</p>' +
+      '</div>';
+
+    try {
+      var res = await fetch('/api/library?id=' + genId, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('Failed to load content');
+      var data = await res.json();
+
+      contentCache[genId] = data.content;
+      renderVideoContent(genId, data.content);
+
+    } catch(e) {
+      contentEl.innerHTML =
+        '<div class="content-loading">' +
+          '<p style="color:var(--error)">' + escapeHtml(e.message) + '</p>' +
+        '</div>';
+    }
+  }
+
+  function renderVideoContent(genId, content) {
+    var contentEl = document.getElementById('vc-' + genId);
+    if (!contentEl) return;
+
+    var inner = document.createElement('div');
+    inner.className = 'video-content-inner';
+    var grid = document.createElement('div');
+    grid.className = 'platform-grid';
+    TGCards.renderCards(content, grid);
+    inner.appendChild(grid);
+
+    contentEl.innerHTML = '';
+    contentEl.appendChild(inner);
+  }
+
+  // ==============================
+  // LIBRARY — DELETE
+  // ==============================
+  window.confirmDelete = function(genId, title) {
+    var overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.id = 'confirm-overlay';
+    overlay.innerHTML =
+      '<div class="confirm-card">' +
+        '<h3>Delete this video?</h3>' +
+        '<p>All generated content for \u201C' + escapeHtml(title) + '\u201D will be permanently removed.</p>' +
+        '<div class="confirm-btns">' +
+          '<button class="confirm-btn cancel" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>' +
+          '<button class="confirm-btn delete" id="confirm-delete-btn">Delete</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('confirm-delete-btn').onclick = async function() {
+      this.textContent = 'Deleting...';
+      this.disabled = true;
+
+      try {
+        var res = await fetch('/api/library?id=' + genId, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+        if (!res.ok) throw new Error('Delete failed');
+
+        overlay.remove();
+        delete contentCache[genId];
+
+        videos = videos.filter(function(v) { return v.id !== genId; });
+        if (expandedId === genId) expandedId = null;
+
+        if (videos.length === 0) {
+          document.getElementById('lib-content').classList.add('hidden');
+          document.getElementById('lib-empty').classList.remove('hidden');
+        } else {
+          document.getElementById('lib-count').textContent = videos.length + ' video' + (videos.length !== 1 ? 's' : '');
+          var itemEl = document.getElementById('vi-' + genId);
+          if (itemEl) {
+            itemEl.style.transition = 'opacity 0.3s, transform 0.3s';
+            itemEl.style.opacity = '0';
+            itemEl.style.transform = 'translateX(-20px)';
+            setTimeout(function() { itemEl.remove(); }, 300);
+          }
+        }
+      } catch(e) {
+        overlay.remove();
+      }
+    };
+  };
+
+  // ==============================
+  // SOCIAL — LOAD
+  // ==============================
+  async function loadSocial() {
+    socialLoaded = true;
+
+    // For non-Pro users, render empty state UI without fetching
+    if (!isPro) {
+      renderAccounts();
+      renderPosts();
+      return;
+    }
+
+    document.getElementById('ws-loading').classList.remove('hidden');
+
+    try {
+      var [connRes, postRes] = await Promise.all([
+        fetch('/api/social', { credentials: 'same-origin' }),
+        fetch('/api/schedule', { credentials: 'same-origin' }),
+      ]);
+
+      if (connRes.ok) {
+        var connData = await connRes.json();
+        connections = connData.connections || [];
+      }
+      if (postRes.ok) {
+        var postData = await postRes.json();
+        posts = postData.posts || [];
+      }
+
+      document.getElementById('ws-loading').classList.add('hidden');
+      renderAccounts();
+      renderPosts();
+    } catch(e) {
+      document.getElementById('ws-loading').classList.add('hidden');
+      showToast('Failed to load social data');
+    }
+  }
+
+  // ==============================
+  // SOCIAL — ACCOUNTS
+  // ==============================
+  function renderAccounts() {
+    var grid = document.getElementById('accounts-grid');
+    grid.innerHTML = '';
+
+    ['twitter', 'facebook'].forEach(function(platform) {
+      var config = PLATFORMS[platform];
+      var conn = connections.find(function(c) { return c.platform === platform; });
+      var card = document.createElement('div');
+      card.className = 'account-card';
+
+      if (conn) {
+        card.innerHTML =
+          '<div class="account-platform">' +
+            '<div class="account-icon ' + config.cssClass + '">' + config.icon + '</div>' +
+            '<div>' +
+              '<div class="account-name">' + config.name + '</div>' +
+              '<div class="account-username">' + escapeHtml(conn.platform_username || '') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="account-status"><span class="status-dot connected"></span> Connected</div>' +
+          '<button class="account-action-btn danger" data-disconnect="' + conn.id + '">Disconnect</button>';
+      } else {
+        card.innerHTML =
+          '<div class="account-platform">' +
+            '<div class="account-icon ' + config.cssClass + '">' + config.icon + '</div>' +
+            '<div>' +
+              '<div class="account-name">' + config.name + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="account-status"><span class="status-dot disconnected"></span> Not connected</div>' +
+          (isPro
+            ? '<a href="/api/social?action=connect&platform=' + platform + '" class="account-action-btn connect">Connect</a>'
+            : '<button class="account-action-btn connect" data-pro-gate="connect">Connect</button>');
+      }
+
+      grid.appendChild(card);
+    });
+
+    // Bind disconnect buttons (Pro-gated)
+    grid.querySelectorAll('[data-disconnect]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!isPro) { TGPro.showUpgradeModal(); return; }
+        disconnectAccount(parseInt(this.getAttribute('data-disconnect'), 10), this);
+      });
+    });
+
+    // Bind Pro-gated connect buttons
+    grid.querySelectorAll('[data-pro-gate]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        TGPro.showUpgradeModal();
+      });
+    });
+  }
+
+  async function disconnectAccount(id, btn) {
+    btn.textContent = 'Disconnecting...';
+    btn.disabled = true;
+
+    try {
+      var res = await fetch('/api/social?id=' + id, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      if (!res.ok) throw new Error('Disconnect failed');
+      connections = connections.filter(function(c) { return c.id !== id; });
+      renderAccounts();
+      showToast('Account disconnected');
+    } catch(e) {
+      btn.textContent = 'Disconnect';
+      btn.disabled = false;
+      showToast('Failed to disconnect');
+    }
+  }
+
+  // ==============================
+  // SOCIAL — POSTS
+  // ==============================
+  function renderPosts() {
+    var list = document.getElementById('post-list');
+    var empty = document.getElementById('empty-posts');
+    list.innerHTML = '';
+
+    var filtered = currentFilter === 'all'
+      ? posts
+      : posts.filter(function(p) { return p.status === currentFilter; });
+
+    if (filtered.length === 0) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    filtered.forEach(function(p) {
+      var card = document.createElement('div');
+      card.className = 'post-card';
+      card.id = 'post-' + p.id;
+
+      var thumbSrc = p.video_thumb || '';
+      var thumbHtml = thumbSrc
+        ? '<img class="post-thumb" src="' + escapeAttr(thumbSrc) + '" alt="" loading="lazy">'
+        : '<div class="post-thumb" style="display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-5);">No img</div>';
+
+      var timeStr = '';
+      if (p.scheduled_at) {
+        var d = new Date(p.scheduled_at);
+        timeStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+                  d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      }
+
+      var statusClass = p.status || 'scheduled';
+      var statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+
+      var actionBtn = '';
+      if (p.status === 'scheduled') {
+        actionBtn = '<button class="post-action-btn danger" data-cancel="' + p.id + '">Cancel</button>';
+      } else if (p.status === 'failed' && p.error_message) {
+        actionBtn = '<span style="font-size:11px;color:var(--error);" title="' + escapeAttr(p.error_message) + '">Hover for error</span>';
+      }
+
+      var platformBadge = PLATFORMS[p.platform]
+        ? '<span class="post-platform-badge ' + p.platform + '">' + PLATFORMS[p.platform].name + '</span>'
+        : '<span class="post-platform-badge">' + escapeHtml(p.platform) + '</span>';
+
+      var usernameText = p.platform_username ? ' &middot; ' + escapeHtml(p.platform_username) : '';
+
+      card.innerHTML =
+        thumbHtml +
+        '<div class="post-info">' +
+          '<div class="post-video-title">' + escapeHtml(p.video_title || 'Video') + '</div>' +
+          '<div class="post-meta">' +
+            platformBadge +
+            '<span class="post-time">' + timeStr + usernameText + '</span>' +
+          '</div>' +
+          (p.scheduled_content ? '<div class="post-content-preview">' + escapeHtml(p.scheduled_content) + '</div>' : '') +
+          '<div class="post-status-row">' +
+            '<span class="post-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+            actionBtn +
+          '</div>' +
+        '</div>';
+
+      list.appendChild(card);
+    });
+
+    // Bind cancel buttons (Pro-gated)
+    list.querySelectorAll('[data-cancel]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!isPro) { TGPro.showUpgradeModal(); return; }
+        cancelPost(parseInt(this.getAttribute('data-cancel'), 10), this);
+      });
+    });
+  }
+
+  async function cancelPost(id, btn) {
+    btn.textContent = 'Cancelling...';
+    btn.disabled = true;
+
+    try {
+      var res = await fetch('/api/schedule?id=' + id, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      if (!res.ok) throw new Error('Cancel failed');
+      posts = posts.filter(function(p) { return p.id !== id; });
+      renderPosts();
+      showToast('Post cancelled');
+    } catch(e) {
+      btn.textContent = 'Cancel';
+      btn.disabled = false;
+      showToast('Failed to cancel post');
+    }
+  }
+
+  // Post tab filter
+  document.getElementById('post-tabs').addEventListener('click', function(e) {
+    var btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    currentFilter = btn.getAttribute('data-filter');
+    document.querySelectorAll('#post-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderPosts();
+  });
+
+  // ==============================
+  // UTILS
+  // ==============================
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  function escapeAttr(s) {
+    return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function showToast(msg) {
+    var toast = document.createElement('div');
+    toast.className = 'ws-toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() { toast.classList.add('show'); });
+    setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, 3000);
+  }
+
+})();
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
