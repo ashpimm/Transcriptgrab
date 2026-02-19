@@ -35,6 +35,7 @@
     { "source": "/api/social-callback", "destination": "/api/social-callback" },
     { "source": "/api/schedule", "destination": "/api/schedule" },
     { "source": "/app", "destination": "/app.html" },
+    { "source": "/workspace", "destination": "/workspace.html" },
     { "source": "/library", "destination": "/library.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" }
   ]
