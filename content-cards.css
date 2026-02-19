@@ -92,4 +92,6 @@
 
 @media (max-width: 600px) {
   .platform-grid { grid-template-columns: 1fr; }
+  .card-header { flex-wrap: wrap; gap: 8px; }
+  .card-actions { margin-left: auto; }
 }
