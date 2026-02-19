@@ -172,6 +172,7 @@
     var header = card.querySelector('.card-header');
     var copyBtn = header.querySelector('.card-copy-btn');
 
+    var actionsEl = header.querySelector('.card-actions');
     var tabs = document.createElement('div');
     tabs.className = 'variation-tabs';
     var labelEl = document.createElement('div');
@@ -196,7 +197,7 @@
       };
       tabs.appendChild(tab);
     });
-    header.insertBefore(tabs, copyBtn);
+    header.insertBefore(tabs, actionsEl);
     header.parentNode.insertBefore(labelEl, header.nextSibling);
 
     var body = card.querySelector('.card-body');
@@ -211,7 +212,7 @@
     var copyText = (first.caption || '') + '\n\n---\n\n' + (first.script || '');
     var card = makeCard('TikTok', '\u{266B}', copyText);
     var header = card.querySelector('.card-header');
-    var copyBtn = header.querySelector('.card-copy-btn');
+    var actionsEl = header.querySelector('.card-actions');
 
     var tabs = document.createElement('div');
     tabs.className = 'variation-tabs';
@@ -246,7 +247,7 @@
       };
       tabs.appendChild(tab);
     });
-    header.insertBefore(tabs, copyBtn);
+    header.insertBefore(tabs, actionsEl);
     header.parentNode.insertBefore(labelEl, header.nextSibling);
 
     return card;
@@ -258,7 +259,7 @@
     var card = makeCard('Blog Post', '\u{270D}\u{FE0F}', fullText);
     card.classList.add('full-width');
     var header = card.querySelector('.card-header');
-    var copyBtn = header.querySelector('.card-copy-btn');
+    var actionsEl = header.querySelector('.card-actions');
 
     var tabs = document.createElement('div');
     tabs.className = 'variation-tabs';
@@ -293,7 +294,7 @@
       };
       tabs.appendChild(tab);
     });
-    header.insertBefore(tabs, copyBtn);
+    header.insertBefore(tabs, actionsEl);
     header.parentNode.insertBefore(labelEl, header.nextSibling);
 
     return card;
