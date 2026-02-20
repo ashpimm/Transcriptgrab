@@ -83,7 +83,7 @@
   .paste-btn svg { width: 18px; height: 18px; }
 
   /* ===== FORMAT PICKER ===== */
-  .format-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
+  .format-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .format-pill {
     padding: 8px 18px; border: 1px solid var(--border); border-radius: 100px;
     font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-3);
@@ -273,7 +273,8 @@
     </button>
   </div>
 
-  <div class="format-picker" id="format-picker">
+  <div class="format-label" style="font-size: 12px; font-weight: 500; color: var(--text-4); text-align: center; margin-top: 20px; letter-spacing: 0.04em;">Choose output formats</div>
+  <div class="format-picker" id="format-picker" style="margin-top: 8px;">
     <button class="format-pill selected" data-format="twitter"><span class="pill-icon">&#120143;</span> Twitter</button>
     <button class="format-pill selected" data-format="linkedin"><span class="pill-icon">in</span> LinkedIn</button>
     <button class="format-pill" data-format="facebook"><span class="pill-icon">f</span> Facebook</button>
