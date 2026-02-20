@@ -582,6 +582,7 @@
       currentVideoUrl = parsed.url;
       currentPlatform = parsed.platform;
       currentLanguage = tData.language || 'en';
+      var currentThumbnail = tData.thumbnail || '';
       var transcriptText = tData.segments.map(function(s) { return s.text; }).join(' ');
       currentTranscript = tData.segments.map(function(s) {
         var mins = Math.floor(s.start / 60);
@@ -609,6 +610,7 @@
             formats: aiFormats,
             videoId: currentVideoId || currentVideoUrl,
             videoTitle: currentTitle,
+            videoThumbnail: currentThumbnail,
             platform: currentPlatform,
             videoUrl: currentVideoUrl,
             transcriptLanguage: currentLanguage,

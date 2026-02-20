@@ -217,7 +217,8 @@ async function fetchTranscript(videoUrl, platform) {
       return { success: false, noCaptions: true, error: 'This video doesn\'t have captions available.' };
     }
 
-    const title = await getVideoTitle(videoUrl, platform) || `Video`;
+    const meta = await getVideoMeta(videoUrl, platform);
+    const title = meta.title || 'Video';
     const lang = rawSegments[0]?.lang || 'en';
     console.log(`Supadata (${platform}): success, ${segments.length} segments, lang=${lang}`);
 
@@ -225,6 +226,7 @@ async function fetchTranscript(videoUrl, platform) {
       success: true,
       data: {
         title,
+        thumbnail: meta.thumbnail,
         videoUrl,
         platform,
         language: lang,
@@ -243,7 +245,7 @@ async function fetchTranscript(videoUrl, platform) {
 // =============================================================
 // HELPER: Get video title via oEmbed (YouTube, TikTok) or fallback
 // =============================================================
-async function getVideoTitle(videoUrl, platform) {
+async function getVideoMeta(videoUrl, platform) {
   try {
     if (platform === 'youtube') {
       const res = await fetch(
@@ -251,7 +253,7 @@ async function getVideoTitle(videoUrl, platform) {
       );
       if (res.ok) {
         const data = await res.json();
-        return data.title;
+        return { title: data.title, thumbnail: data.thumbnail_url || '' };
       }
     }
 
@@ -261,19 +263,19 @@ async function getVideoTitle(videoUrl, platform) {
       );
       if (res.ok) {
         const data = await res.json();
-        return data.title;
+        return { title: data.title, thumbnail: data.thumbnail_url || '' };
       }
     }
 
     if (platform === 'instagram') {
-      return 'Instagram video';
+      return { title: 'Instagram video', thumbnail: '' };
     }
     if (platform === 'facebook') {
-      return 'Facebook video';
+      return { title: 'Facebook video', thumbnail: '' };
     }
     if (platform === 'twitter') {
-      return 'X post';
+      return { title: 'X post', thumbnail: '' };
     }
   } catch {}
-  return null;
+  return { title: null, thumbnail: '' };
 }

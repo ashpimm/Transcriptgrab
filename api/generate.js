@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment.' });
   }
 
-  const { transcript, formats, videoId, videoTitle, platform, videoUrl, transcriptLanguage, outputLanguage } = req.body || {};
+  const { transcript, formats, videoId, videoTitle, videoThumbnail, platform, videoUrl, transcriptLanguage, outputLanguage } = req.body || {};
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
@@ -154,9 +154,8 @@ Return JSON with this exact structure:
     if (user && (videoId || videoUrl)) {
       try {
         const plat = platform || 'youtube';
-        const thumb = plat === 'youtube' && videoId
-          ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
-          : '';
+        const thumb = videoThumbnail
+          || (plat === 'youtube' && videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '');
         const saveId = videoId || videoUrl;
         await saveGeneration(user.id, saveId, videoTitle || '', thumb, requested, result, plat);
       } catch (e) {
