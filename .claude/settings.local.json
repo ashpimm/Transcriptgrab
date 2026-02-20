@@ -5,7 +5,8 @@
       "Bash(npm uninstall:*)",
       "Bash(ls:*)",
       "Bash(del:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(# Check for bold/black weight system fonts that look good ls /c/Windows/Fonts/impact*.ttf /c/Windows/Fonts/calibri*.ttf /c/Windows/Fonts/segoe*.ttf /c/Windows/Fonts/trebuc*.ttf)"
     ]
   }
 }
