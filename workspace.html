@@ -92,6 +92,20 @@
     color: var(--cta); padding: 1px 6px; border: 1px solid rgba(0,113,227,0.15); border-radius: 100px;
     background: rgba(0,113,227,0.06);
   }
+  .ws-tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 40px; margin-bottom: 28px; flex-wrap: wrap; }
+  .ws-tabs-row .ws-tabs { margin-top: 0; margin-bottom: 0; }
+  .ws-brand-voice-link {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--cta) 20%, var(--border)); border-radius: 100px;
+    background: color-mix(in srgb, var(--cta) 5%, var(--surface));
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--cta);
+    cursor: pointer; transition: all 0.2s; text-decoration: none; line-height: 1;
+  }
+  .ws-brand-voice-link:hover { background: color-mix(in srgb, var(--cta) 12%, var(--surface)); border-color: var(--cta); }
+  .ws-brand-voice-link .bv-link-new {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 100px; background: var(--cta); color: var(--white); line-height: 1;
+  }
 
   /* ===== LIBRARY PANEL ===== */
   .lib-header { margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; }
@@ -337,9 +351,16 @@
   <!-- Main content -->
   <div class="hidden" id="ws-content">
     <!-- Top-level tab bar -->
-    <div class="ws-tabs" id="ws-tabs">
-      <button class="ws-tab active" data-tab="library">Library</button>
-      <button class="ws-tab" data-tab="social">Social <span class="pro-tag" id="social-pro-tag">PRO</span></button>
+    <div class="ws-tabs-row">
+      <div class="ws-tabs" id="ws-tabs">
+        <button class="ws-tab active" data-tab="library">Library</button>
+        <button class="ws-tab" data-tab="social">Social <span class="pro-tag" id="social-pro-tag">PRO</span></button>
+      </div>
+      <a href="/app?openBrandVoice=1" class="ws-brand-voice-link" title="Set up your Brand Voice">
+        <span>&#127908;</span>
+        <span>Brand Voice</span>
+        <span class="bv-link-new">New</span>
+      </a>
     </div>
 
     <!-- Library Panel -->

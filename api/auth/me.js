@@ -50,6 +50,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ user: null });
     }
 
+    const hasBrandVoice = !!((user.brand_voice_product && user.brand_voice_product.trim()) ||
+                              (user.brand_voice_tone && user.brand_voice_tone.trim()));
+
     return res.status(200).json({
       user: {
         id: user.id,
@@ -60,6 +63,11 @@ export default async function handler(req, res) {
         credits: user.credits,
         monthly_usage: user.monthly_usage,
         usage_limit: user.tier === 'pro' ? 200 : 0,
+        brandVoice: {
+          hasProfile: hasBrandVoice,
+          hasProduct: !!(user.brand_voice_product && user.brand_voice_product.trim()),
+          hasTone: !!(user.brand_voice_tone && user.brand_voice_tone.trim()),
+        },
       },
     });
   } catch (err) {

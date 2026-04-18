@@ -124,6 +124,136 @@
   .flipper-callout-text { font-weight: 500; color: var(--text-2); }
   .flipper-callout-text strong { color: var(--text); font-weight: 700; }
 
+  /* ===== BRAND VOICE CHIP ===== */
+  .bv-chip-wrap { display: flex; justify-content: center; margin-top: 18px; }
+  .bv-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px 8px 12px; border: 1px solid var(--border); border-radius: 100px;
+    background: var(--surface); font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--text-3); cursor: pointer; transition: all 0.2s; user-select: none; line-height: 1;
+  }
+  .bv-chip:hover { border-color: var(--text-4); color: var(--text-2); }
+  .bv-chip-icon { font-size: 14px; line-height: 1; }
+  .bv-chip-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--text-5);
+    display: inline-block; transition: background 0.2s;
+  }
+  .bv-chip.configured { border-color: color-mix(in srgb, var(--cta) 25%, var(--border)); color: var(--cta); background: color-mix(in srgb, var(--cta) 6%, var(--surface)); }
+  .bv-chip.configured .bv-chip-dot { background: var(--cta); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cta) 18%, transparent); }
+  .bv-chip.configured:hover { border-color: var(--cta); }
+  .bv-chip.locked { opacity: 0.75; }
+  .bv-chip.locked .bv-chip-icon::after { content: ''; }
+  .bv-chip .bv-lock { font-size: 10px; opacity: 0.7; }
+  .bv-chip .bv-new-badge {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 100px; background: var(--cta); color: var(--white); line-height: 1;
+  }
+  .bv-chip.pulse { animation: bvPulse 1.6s ease-in-out infinite; }
+  @keyframes bvPulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cta) 30%, transparent); }
+    50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--cta) 0%, transparent); }
+  }
+
+  /* ===== BRAND VOICE MODAL ===== */
+  .bv-overlay {
+    position: fixed; inset: 0; z-index: 9200;
+    background: rgba(15,17,21,0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; animation: fadeIn 0.2s ease;
+  }
+  .bv-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 32px 32px 24px; max-width: 560px; width: 100%; text-align: left;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.06);
+    animation: tgSlideUp 0.3s ease; max-height: calc(100vh - 48px); overflow-y: auto;
+  }
+  .bv-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .bv-head-icon { font-size: 22px; }
+  .bv-title { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+  .bv-subtitle { font-size: 13px; color: var(--text-3); margin-bottom: 20px; line-height: 1.5; }
+  .bv-section {
+    border: 1px solid var(--border-light); border-radius: 14px; padding: 18px;
+    background: var(--bg); margin-bottom: 14px;
+  }
+  .bv-section-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .bv-section-help { font-size: 12px; color: var(--text-4); margin-bottom: 12px; line-height: 1.5; }
+  .bv-url-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .bv-url-input {
+    flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text);
+    background: var(--surface); outline: none; transition: border-color 0.2s;
+  }
+  .bv-url-input:focus { border-color: var(--cta); }
+  .bv-fetch-btn {
+    padding: 10px 16px; background: var(--accent); color: var(--white); border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .bv-fetch-btn:hover { background: var(--accent-hover); }
+  .bv-fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .bv-textarea {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; color: var(--text); line-height: 1.5;
+    background: var(--surface); outline: none; transition: border-color 0.2s;
+    min-height: 90px; resize: vertical;
+  }
+  .bv-textarea:focus { border-color: var(--cta); }
+  .bv-char { font-size: 11px; color: var(--text-5); text-align: right; margin-top: 4px; }
+  .bv-status { font-size: 11px; color: var(--text-4); margin-bottom: 8px; }
+  .bv-status.error { color: var(--error); }
+  .bv-status.success { color: var(--success); }
+  .bv-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; }
+  .bv-footer-note { font-size: 11px; color: var(--text-4); }
+  .bv-footer-actions { display: flex; gap: 8px; }
+  .bv-btn {
+    padding: 11px 24px; border: none; border-radius: 100px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .bv-btn-cancel { background: var(--accent-subtle); color: var(--text-3); border: 1px solid var(--border); }
+  .bv-btn-cancel:hover { background: var(--border); color: var(--text); }
+  .bv-btn-save { background: var(--cta); color: var(--white); }
+  .bv-btn-save:hover { background: var(--cta-hover); transform: translateY(-1px); }
+  .bv-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ===== PER-GEN TOGGLE ===== */
+  .bv-toggle-wrap { display: flex; justify-content: center; margin-top: 12px; }
+  .bv-toggle {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px;
+    border: 1px solid color-mix(in srgb, var(--cta) 25%, var(--border));
+    border-radius: 100px; background: color-mix(in srgb, var(--cta) 6%, var(--surface));
+    font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--cta);
+    cursor: pointer; transition: all 0.2s; user-select: none; line-height: 1;
+  }
+  .bv-toggle:hover { background: color-mix(in srgb, var(--cta) 12%, var(--surface)); }
+  .bv-toggle-icon { font-size: 12px; }
+  .bv-toggle.off {
+    border-color: var(--border); background: var(--accent-subtle); color: var(--text-4);
+  }
+  .bv-toggle.off:hover { background: var(--border); color: var(--text-3); }
+
+  /* ===== NUDGE BANNER (Pro w/o brand voice) ===== */
+  .bv-nudge {
+    display: flex; align-items: center; gap: 12px;
+    max-width: 640px; margin: 0 auto 20px; padding: 12px 16px 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--cta) 20%, var(--border));
+    border-radius: 14px; background: color-mix(in srgb, var(--cta) 5%, var(--surface));
+    font-size: 13px; color: var(--text-2);
+  }
+  .bv-nudge-icon { font-size: 18px; }
+  .bv-nudge-text { flex: 1; line-height: 1.4; }
+  .bv-nudge-text strong { font-weight: 700; color: var(--text); }
+  .bv-nudge-cta {
+    padding: 7px 14px; background: var(--cta); color: var(--white); border: none;
+    border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .bv-nudge-cta:hover { background: var(--cta-hover); }
+  .bv-nudge-dismiss {
+    width: 24px; height: 24px; border: none; background: transparent; color: var(--text-4);
+    font-size: 18px; line-height: 1; cursor: pointer; padding: 0; transition: color 0.2s;
+  }
+  .bv-nudge-dismiss:hover { color: var(--text); }
+
   /* ===== LANGUAGE SELECTOR ===== */
   .lang-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
   .lang-label { font-size: 12px; font-weight: 500; color: var(--text-4); white-space: nowrap; }
@@ -309,6 +439,15 @@
     <span class="flipper-callout-text">Flip any video into a <strong>ready-to-film script</strong> in your own style.</span>
   </div>
 
+  <div class="bv-chip-wrap">
+    <button type="button" class="bv-chip" id="bv-chip" aria-label="Brand Voice">
+      <span class="bv-chip-icon">&#127908;</span>
+      <span class="bv-chip-dot" id="bv-chip-dot"></span>
+      <span id="bv-chip-label">Brand Voice</span>
+      <span class="bv-new-badge" id="bv-chip-new">New</span>
+    </button>
+  </div>
+
   <div class="format-label" style="font-size: 12px; font-weight: 500; color: var(--text-4); text-align: center; margin-top: 20px; letter-spacing: 0.04em;">Choose output formats</div>
   <div class="format-picker" id="format-picker" style="margin-top: 8px;">
     <button class="format-pill pill-hero selected" data-format="video_script"><span class="pill-icon">&#127916;</span> Video Script <span class="pill-new-badge">New</span></button>
@@ -353,6 +492,13 @@
   </div>
 
   <button class="generate-btn" id="generate-btn" onclick="handleGenerate()">Generate Content</button>
+  <div class="bv-toggle-wrap hidden" id="bv-toggle-wrap">
+    <button type="button" class="bv-toggle" id="bv-toggle" title="Click to toggle Brand Voice for this generation">
+      <span class="bv-toggle-icon">&#127908;</span>
+      <span id="bv-toggle-label">Using Brand Voice</span>
+      <span id="bv-toggle-check">&#10003;</span>
+    </button>
+  </div>
   <p class="credit-indicator" id="credit-indicator"></p>
   <p class="input-hint" id="input-hint">Paste any video URL</p>
 </div>
@@ -651,7 +797,8 @@
             platform: currentPlatform,
             videoUrl: currentVideoUrl,
             transcriptLanguage: currentLanguage,
-            outputLanguage: document.getElementById('lang-select').value
+            outputLanguage: document.getElementById('lang-select').value,
+            useBrandVoice: !!(window.TGBrandVoice && TGBrandVoice.shouldApply())
           })
         });
         gData = await gRes.json();
@@ -743,6 +890,11 @@
 
     var grid = document.getElementById('platform-grid');
     TGCards.renderCards(data, grid);
+
+    // Brand Voice nudge (Pro users who haven't configured it yet)
+    if (window.TGBrandVoice) {
+      TGBrandVoice.showNudgeIfNeeded(sec);
+    }
   }
 
   // ==============================
@@ -1090,6 +1242,391 @@
   }
 })();
 </script>
+
+<!-- ===== BRAND VOICE MODAL (Pro feature) ===== -->
+<div class="bv-overlay hidden" id="bv-overlay" role="dialog" aria-modal="true" aria-labelledby="bv-title">
+  <div class="bv-card">
+    <div class="bv-head">
+      <span class="bv-head-icon">&#127908;</span>
+      <h3 class="bv-title" id="bv-title">Brand Voice</h3>
+    </div>
+    <p class="bv-subtitle">Make every script sound like <em>you</em>. Teach the AI what you sell and how you talk — once, and it applies to every generation.</p>
+
+    <div class="bv-section" data-section="product">
+      <div class="bv-section-title">Product / brand context</div>
+      <div class="bv-section-help">What you sell, who it's for, key features. Paste a link to auto-fill, or write it yourself.</div>
+      <div class="bv-url-row">
+        <input type="text" class="bv-url-input" id="bv-product-url" placeholder="Paste Play Store, App Store, or website link..." autocomplete="off" spellcheck="false">
+        <button type="button" class="bv-fetch-btn" id="bv-fetch-product">Fetch</button>
+      </div>
+      <div class="bv-status" id="bv-product-status"></div>
+      <textarea class="bv-textarea" id="bv-product-text" placeholder="e.g. PostMaxx turns any video into ready-to-post content for creators and solo marketers. Key features: multi-platform support, AI brand voice, scheduled posting..." maxlength="3000"></textarea>
+      <div class="bv-char"><span id="bv-product-count">0</span> / 3000</div>
+    </div>
+
+    <div class="bv-section" data-section="tone">
+      <div class="bv-section-title">Voice &amp; tone</div>
+      <div class="bv-section-help">How you sound — words you use, vibe, what to avoid. Link to a past post/blog or describe it.</div>
+      <div class="bv-url-row">
+        <input type="text" class="bv-url-input" id="bv-tone-url" placeholder="Paste a blog post, profile, or sample content link..." autocomplete="off" spellcheck="false">
+        <button type="button" class="bv-fetch-btn" id="bv-fetch-tone">Fetch</button>
+      </div>
+      <div class="bv-status" id="bv-tone-status"></div>
+      <textarea class="bv-textarea" id="bv-tone-text" placeholder="e.g. Casual, direct, a little sarcastic. Short sentences. No jargon. Never use 'leverage' or 'unlock your potential'. Always punchy hooks..." maxlength="3000"></textarea>
+      <div class="bv-char"><span id="bv-tone-count">0</span> / 3000</div>
+    </div>
+
+    <div class="bv-footer">
+      <span class="bv-footer-note">Saved to your account &middot; applies to all formats.</span>
+      <div class="bv-footer-actions">
+        <button type="button" class="bv-btn bv-btn-cancel" id="bv-cancel">Cancel</button>
+        <button type="button" class="bv-btn bv-btn-save" id="bv-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var NUDGE_KEY = 'tg_bv_nudge_dismissed';
+  var SEEN_KEY = 'tg_bv_seen';
+
+  // ============================================
+  // STATE
+  // ============================================
+  var state = {
+    configured: false,
+    useForNext: true,       // per-generation toggle
+    profile: null,          // {product, productUrl, tone, toneUrl} (loaded on modal open)
+    opening: false,
+  };
+
+  // ============================================
+  // ELEMENTS
+  // ============================================
+  var chip = document.getElementById('bv-chip');
+  var chipDot = document.getElementById('bv-chip-dot');
+  var chipLabel = document.getElementById('bv-chip-label');
+  var chipNew = document.getElementById('bv-chip-new');
+  var toggleWrap = document.getElementById('bv-toggle-wrap');
+  var toggleBtn = document.getElementById('bv-toggle');
+  var toggleLabel = document.getElementById('bv-toggle-label');
+  var toggleCheck = document.getElementById('bv-toggle-check');
+
+  var overlay = document.getElementById('bv-overlay');
+  var prodUrl = document.getElementById('bv-product-url');
+  var prodText = document.getElementById('bv-product-text');
+  var prodCount = document.getElementById('bv-product-count');
+  var prodStatus = document.getElementById('bv-product-status');
+  var prodFetch = document.getElementById('bv-fetch-product');
+
+  var toneUrl = document.getElementById('bv-tone-url');
+  var toneText = document.getElementById('bv-tone-text');
+  var toneCount = document.getElementById('bv-tone-count');
+  var toneStatus = document.getElementById('bv-tone-status');
+  var toneFetch = document.getElementById('bv-fetch-tone');
+
+  var btnSave = document.getElementById('bv-save');
+  var btnCancel = document.getElementById('bv-cancel');
+
+  // ============================================
+  // CHIP RENDER
+  // ============================================
+  function isPro() { return window.TGPro && TGPro.isPro(); }
+  function isSignedIn() { return window.TGUser && TGUser.isSignedIn(); }
+
+  function renderChip() {
+    var u = window.TGUser && TGUser.get();
+    var pro = isPro();
+    var bv = u && u.brandVoice;
+    state.configured = !!(pro && bv && bv.hasProfile);
+
+    chip.classList.remove('configured', 'locked', 'pulse');
+    chipNew.style.display = 'none';
+
+    if (!isSignedIn() || !pro) {
+      chip.classList.add('locked');
+      chipLabel.textContent = 'Brand Voice';
+      var lock = chip.querySelector('.bv-lock');
+      if (!lock) {
+        lock = document.createElement('span');
+        lock.className = 'bv-lock';
+        lock.textContent = '\u00a0\ud83d\udd12';
+        chipLabel.appendChild(lock);
+      }
+      chipNew.style.display = '';
+      renderToggle();
+      return;
+    }
+
+    // Pro user — remove lock
+    var lock = chip.querySelector('.bv-lock');
+    if (lock) lock.remove();
+
+    if (state.configured) {
+      chip.classList.add('configured');
+      chipLabel.textContent = 'Brand Voice \u2713';
+    } else {
+      chipLabel.textContent = 'Brand Voice \u2014 Set up';
+      // pulse for first-time discovery
+      var seen = false;
+      try { seen = localStorage.getItem(SEEN_KEY) === '1'; } catch(e) {}
+      if (!seen) {
+        chip.classList.add('pulse');
+        chipNew.style.display = '';
+      }
+    }
+    renderToggle();
+  }
+
+  function renderToggle() {
+    if (state.configured && isPro()) {
+      toggleWrap.classList.remove('hidden');
+      if (state.useForNext) {
+        toggleBtn.classList.remove('off');
+        toggleLabel.textContent = 'Using Brand Voice';
+        toggleCheck.textContent = '\u2713';
+      } else {
+        toggleBtn.classList.add('off');
+        toggleLabel.textContent = 'Brand Voice off for this one';
+        toggleCheck.textContent = '';
+      }
+    } else {
+      toggleWrap.classList.add('hidden');
+    }
+  }
+
+  // ============================================
+  // MODAL OPEN / CLOSE
+  // ============================================
+  async function openModal() {
+    if (state.opening) return;
+    if (!isSignedIn()) {
+      // Treat as non-signed-in upsell (shows sign-in modal with paid options)
+      if (window.TGPro) TGPro.showUpgradeModal({ variant: 'brandVoice' });
+      return;
+    }
+    if (!isPro()) {
+      if (window.TGPro) TGPro.showUpgradeModal({ variant: 'brandVoice' });
+      return;
+    }
+
+    state.opening = true;
+    try { localStorage.setItem(SEEN_KEY, '1'); } catch(e) {}
+    chip.classList.remove('pulse');
+    chipNew.style.display = 'none';
+
+    // Load full profile from server
+    prodStatus.textContent = 'Loading...';
+    toneStatus.textContent = '';
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      var r = await fetch('/api/brand-voice?action=profile', { credentials: 'same-origin' });
+      if (r.ok) {
+        var d = await r.json();
+        state.profile = d.voice || { product: '', productUrl: '', tone: '', toneUrl: '' };
+        prodUrl.value = state.profile.productUrl || '';
+        prodText.value = state.profile.product || '';
+        toneUrl.value = state.profile.toneUrl || '';
+        toneText.value = state.profile.tone || '';
+        updateCounts();
+        prodStatus.textContent = '';
+      } else if (r.status === 403) {
+        prodStatus.textContent = 'Pro required.';
+      } else {
+        prodStatus.textContent = 'Could not load your brand voice.';
+      }
+    } catch (e) {
+      prodStatus.textContent = 'Connection error.';
+    }
+    state.opening = false;
+  }
+
+  function closeModal() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    prodStatus.textContent = '';
+    toneStatus.textContent = '';
+    prodStatus.classList.remove('error', 'success');
+    toneStatus.classList.remove('error', 'success');
+  }
+
+  // ============================================
+  // FETCH URL (scrape)
+  // ============================================
+  async function fetchUrl(which) {
+    var urlEl = which === 'product' ? prodUrl : toneUrl;
+    var textEl = which === 'product' ? prodText : toneText;
+    var statusEl = which === 'product' ? prodStatus : toneStatus;
+    var btn = which === 'product' ? prodFetch : toneFetch;
+
+    var u = (urlEl.value || '').trim();
+    if (!u) {
+      statusEl.classList.remove('success');
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Paste a URL first.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Fetching...';
+    statusEl.classList.remove('error', 'success');
+    statusEl.textContent = 'Reading page...';
+
+    try {
+      var r = await fetch('/api/brand-voice?action=fetch', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: u })
+      });
+      var d = await r.json();
+      if (!r.ok) {
+        statusEl.classList.add('error');
+        statusEl.textContent = d.error || 'Could not read that page.';
+      } else {
+        textEl.value = d.text;
+        updateCounts();
+        statusEl.classList.add('success');
+        statusEl.textContent = 'Fetched from ' + (d.source || 'page') + ' \u2014 edit as you like.';
+      }
+    } catch (e) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Connection error.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Fetch';
+  }
+
+  // ============================================
+  // SAVE
+  // ============================================
+  async function saveProfile() {
+    btnSave.disabled = true;
+    btnSave.textContent = 'Saving...';
+    prodStatus.classList.remove('error', 'success');
+
+    var body = {
+      product: prodText.value.trim(),
+      productUrl: prodUrl.value.trim(),
+      tone: toneText.value.trim(),
+      toneUrl: toneUrl.value.trim(),
+    };
+
+    try {
+      var r = await fetch('/api/brand-voice?action=save', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      var d = await r.json();
+      if (!r.ok) {
+        prodStatus.classList.add('error');
+        prodStatus.textContent = d.error || 'Could not save.';
+        btnSave.disabled = false;
+        btnSave.textContent = 'Save';
+        return;
+      }
+      // Refresh user state so the chip updates
+      if (window.TGUser) {
+        await TGUser.refresh();
+      }
+      state.useForNext = true;
+      renderChip();
+      if (window.TGPro) TGPro._showToast('Brand Voice saved');
+      closeModal();
+    } catch (e) {
+      prodStatus.classList.add('error');
+      prodStatus.textContent = 'Connection error.';
+    }
+    btnSave.disabled = false;
+    btnSave.textContent = 'Save';
+  }
+
+  // ============================================
+  // NUDGE BANNER (Pro w/o brand voice, after generation)
+  // ============================================
+  window.TGBrandVoice = {
+    open: openModal,
+    shouldApply: function(){ return state.configured && state.useForNext && isPro(); },
+    configured: function(){ return state.configured; },
+    showNudgeIfNeeded: function(containerEl) {
+      if (!containerEl) return;
+      if (!isPro()) return;
+      if (state.configured) return;
+      var dismissed = false;
+      try { dismissed = localStorage.getItem(NUDGE_KEY) === '1'; } catch(e) {}
+      if (dismissed) return;
+      if (containerEl.querySelector('.bv-nudge')) return;
+
+      var div = document.createElement('div');
+      div.className = 'bv-nudge';
+      div.innerHTML =
+        '<span class="bv-nudge-icon">&#127908;</span>' +
+        '<span class="bv-nudge-text">Want scripts that sound like <strong>you</strong>? Set up <strong>Brand Voice</strong> once and every generation stays on-brand.</span>' +
+        '<button type="button" class="bv-nudge-cta">Set up</button>' +
+        '<button type="button" class="bv-nudge-dismiss" aria-label="Dismiss">&times;</button>';
+      containerEl.insertBefore(div, containerEl.firstChild);
+      div.querySelector('.bv-nudge-cta').addEventListener('click', function(){ div.remove(); openModal(); });
+      div.querySelector('.bv-nudge-dismiss').addEventListener('click', function(){
+        try { localStorage.setItem(NUDGE_KEY, '1'); } catch(e) {}
+        div.remove();
+      });
+    },
+  };
+
+  // ============================================
+  // EVENT BINDINGS
+  // ============================================
+  function updateCounts() {
+    prodCount.textContent = (prodText.value || '').length;
+    toneCount.textContent = (toneText.value || '').length;
+  }
+
+  chip.addEventListener('click', openModal);
+  btnCancel.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+  });
+  btnSave.addEventListener('click', saveProfile);
+  prodFetch.addEventListener('click', function(){ fetchUrl('product'); });
+  toneFetch.addEventListener('click', function(){ fetchUrl('tone'); });
+  prodText.addEventListener('input', updateCounts);
+  toneText.addEventListener('input', updateCounts);
+
+  toggleBtn.addEventListener('click', function(){
+    state.useForNext = !state.useForNext;
+    renderToggle();
+  });
+
+  // ============================================
+  // INIT
+  // ============================================
+  function init() {
+    renderChip();
+    // Auto-open via ?openBrandVoice=1 (used by landing page + /workspace link)
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('openBrandVoice') === '1') {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(openModal, 300);
+      }
+    } catch (e) {}
+  }
+
+  if (window.TGUser && TGUser.ready) {
+    TGUser.ready.then(init);
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();
+</script>
+
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

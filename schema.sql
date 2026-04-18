@@ -137,3 +137,11 @@ ALTER TABLE post_status ADD COLUMN scheduled_at TIMESTAMPTZ;
 ALTER TABLE post_status ADD COLUMN scheduled_content TEXT;
 ALTER TABLE post_status ADD COLUMN qstash_message_id VARCHAR(255);
 ALTER TABLE post_status ADD COLUMN error_message TEXT;
+
+-- ============================================
+-- MIGRATION: Brand Voice (Pro feature)
+-- ============================================
+ALTER TABLE users ADD COLUMN brand_voice_product TEXT;
+ALTER TABLE users ADD COLUMN brand_voice_product_url VARCHAR(512);
+ALTER TABLE users ADD COLUMN brand_voice_tone TEXT;
+ALTER TABLE users ADD COLUMN brand_voice_tone_url VARCHAR(512);

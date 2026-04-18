@@ -490,6 +490,37 @@ export async function deleteScheduledPost(id, userId) {
 }
 
 // ============================================
+// BRAND VOICE (Pro feature)
+// ============================================
+export async function getBrandVoice(userId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT brand_voice_product, brand_voice_product_url, brand_voice_tone, brand_voice_tone_url
+    FROM users WHERE id = ${userId}
+  `;
+  if (rows.length === 0) return null;
+  return {
+    product: rows[0].brand_voice_product || '',
+    productUrl: rows[0].brand_voice_product_url || '',
+    tone: rows[0].brand_voice_tone || '',
+    toneUrl: rows[0].brand_voice_tone_url || '',
+  };
+}
+
+export async function saveBrandVoice(userId, { product, productUrl, tone, toneUrl }) {
+  const sql = getSQL();
+  await sql`
+    UPDATE users
+    SET brand_voice_product = ${product || null},
+        brand_voice_product_url = ${productUrl || null},
+        brand_voice_tone = ${tone || null},
+        brand_voice_tone_url = ${toneUrl || null},
+        updated_at = NOW()
+    WHERE id = ${userId}
+  `;
+}
+
+// ============================================
 // ANONYMOUS FREE GENERATION TRACKING
 // ============================================
 export async function hasUsedFreeGeneration(ip) {

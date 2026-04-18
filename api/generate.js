@@ -1,7 +1,7 @@
 // api/generate.js — Generate selected platform content from a transcript.
 
 import { handleCors, callGemini } from './_shared.js';
-import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration, hasUsedFreeGeneration, recordFreeGeneration } from './_db.js';
+import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration, hasUsedFreeGeneration, recordFreeGeneration, getBrandVoice } from './_db.js';
 import { FORMAT_PROMPTS, VALID_FORMATS } from './_prompts.js';
 
 export const config = { maxDuration: 60 };
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment.' });
   }
 
-  const { transcript, formats, videoId, videoTitle, videoThumbnail, platform, videoUrl, transcriptLanguage, outputLanguage } = req.body || {};
+  const { transcript, formats, videoId, videoTitle, videoThumbnail, platform, videoUrl, transcriptLanguage, outputLanguage, useBrandVoice } = req.body || {};
 
   if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 50) {
     return res.status(400).json({ error: 'Transcript text is required (minimum 50 characters).' });
@@ -120,10 +120,28 @@ export default async function handler(req, res) {
     ? `\nIMPORTANT: The transcript below is in a non-English language (code: ${transcriptLanguage}). Understand the content fully before generating output.\n`
     : '';
 
+  // Brand Voice (Pro only) — prepend a single block above all format instructions
+  let brandVoiceBlock = '';
+  if (useBrandVoice && user && user.tier === 'pro') {
+    try {
+      const voice = await getBrandVoice(user.id);
+      if (voice && (voice.product || voice.tone)) {
+        const parts = [];
+        if (voice.product) parts.push(`Product context: ${voice.product}`);
+        if (voice.tone) parts.push(`Voice & tone: ${voice.tone}`);
+        brandVoiceBlock = `\n## BRAND VOICE (apply across ALL formats below)
+${parts.join('\n')}
+Integrate naturally \u2014 reference the product where relevant, match the tone. Do not quote this brand voice text verbatim in the output.\n`;
+      }
+    } catch (e) {
+      console.error('Brand voice fetch failed:', e.message);
+    }
+  }
+
   const prompt = `You are an expert content repurposer. Given a video transcript, generate ready-to-post content for the following platform(s).
 ${langNote}
 ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the content into ${outLang}.
-
+${brandVoiceBlock}
 ${promptParts.join('\n\n')}
 
 Return JSON with this exact structure:
