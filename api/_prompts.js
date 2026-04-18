@@ -70,6 +70,21 @@ export const FORMAT_PROMPTS = {
 - For each quote, write a ready-to-tweet version (under 280 chars)`,
     schema: '"quotes": [{ "text": "the quote", "timestamp": "MM:SS or empty", "tweet": "tweetable version under 280 chars" }, ...]',
   },
+  video_script: {
+    prompt: `## Short-Form Video Scripts (3 variations — "flipped" rewrites of the original)
+- Generate 3 DIFFERENT short-form video scripts (30-60 seconds each when spoken), each rewriting the source video from a DISTINCT angle — e.g. a contrarian take, a beginner-friendly framing, or a story/case-study spin
+- DO NOT copy the original's wording. Reuse the CORE IDEA but rewrite it as a fresh spoken-word script in a new voice and structure
+- Each script MUST be broken into three parts:
+  1. HOOK (first 1-3 seconds, designed to stop the scroll — bold claim, pattern interrupt, provocative question, or unexpected fact)
+  2. VALUE (the substance — the key insight, story, or teaching from the source video, delivered in short punchy spoken sentences, no filler)
+  3. CTA (one concrete next step — follow, comment a keyword, save, try it, etc.)
+- Write for the ear, not the eye: short sentences, contractions, natural cadence, zero jargon unless explained
+- Also include "on_screen_text": 3-6 short caption overlays (under 6 words each) that pair with key moments of the script
+- Also include "b_roll": 3-6 short visual cues (e.g. "close-up of phone screen", "split-screen before/after") suggesting what to film or cut to
+- Keep each full script under 160 spoken words (roughly 60 seconds at a natural pace)
+- Each variation must have a short "label" describing its angle (2-5 words, e.g. "Contrarian take", "Beginner framing", "Case study")`,
+    schema: '"video_script": [{ "label": "angle name", "hook": "first 1-3 seconds", "value": "main body of the script", "cta": "call to action", "on_screen_text": ["overlay 1", "overlay 2"], "b_roll": ["visual cue 1", "visual cue 2"] }, { "label": "angle name", "hook": "...", "value": "...", "cta": "...", "on_screen_text": [...], "b_roll": [...] }, { "label": "angle name", "hook": "...", "value": "...", "cta": "...", "on_screen_text": [...], "b_roll": [...] }]',
+  },
 };
 
 export const VALID_FORMATS = Object.keys(FORMAT_PROMPTS);

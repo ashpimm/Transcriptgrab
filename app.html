@@ -93,6 +93,36 @@
   .format-pill:hover { border-color: var(--text-4); color: var(--text-2); }
   .format-pill.selected { background: var(--text); color: var(--white); border-color: var(--text); }
   .format-pill .pill-icon { font-size: 14px; }
+  .format-pill.pill-hero { border-color: var(--cta); color: var(--cta); background: color-mix(in srgb, var(--cta) 7%, var(--surface)); }
+  .format-pill.pill-hero:hover { border-color: var(--cta-hover); color: var(--cta-hover); }
+  .format-pill.pill-hero.selected { background: var(--cta); color: var(--white); border-color: var(--cta); }
+  .format-pill.pill-hero.selected:hover { background: var(--cta-hover); border-color: var(--cta-hover); }
+  .pill-new-badge {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 100px; background: var(--cta); color: var(--white);
+    margin-left: 4px; line-height: 1;
+  }
+  .format-pill.pill-hero.selected .pill-new-badge { background: var(--white); color: var(--cta); }
+  .format-pill.pill-hero:not(.selected) .pill-new-badge { background: var(--cta); color: var(--white); }
+
+  .flipper-callout {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    max-width: 520px; margin: 20px auto 0; padding: 10px 16px;
+    border: 1px solid var(--border); border-radius: 100px;
+    background: color-mix(in srgb, var(--cta) 6%, var(--surface));
+    font-size: 12px; color: var(--text-2);
+  }
+  .flipper-callout-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--cta); color: var(--white); font-size: 12px;
+  }
+  .flipper-callout-label {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--cta);
+  }
+  .flipper-callout-text { font-weight: 500; color: var(--text-2); }
+  .flipper-callout-text strong { color: var(--text); font-weight: 700; }
 
   /* ===== LANGUAGE SELECTOR ===== */
   .lang-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
@@ -273,8 +303,15 @@
     </button>
   </div>
 
+  <div class="flipper-callout">
+    <span class="flipper-callout-icon">&#127916;</span>
+    <span class="flipper-callout-label">New</span>
+    <span class="flipper-callout-text">Flip any video into a <strong>ready-to-film script</strong> in your own style.</span>
+  </div>
+
   <div class="format-label" style="font-size: 12px; font-weight: 500; color: var(--text-4); text-align: center; margin-top: 20px; letter-spacing: 0.04em;">Choose output formats</div>
   <div class="format-picker" id="format-picker" style="margin-top: 8px;">
+    <button class="format-pill pill-hero selected" data-format="video_script"><span class="pill-icon">&#127916;</span> Video Script <span class="pill-new-badge">New</span></button>
     <button class="format-pill selected" data-format="twitter"><span class="pill-icon">&#120143;</span> Twitter</button>
     <button class="format-pill selected" data-format="linkedin"><span class="pill-icon">in</span> LinkedIn</button>
     <button class="format-pill" data-format="facebook"><span class="pill-icon">f</span> Facebook</button>
@@ -734,6 +771,18 @@
 
     if (currentResult._transcript) {
       parts.push('--- TRANSCRIPT ---\n\n' + currentResult._transcript + '\n\n');
+    }
+    if (currentResult.video_script && currentResult.video_script.length) {
+      parts.push('\n--- VIDEO SCRIPTS ---\n\n');
+      writeVariations(parts, currentResult.video_script, function(v) {
+        var blocks = [];
+        if (v.hook) blocks.push('HOOK\n' + v.hook);
+        if (v.value) blocks.push('VALUE\n' + v.value);
+        if (v.cta) blocks.push('CTA\n' + v.cta);
+        if (v.on_screen_text && v.on_screen_text.length) blocks.push('ON-SCREEN TEXT\n- ' + v.on_screen_text.join('\n- '));
+        if (v.b_roll && v.b_roll.length) blocks.push('B-ROLL\n- ' + v.b_roll.join('\n- '));
+        return blocks.join('\n\n');
+      });
     }
     if (currentResult.twitter && currentResult.twitter.tweets) {
       parts.push('--- TWITTER THREAD ---\n\n');

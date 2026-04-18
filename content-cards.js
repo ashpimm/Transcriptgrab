@@ -253,6 +253,70 @@
     return card;
   }
 
+  function formatVideoScriptCopy(v) {
+    var parts = [];
+    if (v.hook) parts.push('HOOK\n' + v.hook);
+    if (v.value) parts.push('VALUE\n' + v.value);
+    if (v.cta) parts.push('CTA\n' + v.cta);
+    if (v.on_screen_text && v.on_screen_text.length) parts.push('ON-SCREEN TEXT\n- ' + v.on_screen_text.join('\n- '));
+    if (v.b_roll && v.b_roll.length) parts.push('B-ROLL\n- ' + v.b_roll.join('\n- '));
+    return parts.join('\n\n');
+  }
+
+  function renderScriptSections(v) {
+    function list(items) {
+      return (items || []).map(function(s) { return '<li>' + escapeHtml(s) + '</li>'; }).join('');
+    }
+    var html = '';
+    html += '<div class="script-section"><div class="script-label">Hook</div><div class="content-text">' + escapeHtml(v.hook || '') + '</div></div>';
+    html += '<div class="script-section"><div class="script-label">Value</div><div class="content-text">' + escapeHtml(v.value || '') + '</div></div>';
+    html += '<div class="script-section"><div class="script-label">CTA</div><div class="content-text">' + escapeHtml(v.cta || '') + '</div></div>';
+    if (v.on_screen_text && v.on_screen_text.length) {
+      html += '<div class="script-section"><div class="script-label">On-screen text</div><ul class="script-list">' + list(v.on_screen_text) + '</ul></div>';
+    }
+    if (v.b_roll && v.b_roll.length) {
+      html += '<div class="script-section"><div class="script-label">B-roll ideas</div><ul class="script-list">' + list(v.b_roll) + '</ul></div>';
+    }
+    return html;
+  }
+
+  function buildVariationVideoScriptCard(variations) {
+    var first = variations[0];
+    var card = makeCard('Video Script', '\u{1F3AC}', formatVideoScriptCopy(first));
+    card.classList.add('full-width');
+    var header = card.querySelector('.card-header');
+    var actionsEl = header.querySelector('.card-actions');
+
+    var tabs = document.createElement('div');
+    tabs.className = 'variation-tabs';
+    var labelEl = document.createElement('div');
+    labelEl.className = 'variation-label';
+    labelEl.textContent = first.label || 'Variation 1';
+
+    var body = card.querySelector('.card-body');
+    body.classList.add('tall');
+    body.innerHTML = renderScriptSections(first);
+
+    variations.forEach(function(v, i) {
+      var tab = document.createElement('button');
+      tab.className = 'variation-tab' + (i === 0 ? ' active' : '');
+      tab.textContent = i + 1;
+      tab.setAttribute('data-idx', i);
+      tab.onclick = function() {
+        tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
+        body.innerHTML = renderScriptSections(variations[i]);
+        card._copyContent = formatVideoScriptCopy(variations[i]);
+      };
+      tabs.appendChild(tab);
+    });
+    header.insertBefore(tabs, actionsEl);
+    header.parentNode.insertBefore(labelEl, header.nextSibling);
+
+    return card;
+  }
+
   function buildVariationBlogCard(variations) {
     var first = variations[0];
     var fullText = '# ' + (first.title || '') + '\n\n' + (first.content || '');
@@ -311,6 +375,9 @@
     if (data._transcript) {
       container.appendChild(buildTranscriptCard(data._transcript));
     }
+    if (data.video_script && Array.isArray(data.video_script) && data.video_script.length) {
+      container.appendChild(buildVariationVideoScriptCard(data.video_script));
+    }
     if (data.twitter && data.twitter.tweets) {
       container.appendChild(buildTwitterCard(data.twitter.tweets));
     }
@@ -361,6 +428,7 @@
     buildVariationTextCard: buildVariationTextCard,
     buildVariationTikTokCard: buildVariationTikTokCard,
     buildVariationBlogCard: buildVariationBlogCard,
+    buildVariationVideoScriptCard: buildVariationVideoScriptCard,
     renderMarkdown: renderMarkdown,
     escapeHtml: escapeHtml,
     copyText: copyText
