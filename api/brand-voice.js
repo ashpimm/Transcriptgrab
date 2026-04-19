@@ -4,8 +4,8 @@ import { getSession, getBrandVoice, saveBrandVoice } from './_db.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
-const FETCH_TIMEOUT_MS = 6000;
-const FETCH_MAX_BYTES = 512 * 1024;
+const FETCH_TIMEOUT_MS = 8000;
+const FETCH_MAX_BYTES = 3 * 1024 * 1024; // 3MB — Play Store pages are big
 
 function corsHeaders(req, res) {
   const origin = req.headers.origin || '';
@@ -102,21 +102,65 @@ function decodeEntities(s) {
 }
 
 function stripHtmlToText(html) {
-  // Drop script/style/nav/header/footer blocks
+  // Drop script/style/nav/header/footer blocks (closed pairs)
   let cleaned = html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
-    .replace(/<header[\s\S]*?<\/header>/gi, ' ')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
-    .replace(/<nav[\s\S]*?<\/nav>/gi, ' ');
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<header\b[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<footer\b[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<nav\b[\s\S]*?<\/nav>/gi, ' ');
+  // Defensive: if an unclosed <script> or <style> remains (truncated page),
+  // drop everything from that tag forward so its contents never leak through.
+  cleaned = cleaned.replace(/<script\b[\s\S]*$/gi, ' ');
+  cleaned = cleaned.replace(/<style\b[\s\S]*$/gi, ' ');
   // Prefer <main> or <article> if present
   const main = cleaned.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
   if (main) cleaned = main[1];
   // Strip remaining tags
   cleaned = cleaned.replace(/<[^>]+>/g, ' ');
   cleaned = decodeEntities(cleaned).replace(/\s+/g, ' ').trim();
+  // Final safety: if the result still looks like CSS/JS (braces density, no sentences), reject it
+  const braceRatio = (cleaned.match(/[{};]/g) || []).length / Math.max(cleaned.length, 1);
+  if (braceRatio > 0.02) return '';
   return cleaned;
+}
+
+function extractJsonLdDescription(html) {
+  // Play Store + many modern sites embed SoftwareApplication / Product / WebPage JSON-LD.
+  const blocks = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const block of blocks) {
+    const inner = block.replace(/^<script[^>]*>/i, '').replace(/<\/script>$/i, '').trim();
+    let data;
+    try { data = JSON.parse(inner); } catch { continue; }
+    const found = findDescriptionInJsonLd(data);
+    if (found && found.length >= 40) return found;
+  }
+  return '';
+}
+
+function findDescriptionInJsonLd(node) {
+  if (!node) return '';
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const f = findDescriptionInJsonLd(item);
+      if (f) return f;
+    }
+    return '';
+  }
+  if (typeof node === 'object') {
+    if (typeof node.description === 'string' && node.description.trim().length >= 40) {
+      return node.description.trim();
+    }
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (v && typeof v === 'object') {
+        const f = findDescriptionInJsonLd(v);
+        if (f) return f;
+      }
+    }
+  }
+  return '';
 }
 
 function parseScrapedContent(html, url) {
@@ -128,7 +172,6 @@ function parseScrapedContent(html, url) {
     return { text: '', source: 'blocked' };
   }
 
-  // Play Store / App Store — prefer og:description (richer than meta description)
   const isPlayStore = host.includes('play.google.com');
   const isAppStore = host.endsWith('apps.apple.com');
 
@@ -136,28 +179,46 @@ function parseScrapedContent(html, url) {
   const metaDesc = extractMeta(html, 'name', 'description');
   const ogTitle = extractMeta(html, 'property', 'og:title');
   const metaTitle = (html.match(/<title[^>]*>([^<]+)<\/title>/i) || [, ''])[1].trim();
-
   const title = ogTitle || metaTitle || '';
 
+  // Play Store + App Store: JSON-LD has the full app description, which is far
+  // richer (and cleaner) than the short og:description. Prefer that.
   if (isPlayStore || isAppStore) {
+    const ld = extractJsonLdDescription(html);
+    if (ld) {
+      const combined = title ? (title + ' \u2014 ' + ld) : ld;
+      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
+    }
+    // Fall back to og/meta for these stores if JSON-LD missing.
     const desc = og || metaDesc || '';
-    const combined = [title, desc].filter(Boolean).join(' — ');
-    if (combined) return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
+    if (desc && desc.length >= 40) {
+      const combined = [title, desc].filter(Boolean).join(' \u2014 ');
+      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
+    }
+    // Don't fall through to body stripping for these SPAs — it's noisy.
+    return { text: '', source: 'empty' };
   }
 
   if (og && og.length >= 40) {
-    const combined = title ? (title + ' — ' + og) : og;
+    const combined = title ? (title + ' \u2014 ' + og) : og;
     return { text: clipText(combined, MAX_TEXT_LEN), source: 'og' };
   }
   if (metaDesc && metaDesc.length >= 40) {
-    const combined = title ? (title + ' — ' + metaDesc) : metaDesc;
+    const combined = title ? (title + ' \u2014 ' + metaDesc) : metaDesc;
     return { text: clipText(combined, MAX_TEXT_LEN), source: 'meta' };
+  }
+
+  // Also try JSON-LD on generic sites (blogs, product pages).
+  const ldGeneric = extractJsonLdDescription(html);
+  if (ldGeneric) {
+    const combined = title ? (title + ' \u2014 ' + ldGeneric) : ldGeneric;
+    return { text: clipText(combined, MAX_TEXT_LEN), source: 'jsonld' };
   }
 
   // Fallback: strip HTML and take the first chunk of visible text.
   const body = stripHtmlToText(html);
   if (body.length >= 80) {
-    const combined = title ? (title + ' — ' + body) : body;
+    const combined = title ? (title + ' \u2014 ' + body) : body;
     return { text: clipText(combined, MAX_TEXT_LEN), source: 'body' };
   }
 
