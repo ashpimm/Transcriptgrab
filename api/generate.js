@@ -2,7 +2,7 @@
 
 import { handleCors, callGemini } from './_shared.js';
 import { getSession, canGenerate, consumeCredit, parseCookies, getSingleCredit, consumeSingleCredit, clearCreditCookie, saveGeneration, hasUsedFreeGeneration, recordFreeGeneration, getBrandVoice } from './_db.js';
-import { FORMAT_PROMPTS, VALID_FORMATS } from './_prompts.js';
+import { FORMAT_PROMPTS, VALID_FORMATS, UNIVERSAL_RULES } from './_prompts.js';
 
 export const config = { maxDuration: 60 };
 
@@ -138,9 +138,11 @@ Integrate naturally \u2014 reference the product where relevant, match the tone.
     }
   }
 
-  const prompt = `You are an expert content repurposer. Given a video transcript, generate ready-to-post content for the following platform(s).
+  const prompt = `You are a sharp content writer who repurposes video transcripts into ready-to-post content. Your output is grounded in what the speaker actually said — not generic AI summaries.
 ${langNote}
-ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the content into ${outLang}.
+ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the content into ${outLang} while preserving the speaker's specific examples and phrasing.
+
+${UNIVERSAL_RULES}
 ${brandVoiceBlock}
 ${promptParts.join('\n\n')}
 
