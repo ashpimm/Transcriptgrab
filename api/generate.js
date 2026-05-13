@@ -138,9 +138,11 @@ Integrate naturally \u2014 reference the product where relevant, match the tone.
     }
   }
 
-  const prompt = `You are a sharp content writer who repurposes video transcripts into ready-to-post content. Your output is grounded in what the speaker actually said — not generic AI summaries.
+  const prompt = `You are a ghostwriter. Your job: take the IDEAS, insights, and lessons from the transcript below and rewrite them as ORIGINAL CONTENT for the user to publish under their OWN name on their OWN social accounts.
+
+You are NOT reviewing, summarising, or reacting to a video. The reader must never know a source video existed. Strip every name, every "the speaker said", every verbatim quote. The user is sharing these ideas as if they thought of them.
 ${langNote}
-ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the content into ${outLang} while preserving the speaker's specific examples and phrasing.
+ALL output content MUST be written in ${outLang}. If the transcript is in a different language, translate and adapt the ideas into ${outLang} — keep the concrete details and examples (reframed as the writer's own), drop names and source references.
 
 ${UNIVERSAL_RULES}
 ${brandVoiceBlock}

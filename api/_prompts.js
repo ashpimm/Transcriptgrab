@@ -6,19 +6,25 @@
 // ============================================
 export const UNIVERSAL_RULES = `## Ground rules (apply to EVERY output)
 
-1. **Stay grounded.** Every claim, quote, and example MUST come from something specifically said in the transcript. If the transcript doesn't say it, don't write it. Paraphrasing is fine; inventing details, statistics, or quotes is not.
+You are NOT reviewing, summarising, or reacting to a video. You are taking the IDEAS from a transcript and rewriting them as ORIGINAL CONTENT the user will publish under their own name on their own social accounts. The source video does not exist as far as the reader is concerned.
 
-2. **Quote, don't summarise.** Where possible, lift the speaker's actual phrasing. A specific line beats a polished paraphrase.
+1. **Strip the source. Keep the idea.** Use the transcript ONLY as raw material — ideas, insights, frameworks, mental models, lessons. Never reveal it came from a video. Never let the reader sense a transcript was involved.
 
-3. **Specific beats abstract.** "He spent $400 on the wrong thing" beats "He had a setback." Concrete details and named moments from the transcript carry the post — not platitudes.
+2. **NEVER name people from the transcript.** If the transcript says "Alex lost 45 pounds" or "Mike found that..." — DROP the names entirely. Rewrite as "I lost 45 pounds" or "Someone I know lost 45 pounds" or as a general observation. The only exception is well-known public figures (e.g. "Steve Jobs", "Buffett") used as a famous example that the user could plausibly reference themselves.
 
-4. **Banned phrases.** Do NOT use any of: "in today's world", "in this video", "the key is", "the secret is", "it's important to note", "the journey of", "unlock", "leverage" (as a verb), "breakthrough", "game-changer", "level up", "elevate", "transformation", "embrace", "harness", "delve", "the conversation highlighted", "the speaker discusses", "the video explores", "shift our identity", "common dilemma".
+3. **NEVER reference the video or speaker.** Banned constructions: "in this video", "the speaker", "the conversation", "the podcast", "they said", "he shared", "she explains", "Alex said", "the guest mentioned", "the interview", "according to him". The user did not watch anything — they are sharing a take.
 
-5. **No meta-references.** Don't say "this video" or "the speaker says" or "in the conversation". Write as if YOU are sharing what you learned/believe — first person where natural.
+4. **First person by default.** Stories, struggles, and examples from the transcript get rewritten as "I" or "we" where natural. "I went through a phase where I got obsessed with calories" — NOT "Alex talked about getting obsessed with calories." Make the experience the writer's own.
 
-6. **Length discipline.** Stay within the word budget for each format. Cut filler before going over.
+5. **No verbatim quotes from the transcript.** Paraphrase every idea into the user's voice. Word-for-word lifts give away the source. (The single exception is the Key Quotes format, which is for the user's private inspiration board, not for posting as their own writing.)
 
-7. **Three variations means three real angles.** Each variation must have a DIFFERENT spine — not three rewordings of the same point. Vary the angle, the example, the emotional register.
+6. **Specific beats abstract — but reframe the specifics.** "$400 on the wrong supplement" is a great detail, but rewrite as "I once burned $400 on the wrong supplement" or "A friend of mine wasted $400 on..." — never "he spent $400". The concrete carries the post; the attribution gets stripped.
+
+7. **Banned phrases.** Do NOT use any of: "in today's world", "in this video", "the key is", "the secret is", "it's important to note", "the journey of", "unlock", "leverage" (as a verb), "breakthrough", "game-changer", "level up", "elevate", "transformation", "embrace", "harness", "delve", "the conversation highlighted", "the speaker discusses", "the video explores", "shift our identity", "common dilemma", "shared", "discussed", "talked about", "mentioned that", "pointed out", "explained how", "interesting perspective".
+
+8. **Length discipline.** Stay within the word budget for each format. Cut filler before going over.
+
+9. **Three variations means three real angles.** Each variation must have a DIFFERENT spine — not three rewordings of the same point. Vary the angle, the example, the emotional register.
 `;
 
 export const FORMAT_PROMPTS = {
@@ -26,8 +32,8 @@ export const FORMAT_PROMPTS = {
     prompt: `## Twitter/X Thread
 
 Structure:
-- Tweet 1 = HOOK. One bold, specific line that creates curiosity. NOT a summary. NOT "Here are 5 lessons from..." Use a scene, a number, a paradox, or a contrarian claim from the transcript.
-- Tweets 2-N = each tweet carries ONE idea, lifted or paraphrased from the transcript. Use the speaker's actual examples and phrasing where possible.
+- Tweet 1 = HOOK. One bold, specific line that creates curiosity. NOT a summary. Use a scene, a number, a paradox, or a contrarian claim — rewritten as if it's the writer's own observation.
+- Tweets 2-N = each tweet carries ONE idea, paraphrased from the transcript into the writer's own voice. No attribution. No "he said". No names.
 - Final tweet = a punchline or one-line takeaway, OR a single question. Not "follow for more".
 
 Rules:
@@ -35,6 +41,7 @@ Rules:
 - Each tweet under 280 chars (count yourself, leave 10 char buffer).
 - Number tweets "1/", "2/", etc.
 - Short sentences. Line breaks inside tweets where it adds punch.
+- First person where it adds force ("I", "we", "you").
 - No emojis unless they sharpen a point. No hashtags inside the thread.`,
     schema: '"twitter": { "tweets": ["tweet1", "tweet2", ...] }',
   },
@@ -42,10 +49,11 @@ Rules:
   linkedin: {
     prompt: `## LinkedIn Posts (3 variations — distinct angles)
 
-Generate 3 posts. The 3 angles MUST be different from each other:
-- **Variation 1 — Counter-intuitive insight**: Pick the one claim from the transcript that would surprise a thoughtful reader. Frame the post around defending or unpacking it.
-- **Variation 2 — Personal-stake story**: Open with a "I" or "I was" line that connects to a specific moment in the transcript. Tell it like a short story with a turn at the end.
-- **Variation 3 — Tactical framework**: Pull out a concrete method, rule, or step from the transcript. Title it. Show how it works using the transcript's own example(s).
+Generate 3 posts. The 3 angles MUST be different from each other. Each post reads as the WRITER'S own thinking — no reference to a video, no names from the transcript.
+
+- **Variation 1 — Counter-intuitive insight**: Take one claim from the transcript that would surprise a thoughtful reader. Present it as the writer's own conclusion. Defend or unpack it.
+- **Variation 2 — Personal-stake story**: Open with "I" or "I was" — rewrite a specific moment from the transcript as if it happened to the writer. Tell it like a short story with a turn at the end.
+- **Variation 3 — Tactical framework**: Pull out a concrete method, rule, or step from the transcript. Title it. Show how it works using a reframed example (no names, no "the speaker says").
 
 Structure for EACH post:
 - Hook line (one short sentence, ideally under 12 words). NOT a question for variation 1 or 3.
@@ -60,15 +68,15 @@ Label each variation with a 2-5 word angle name (e.g., "Counter-intuitive take",
   facebook: {
     prompt: `## Facebook Posts (3 variations — distinct angles)
 
-Facebook readers want stories and conversation, NOT LinkedIn-style lessons or motivational fluff.
+Facebook readers want stories and conversation, NOT LinkedIn-style lessons or motivational fluff. Each post is the WRITER'S own story or take — never "this guy said" or "I watched a video where".
 
 The 3 angles MUST be different:
-- **Variation 1 — Story/scene**: Open with a specific moment from the transcript ("They asked him why he wasn't 200 pounds heavier..."). Tell it like you're recounting a conversation you overheard. Land the insight at the end.
-- **Variation 2 — Relatable struggle**: Open with a feeling or problem the transcript names directly ("Ever lost weight and then become obsessed with the calorie count?"). Use the speaker's own framing to explain why it happens, then offer their take on the way out.
-- **Variation 3 — Single quote unpacked**: Lift ONE striking line from the transcript verbatim, put it in quotes at the top, then write 2-3 short paragraphs of your own reaction/reflection.
+- **Variation 1 — Story/scene**: Take a specific moment from the transcript and rewrite it as something the writer witnessed or experienced themselves. No names. Land the insight at the end.
+- **Variation 2 — Relatable struggle**: Open with a feeling or problem ("Ever lost weight and then become obsessed with the calorie count?"). Use the transcript's framing as raw material but write it as the WRITER's own observation about the problem and the way out.
+- **Variation 3 — One bold statement unpacked**: Open with ONE striking line (paraphrased from the transcript into the writer's voice, NOT a quote from anyone). Then 2-3 short paragraphs of the writer's own reflection on it.
 
 Structure for EACH post:
-- Hook line (curiosity, scene, or quote — NOT a generic question like "Have you ever wondered...").
+- Hook line (curiosity, scene, or bold statement — NOT a generic question like "Have you ever wondered...").
 - Conversational, warm tone. "I" voice where it fits.
 - Short paragraphs with blank lines between.
 - 120-250 words. Cut filler before adding more.
@@ -82,10 +90,12 @@ Label each variation with a 2-5 word angle name.`,
   instagram: {
     prompt: `## Instagram Captions (3 variations — distinct angles)
 
+Each caption reads as the WRITER's own thought. No "in this video", no names, no attribution.
+
 The 3 angles MUST be different:
-- **Variation 1 — One-line truth + story**: First line is a single bold statement pulled from the transcript. Then 3-5 short paragraphs unpacking it with a specific scene or example from the transcript.
-- **Variation 2 — Numbered list**: Pull 3-5 specific points or steps the transcript actually names. One short line each. Concrete, not abstract.
-- **Variation 3 — Confession/relatable hook**: Open with "I used to..." or "Nobody talks about..." — tied to something the transcript reframes. Walk through the reframe.
+- **Variation 1 — One-line truth + story**: First line is a bold statement (paraphrased from the transcript into the writer's voice). Then 3-5 short paragraphs unpacking it with a specific scene — reframed as the writer's own experience or observation, no names.
+- **Variation 2 — Numbered list**: Pull 3-5 specific points or steps from the transcript. Rewrite each as a short punchy line in the writer's voice. Concrete, not abstract.
+- **Variation 3 — Confession/relatable hook**: Open with "I used to..." or "Nobody talks about..." — tied to something the transcript reframes. Walk through the reframe as the writer's own realisation.
 
 Structure for EACH caption:
 - First line must work as a standalone preview (Instagram truncates after ~125 chars).
@@ -101,12 +111,12 @@ Label each variation with a 2-5 word angle name.`,
   tiktok: {
     prompt: `## TikTok Posts (3 variations — distinct angles)
 
-For each, write a CAPTION (under 200 chars, conversational, no listicle vibe) and a VOICEOVER SCRIPT (spoken-word, 30-50 seconds at natural pace, around 80-130 words).
+For each, write a CAPTION (under 200 chars, conversational, no listicle vibe) and a VOICEOVER SCRIPT (spoken-word, 30-50 seconds at natural pace, around 80-130 words). The script is spoken by the WRITER as their own take — never "this guy said" or "I saw a video where".
 
 The 3 angles MUST be different:
-- **Variation 1 — Hot take**: Lead the script with a punchy contrarian claim from the transcript. Defend it in 20 seconds.
-- **Variation 2 — Story-driven**: Recount a specific scene or exchange from the transcript ("This guy asked him why he wasn't 200 pounds heavier and the answer changed how I think about willpower").
-- **Variation 3 — Tactic/how-to**: Pull a concrete method from the transcript. Explain it in 3 steps.
+- **Variation 1 — Hot take**: Lead with a punchy contrarian claim (paraphrased from the transcript, delivered as the writer's own stance). Defend it in 20 seconds.
+- **Variation 2 — Story-driven**: Recount a specific scene from the transcript REFRAMED as something the writer witnessed or experienced. No names. Reveal the insight through the story.
+- **Variation 3 — Tactic/how-to**: Pull a concrete method from the transcript. Explain it in 3 steps as the writer's own recommendation.
 
 Script rules:
 - Write for the EAR. Contractions, short sentences, rhythm.
@@ -125,16 +135,18 @@ Label each variation with a 2-5 word angle name.`,
   blog: {
     prompt: `## Blog Posts (3 variations — distinct angles)
 
+Each post is the WRITER'S own essay. No "according to the speaker", no names from the transcript, no "in this video I watched". The ideas appear as the writer's own thinking.
+
 The 3 angles MUST be different:
-- **Variation 1 — Specific deep dive**: Pick ONE narrow idea from the transcript and write the definitive short post about it. Title must be specific, not "How to X".
-- **Variation 2 — Reframe/contrarian piece**: Lead with the conventional wisdom the transcript pushes back on. Use the transcript's argument to flip it.
-- **Variation 3 — Practical playbook**: Step-by-step or framework format. Each step grounded in something the transcript actually says.
+- **Variation 1 — Specific deep dive**: Pick ONE narrow idea from the transcript and write the definitive short post about it from the writer's POV. Title must be specific, not "How to X".
+- **Variation 2 — Reframe/contrarian piece**: Lead with the conventional wisdom the transcript pushes back on. Use the transcript's argument to flip it, in the writer's voice.
+- **Variation 3 — Practical playbook**: Step-by-step or framework format. Each step grounded in something the transcript actually says, but presented as the writer's own method.
 
 Structure for EACH post:
 - Specific, click-worthy title — avoid clickbait, avoid "Ultimate Guide". A real reader should know what they're getting.
 - Brief intro (2-3 sentences) that names the problem or the stake.
 - 3-5 H2 sub-headings (## in markdown) that map the actual structure of the argument.
-- Short paragraphs, plain prose. Quote the speaker at least once (verbatim, in blockquote or inline).
+- Short paragraphs, plain prose. Use concrete examples — but reframe them as the writer's own observations or general illustrations (no names from the transcript, no verbatim quotes from it).
 - Closing section with one specific takeaway — not a generic "key takeaways" recap.
 - 400-700 words. Markdown formatting throughout (##, ###, **bold**, blockquotes where useful).
 
@@ -143,26 +155,29 @@ Label each variation with a 2-5 word angle name.`,
   },
 
   quotes: {
-    prompt: `## Key Quotes
+    prompt: `## Key Quotes (for the user's private inspiration board)
+
+NOTE: This format is the ONE EXCEPTION to the "no verbatim quotes" rule. These are pulled for the user to save, reflect on, or rework later — they are NOT meant to be posted as the user's own writing.
 
 Extract 5-10 of the most striking standalone lines from the transcript. Rules:
-- Verbatim or near-verbatim. Keep the speaker's words. Light cleanup of "uh", "you know", false starts is fine — rewording is not.
-- Each quote must STAND ALONE — make sense without the surrounding context.
+- Verbatim or near-verbatim. Light cleanup of "uh", "you know", false starts is fine — rewording is not.
+- Each quote must STAND ALONE — make sense without surrounding context.
 - Pick quotes that are surprising, contrarian, vivid, or have a turn — not generic motivational lines.
+- Do NOT include names. If the transcript says "Alex believes X", strip to "X". Just the line.
 - Include the timestamp [MM:SS] if you can identify the moment in the transcript.
-- For each quote, also write a "tweet" version: same idea, tightened to under 280 chars, optimised for sharing. Can be slightly rephrased.`,
-    schema: '"quotes": [{ "text": "the quote", "timestamp": "MM:SS or empty", "tweet": "tweetable version under 280 chars" }, ...]',
+- For each quote, also write a "tweet" version: same idea, paraphrased into the user's own voice (so it's safe to post as original), tightened to under 280 chars.`,
+    schema: '"quotes": [{ "text": "the quote", "timestamp": "MM:SS or empty", "tweet": "paraphrased tweetable version under 280 chars" }, ...]',
   },
 
   video_script: {
     prompt: `## Short-Form Video Scripts (3 variations — flipped rewrites)
 
-Generate 3 scripts. DO NOT copy the transcript's wording — these are FRESH rewrites of the core idea in a new voice and structure.
+Generate 3 scripts. The transcript is raw material; the scripts are the WRITER speaking as themselves. No "I watched a video where..." opens. No names from the transcript.
 
 The 3 angles MUST be different:
-- **Variation 1 — Contrarian take**: Open with a claim that challenges what most people think about this topic. Use the transcript's argument as backing.
-- **Variation 2 — Beginner framing**: Assume the viewer is new to this. Strip jargon. Use one specific example from the transcript.
-- **Variation 3 — Story / case study**: Lead with a specific person, scene, or moment from the transcript. Reveal the insight through the story.
+- **Variation 1 — Contrarian take**: Open with a claim that challenges what most people think about this topic. Deliver as the writer's own stance.
+- **Variation 2 — Beginner framing**: Assume the viewer is new to this. Strip jargon. Use one specific example — reframed as the writer's own observation, no names.
+- **Variation 3 — Story / case study**: Lead with a specific scene or moment from the transcript, REFRAMED as something the writer witnessed or went through. Reveal the insight through the story.
 
 Structure for EACH script:
 1. **HOOK** (first 1-3 seconds spoken — roughly 8-15 words): bold claim, pattern interrupt, provocative question, or unexpected fact. Must stop a scroller cold.
