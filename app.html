@@ -1596,7 +1596,7 @@
       var d = await r.json();
       if (!r.ok) {
         prodStatus.classList.add('error');
-        prodStatus.textContent = d.error || 'Could not save.';
+        prodStatus.textContent = (d.error || 'Could not save.') + (d.detail ? ' (' + d.detail + ')' : '');
         btnSave.disabled = false;
         btnSave.textContent = 'Save';
         return;

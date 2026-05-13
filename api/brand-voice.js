@@ -181,19 +181,50 @@ function parseScrapedContent(html, url) {
   const metaTitle = (html.match(/<title[^>]*>([^<]+)<\/title>/i) || [, ''])[1].trim();
   const title = ogTitle || metaTitle || '';
 
-  // Play Store + App Store: JSON-LD has the full app description, which is far
-  // richer (and cleaner) than the short og:description. Prefer that.
+  // Play Store + App Store: try multiple extraction strategies, pick longest.
   if (isPlayStore || isAppStore) {
+    const candidates = [];
+
     const ld = extractJsonLdDescription(html);
-    if (ld) {
-      const combined = title ? (title + ' \u2014 ' + ld) : ld;
+    if (ld) candidates.push(ld);
+
+    const itemprop = extractMeta(html, 'itemprop', 'description');
+    if (itemprop) candidates.push(itemprop);
+
+    if (isPlayStore) {
+      // Play Store renders the full description in <div data-g-id="description">...</div>
+      const m = html.match(/<div[^>]+data-g-id=["']description["'][^>]*>([\s\S]*?)<\/div>/i);
+      if (m) {
+        const cleaned = decodeEntities(m[1].replace(/<br\s*\/?>(\s*)/gi, '\n').replace(/<[^>]+>/g, ' '))
+          .replace(/[ \t]+/g, ' ').replace(/\n\s+/g, '\n').trim();
+        if (cleaned) candidates.push(cleaned);
+      }
+    }
+
+    if (isAppStore) {
+      // App Store renders description inside <div class="we-truncate">...</div>
+      const m = html.match(/<div[^>]+class=["'][^"']*we-truncate[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+      if (m) {
+        const cleaned = decodeEntities(m[1].replace(/<br\s*\/?>(\s*)/gi, '\n').replace(/<[^>]+>/g, ' '))
+          .replace(/[ \t]+/g, ' ').replace(/\n\s+/g, '\n').trim();
+        if (cleaned) candidates.push(cleaned);
+      }
+    }
+
+    // Pick the longest candidate that meets a usable threshold.
+    candidates.sort((a, b) => b.length - a.length);
+    const best = candidates.find(c => c.length >= 80) || '';
+
+    if (best) {
+      const combined = title ? (title + ' \u2014 ' + best) : best;
       return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
     }
-    // Fall back to og/meta for these stores if JSON-LD missing.
+
+    // Fall back to og/meta for these stores if nothing better worked.
     const desc = og || metaDesc || '';
     if (desc && desc.length >= 40) {
       const combined = [title, desc].filter(Boolean).join(' \u2014 ');
-      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
+      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store_short' : 'app_store_short' };
     }
     // Don't fall through to body stripping for these SPAs — it's noisy.
     return { text: '', source: 'empty' };
@@ -258,7 +289,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, voice: cleaned });
     } catch (e) {
       console.error('brand-voice save error:', e);
-      return res.status(500).json({ error: 'Could not save your brand voice.' });
+      const detail = (e && e.message) ? String(e.message).slice(0, 240) : 'Unknown error';
+      return res.status(500).json({ error: 'Could not save your brand voice.', detail });
     }
   }
 
