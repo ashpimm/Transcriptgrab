@@ -975,7 +975,11 @@
     }
     if (currentResult.tiktok) {
       parts.push('\n--- TIKTOK ---\n\n');
-      writeVariations(parts, currentResult.tiktok, function(v) { return 'Caption:\n' + (v.caption||'') + '\n\nScript:\n' + (v.script||''); });
+      writeVariations(parts, currentResult.tiktok, function(v) {
+        if (v.content) return v.content;
+        var cap = v.caption || '', scr = v.script || '';
+        return cap && scr ? cap + '\n\n' + scr : (cap || scr || '');
+      });
     }
     if (currentResult.blog) {
       parts.push('\n--- BLOG POST ---\n\n');

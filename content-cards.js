@@ -105,15 +105,19 @@
     return card;
   }
 
+  function tiktokTextOf(t) {
+    if (t && typeof t.content === 'string' && t.content.trim()) return t.content;
+    var cap = (t && t.caption) || '';
+    var scr = (t && t.script) || '';
+    if (cap && scr) return cap + '\n\n' + scr;
+    return cap || scr || '';
+  }
+
   function buildTikTokCard(tiktok) {
-    var copyText = (tiktok.caption || '') + '\n\n---\n\n' + (tiktok.script || '');
-    var card = makeCard('TikTok', '\u{266B}', copyText);
+    var text = tiktokTextOf(tiktok);
+    var card = makeCard('TikTok', '\u{266B}', text);
     var body = card.querySelector('.card-body');
-    body.innerHTML =
-      '<div class="tiktok-section-label">Caption</div>' +
-      '<div class="content-text">' + escapeHtml(tiktok.caption || '') + '</div>' +
-      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
-      '<div class="content-text">' + escapeHtml(tiktok.script || '') + '</div>';
+    body.innerHTML = '<div class="content-text">' + escapeHtml(text) + '</div>';
     return card;
   }
 
@@ -209,8 +213,7 @@
 
   function buildVariationTikTokCard(variations) {
     var first = variations[0];
-    var copyText = (first.caption || '') + '\n\n---\n\n' + (first.script || '');
-    var card = makeCard('TikTok', '\u{266B}', copyText);
+    var card = makeCard('TikTok', '\u{266B}', tiktokTextOf(first));
     var header = card.querySelector('.card-header');
     var actionsEl = header.querySelector('.card-actions');
 
@@ -221,16 +224,9 @@
     labelEl.textContent = first.label || 'Variation 1';
 
     var body = card.querySelector('.card-body');
-    body.innerHTML =
-      '<div class="tiktok-section-label">Caption</div>' +
-      '<div class="content-text"></div>' +
-      '<div class="tiktok-section-label" style="margin-top:20px">Voiceover Script</div>' +
-      '<div class="content-text"></div>';
-    var textEls = body.querySelectorAll('.content-text');
-    var captionEl = textEls[0];
-    var scriptEl = textEls[1];
-    captionEl.textContent = first.caption || '';
-    scriptEl.textContent = first.script || '';
+    body.innerHTML = '<div class="content-text"></div>';
+    var textEl = body.querySelector('.content-text');
+    textEl.textContent = tiktokTextOf(first);
 
     variations.forEach(function(v, i) {
       var tab = document.createElement('button');
@@ -241,9 +237,9 @@
         tabs.querySelectorAll('.variation-tab').forEach(function(t) { t.classList.remove('active'); });
         tab.classList.add('active');
         labelEl.textContent = variations[i].label || ('Variation ' + (i + 1));
-        captionEl.textContent = variations[i].caption || '';
-        scriptEl.textContent = variations[i].script || '';
-        card._copyContent = (variations[i].caption || '') + '\n\n---\n\n' + (variations[i].script || '');
+        var t = tiktokTextOf(variations[i]);
+        textEl.textContent = t;
+        card._copyContent = t;
       };
       tabs.appendChild(tab);
     });

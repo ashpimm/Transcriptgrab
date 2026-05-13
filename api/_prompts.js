@@ -109,27 +109,26 @@ Label each variation with a 2-5 word angle name.`,
   },
 
   tiktok: {
-    prompt: `## TikTok Posts (3 variations — distinct angles)
+    prompt: `## TikTok Text Posts (3 variations — distinct angles)
 
-For each, write a CAPTION (under 200 chars, conversational, no listicle vibe) and a VOICEOVER SCRIPT (spoken-word, 30-50 seconds at natural pace, around 80-130 words). The script is spoken by the WRITER as their own take — never "this guy said" or "I saw a video where".
+TikTok now supports TEXT-ONLY posts (no video, no voiceover). Each output is a self-contained written post — read on a coloured card in-feed. NOT a video script. NOT a voiceover. NOT a caption attached to anything.
 
 The 3 angles MUST be different:
-- **Variation 1 — Hot take**: Lead with a punchy contrarian claim (paraphrased from the transcript, delivered as the writer's own stance). Defend it in 20 seconds.
-- **Variation 2 — Story-driven**: Recount a specific scene from the transcript REFRAMED as something the writer witnessed or experienced. No names. Reveal the insight through the story.
-- **Variation 3 — Tactic/how-to**: Pull a concrete method from the transcript. Explain it in 3 steps as the writer's own recommendation.
+- **Variation 1 — Hot take**: Lead with a punchy contrarian claim (paraphrased from the transcript, delivered as the writer's own stance). Defend it in 2-3 short lines.
+- **Variation 2 — Story-driven**: Recount a specific scene from the transcript REFRAMED as something the writer witnessed or experienced. No names. Land the insight at the end.
+- **Variation 3 — Tactic/how-to**: Pull a concrete method from the transcript. List it as 2-4 short numbered or dashed lines in the writer's voice.
 
-Script rules:
-- Write for the EAR. Contractions, short sentences, rhythm.
-- First sentence MUST stop the scroll. No "Today I'm gonna talk about..." opens.
-- No filler ("so", "basically", "kind of"). Cut every word that doesn't carry weight.
-- End with one concrete next step — comment a word, save, try X tomorrow.
-
-Caption rules:
-- Hook-y, not summarising.
-- 4-6 hashtags total. Mix one broad (#fitness) with topic-specific ones (#caloriedeficit, #atomichabits).
+Post rules:
+- Written for the EYE, not the ear. Short lines stacked vertically — TikTok text posts render as visual blocks on a card.
+- Under 1000 characters total. Aim for 60-180 words. Tight beats long.
+- First line MUST stop the scroll. Bold claim, scene, number, or pattern interrupt — never "Today I want to talk about...".
+- Line breaks generously. Each line carries weight on its own.
+- First person where it adds force. Contractions OK. Skip filler ("so", "basically", "kind of").
+- Hashtags appended at the very end: 4-6 total. Mix one broad (#fitness) with topic-specific ones (#caloriedeficit, #atomichabits). No #fyp / #foryou.
+- End with a one-line landing OR a single sharp question — not both. No "follow for more", no "comment a word".
 
 Label each variation with a 2-5 word angle name.`,
-    schema: '"tiktok": [{ "label": "angle name", "caption": "short tiktok caption with hashtags", "script": "voiceover script" }, { "label": "angle name", "caption": "short tiktok caption with hashtags", "script": "voiceover script" }]',
+    schema: '"tiktok": [{ "label": "angle name", "content": "full tiktok text post including hashtags at the end" }, { "label": "angle name", "content": "full tiktok text post including hashtags at the end" }, { "label": "angle name", "content": "full tiktok text post including hashtags at the end" }]',
   },
 
   blog: {
