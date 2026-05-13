@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TranscriptGrab — AI Video Scripts in Your Brand Voice</title>
 <meta name="description" content="Turn any video into on-brand scripts, tweets, LinkedIn posts and blogs. Set your AI Brand Voice once — every generation sounds like you. YouTube, TikTok, Instagram, and more.">
 <link rel="canonical" href="https://transcriptgrab.vercel.app">
@@ -400,8 +400,7 @@
     "Video-to-Script Flipper (short-form scripts with hook + CTA)",
     "Multi-platform transcript extraction (YouTube, TikTok, Instagram, Facebook, X/Twitter)",
     "Ready-to-post Twitter threads, LinkedIn posts, Facebook posts, Instagram captions and blogs",
-    "Scheduled posting to X and Facebook (Pro)",
-    "Bulk channel processing (Pro)"
+    "Scheduled posting to X and Facebook (Pro)"
   ],
   "offers": [
     { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "First video free" },
@@ -460,6 +459,21 @@
 </script>
 </head>
 <body>
+<script>
+// Auto-redirect signed-in users from bare "/" → "/app". Skip if user followed a deep link
+// (hash or query). Reads cached user state synchronously so redirect happens before paint.
+(function(){
+  try {
+    if (window.location.hash || window.location.search) return;
+    var raw = localStorage.getItem('tg_user_cache');
+    if (!raw) return;
+    var cached = JSON.parse(raw);
+    if (cached && cached.t && cached.u && (Date.now() - cached.t) < 5 * 60 * 1000) {
+      window.location.replace('/app');
+    }
+  } catch (e) { /* ignore */ }
+})();
+</script>
 <script src="/nav.js"></script>
 <script src="/pro.js"></script>
 
@@ -541,7 +555,7 @@
   </div>
 
   <div class="hero-ctas">
-    <a href="/app" class="btn btn-blue">Try It Free</a>
+    <a href="/app" class="btn btn-blue" id="hero-cta-primary">Try It Free</a>
     <a href="#pricing" class="btn btn-ghost">See Pricing</a>
   </div>
 </section>
@@ -584,10 +598,10 @@
       <a href="/app?openBrandVoice=1" class="bv-sec-cta">Set up your Brand Voice <span>&rarr;</span></a>
     </div>
     <div class="bv-sec-visual" aria-hidden="true">
-      <div class="bv-sec-visual-row"><span class="bv-ico">&#128241;</span><span>Product: PostMaxx — video-to-content AI</span><span class="bv-tag">Saved</span></div>
-      <div class="bv-sec-visual-row"><span class="bv-ico">&#128172;</span><span>Tone: casual, direct, no jargon</span><span class="bv-tag">Saved</span></div>
+      <div class="bv-sec-visual-row"><span class="bv-ico">&#128241;</span><span>Product: Acme — habit tracker for busy parents</span><span class="bv-tag">Saved</span></div>
+      <div class="bv-sec-visual-row"><span class="bv-ico">&#128172;</span><span>Tone: warm, direct, no jargon</span><span class="bv-tag">Saved</span></div>
       <div class="bv-sec-visual-arrow">&darr;</div>
-      <div class="bv-sec-visual-out">"Most creators waste hours rewriting. <em>PostMaxx</em> flips one video into 6 on-brand posts — in your voice — before your coffee's cold. Try it."</div>
+      <div class="bv-sec-visual-out">"Most parents lose track of routines by Tuesday. <em>Acme</em> nudges you exactly when it counts — no guilt-trip, no streak shame. One tap, done."</div>
     </div>
   </div>
 </div>
@@ -630,56 +644,22 @@
   </div>
 </div>
 
-<!-- ===== SOCIAL PROOF ===== -->
+<!-- ===== VALUE COMPARISON ===== -->
 <div class="section">
-  <div class="section-label">Trusted by creators</div>
-  <h2 class="section-title">People are saving hours every week</h2>
-
-  <div class="proof-stats">
-    <div class="proof-stat">
-      <div class="proof-stat-number">10,000+</div>
-      <div class="proof-stat-label">Transcripts extracted</div>
-    </div>
-    <div class="proof-stat">
-      <div class="proof-stat-number">2,400+</div>
-      <div class="proof-stat-label">Content creators</div>
-    </div>
-    <div class="proof-stat">
-      <div class="proof-stat-number">6</div>
-      <div class="proof-stat-label">Formats per transcript</div>
-    </div>
-  </div>
-
+  <div class="section-label">Why use it</div>
+  <h2 class="section-title">Repurposing without the busywork</h2>
   <div class="proof-grid">
     <div class="proof-card">
-      <p class="proof-quote">"I turned a 20-minute podcast into a full week of LinkedIn and Twitter content in under a minute. This thing is unreal."</p>
-      <div class="proof-author">
-        <div class="proof-avatar">S</div>
-        <div>
-          <div class="proof-name">Sarah K.</div>
-          <div class="proof-role">Marketing Consultant</div>
-        </div>
-      </div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-4);margin-bottom:8px;">Doing it yourself</div>
+      <p class="proof-quote" style="font-style:normal;">Watch the video. Pull quotes. Rewrite for each platform. Format. Schedule. <strong>2&ndash;3 hours per video</strong>, every time.</p>
     </div>
     <div class="proof-card">
-      <p class="proof-quote">"I used to spend 3 hours repurposing each video. Now I paste a URL and I'm done. The blog posts are genuinely good."</p>
-      <div class="proof-author">
-        <div class="proof-avatar">M</div>
-        <div>
-          <div class="proof-name">Marcus T.</div>
-          <div class="proof-role">YouTube Creator, 85K subs</div>
-        </div>
-      </div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-4);margin-bottom:8px;">Hiring a VA</div>
+      <p class="proof-quote" style="font-style:normal;">$400&ndash;$1,000 per month. Onboarding. Brand-voice training. Quality varies. <strong>Locked into a person</strong> doing one task.</p>
     </div>
-    <div class="proof-card">
-      <p class="proof-quote">"The bulk channel feature is a game-changer. I processed 40 videos overnight and had months of content ready to go."</p>
-      <div class="proof-author">
-        <div class="proof-avatar">J</div>
-        <div>
-          <div class="proof-name">Jess P.</div>
-          <div class="proof-role">Social Media Manager</div>
-        </div>
-      </div>
+    <div class="proof-card" style="border-color:color-mix(in srgb, var(--cta) 25%, var(--border)); background:color-mix(in srgb, var(--cta) 4%, var(--surface));">
+      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cta);margin-bottom:8px;">TranscriptGrab</div>
+      <p class="proof-quote" style="font-style:normal;color:var(--text);">Paste the URL. Six on-brand formats in under a minute. <strong>$49/month for up to 200 videos</strong>. Your voice, every time.</p>
     </div>
   </div>
 </div>
@@ -698,7 +678,7 @@
         <li>Copy & download</li>
         <li>No account needed</li>
       </ul>
-      <a href="/app" class="price-card-cta">Try It Free</a>
+      <a href="/app" class="price-card-cta" id="try-free-btn">Try It Free</a>
     </div>
     <div class="price-card">
       <div class="price-card-label">Pay as you go</div>
@@ -757,10 +737,6 @@
       <div class="faq-a"><div class="faq-a-inner">Your first video is completely free, no account needed. After that, you can buy additional videos for $4.99 each — also with no account required. If you process videos regularly, Pro at $49/month is much better value.</div></div>
     </div>
     <div class="faq-item">
-      <button class="faq-q">What does "bulk channel processing" mean?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Pro users can paste a YouTube channel or playlist URL and generate content for every video in it automatically. It's designed for creators and agencies managing large content libraries.</div></div>
-    </div>
-    <div class="faq-item">
       <button class="faq-q">Do you store my data or post on my behalf?<span class="faq-arrow">+</span></button>
       <div class="faq-a"><div class="faq-a-inner">No. We never post anything on your behalf and we don't store your generated content. Sign-in is only used to track your usage and manage your subscription. Your Google account is safe.</div></div>
     </div>
@@ -776,7 +752,7 @@
 </div>
 
 <footer>
-  <p>TranscriptGrab &nbsp;&middot;&nbsp; <a href="#">Privacy</a> &nbsp;&middot;&nbsp; <a href="#">Terms</a></p>
+  <p>TranscriptGrab &nbsp;&middot;&nbsp; <a href="/privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="/terms">Terms</a></p>
   <p style="margin-top:8px;">Video transcript extraction & AI content generation.</p>
 </footer>
 
@@ -818,12 +794,20 @@
     });
   });
 
-  // Update Pro card for existing Pro users
+  // Personalize CTAs for signed-in users (relevant when they hit /#pricing while logged in)
   if (window.TGUser) {
     TGUser.ready.then(function() {
+      if (!TGUser.isSignedIn()) return;
+
+      var heroPrimary = document.getElementById('hero-cta-primary');
+      if (heroPrimary) heroPrimary.textContent = 'Open App';
+
+      var tryFreeBtn = document.getElementById('try-free-btn');
+      if (tryFreeBtn) tryFreeBtn.textContent = 'Open App';
+
       if (TGUser.isPro()) {
         var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
-        cards.forEach(function(c){ c.textContent='Go to App'; });
+        cards.forEach(function(c){ c.textContent='Open App'; });
       }
     });
   }

@@ -2,9 +2,23 @@
   // ============================================
   // TGUser — global user state from server
   // ============================================
+  var CACHE_KEY = 'tg_user_cache';
+  var CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — short enough to stay fresh-ish, long enough to kill flash
+
   var _user = null;
   var _ready = false;
   var _readyCallbacks = [];
+
+  // Hydrate from cache synchronously so first paint is correct
+  try {
+    var raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      var cached = JSON.parse(raw);
+      if (cached && cached.t && (Date.now() - cached.t) < CACHE_TTL_MS) {
+        _user = cached.u || null;
+      }
+    }
+  } catch (e) { /* ignore */ }
 
   window.TGUser = {
     ready: new Promise(function(resolve) {
@@ -22,17 +36,26 @@
     _readyCallbacks = [];
   }
 
+  function writeCache(u) {
+    try {
+      if (u) localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), u: u }));
+      else localStorage.removeItem(CACHE_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
   function fetchUser() {
     return fetch('/api/auth/me', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         _user = d.user || null;
+        writeCache(_user);
         if (!_ready) resolveReady();
         renderNav();
         return _user;
       })
       .catch(function() {
         _user = null;
+        writeCache(null);
         if (!_ready) resolveReady();
         renderNav();
         return null;
@@ -107,6 +130,8 @@
               : (_user.credits > 0
                 ? '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + _user.credits + ' credit' + (_user.credits !== 1 ? 's' : '') + ' remaining</div>'
                 : '')) +
+            '<a href="/privacy" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#999;">Privacy</a>' +
+            '<a href="/terms" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#999;">Terms</a>' +
             '<button class="suite-nav-drop-item" id="nav-signout-btn">Sign out</button>' +
           '</div>' +
         '</div>';
@@ -151,6 +176,7 @@
         fetch('/api/auth/me', { method: 'POST', credentials: 'same-origin' })
           .then(function() {
             _user = null;
+            writeCache(null);
             renderNav();
             window.dispatchEvent(new CustomEvent('tg-signout'));
             if (window.location.pathname !== '/') {

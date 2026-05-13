@@ -188,7 +188,7 @@ async function fetchTranscript(videoUrl, platform) {
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      console.log(`Supadata HTTP ${res.status}: ${errBody.substring(0, 200)}`);
+      console.error(`Supadata HTTP ${res.status}: ${errBody.substring(0, 200)}`);
       if (res.status === 429) {
         return { success: false, rateLimited: true, error: 'Transcript service is busy. Please wait a moment and try again.' };
       }
@@ -220,7 +220,6 @@ async function fetchTranscript(videoUrl, platform) {
     const meta = await getVideoMeta(videoUrl, platform);
     const title = meta.title || 'Video';
     const lang = rawSegments[0]?.lang || 'en';
-    console.log(`Supadata (${platform}): success, ${segments.length} segments, lang=${lang}`);
 
     return {
       success: true,

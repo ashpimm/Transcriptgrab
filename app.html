@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TranscriptGrab — Extract Transcript & Generate Content</title>
 <meta name="description" content="Paste a YouTube, TikTok, or Instagram URL to extract the transcript. AI generates tweets, LinkedIn posts, blog articles, Instagram captions & more from your video transcript.">
 
@@ -284,7 +284,18 @@
 
   /* ===== ERROR ===== */
   .error-msg { max-width: 600px; margin: 16px auto 0; padding: 0 40px; }
-  .error-msg p { background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--error); }
+  .error-msg .error-box {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm);
+    padding: 12px 16px; font-size: 13px; color: var(--error); line-height: 1.5;
+  }
+  .error-msg .error-box-text { flex: 1; }
+  .error-msg .error-box-dismiss {
+    flex-shrink: 0; background: none; border: none; cursor: pointer;
+    color: var(--error); font-size: 18px; line-height: 1; padding: 0 0 0 8px;
+    opacity: 0.6; transition: opacity 0.2s;
+  }
+  .error-msg .error-box-dismiss:hover { opacity: 1; }
 
   /* ===== PROCESSING STATE ===== */
   .processing { text-align: center; padding: 64px 24px; max-width: 640px; margin: 0 auto; }
@@ -505,7 +516,10 @@
 
 <!-- ===== ERROR ===== -->
 <div class="error-msg hidden" id="error-section">
-  <p id="error-text"></p>
+  <div class="error-box">
+    <span class="error-box-text" id="error-text"></span>
+    <button type="button" class="error-box-dismiss" id="error-dismiss" aria-label="Dismiss">&times;</button>
+  </div>
 </div>
 
 <!-- ===== PROCESSING ===== -->
@@ -812,6 +826,11 @@
           showError(gData.error || 'Monthly limit reached.');
           return;
         }
+        if (gRes.status === 429) {
+          hideProcessing();
+          showError('You’re generating a bit fast. Wait about a minute and try again.');
+          return;
+        }
         if (!gRes.ok) {
           throw new Error(gData.error || 'Content generation failed.');
         }
@@ -847,7 +866,7 @@
     var el = document.getElementById('error-section');
     document.getElementById('error-text').textContent = msg;
     el.classList.remove('hidden');
-    setTimeout(function(){ el.classList.add('hidden'); }, 8000);
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function showProcessing(msg) {
@@ -1000,8 +1019,16 @@
   // UTILS
   // ==============================
   function slugify(s) {
-    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
+    var slug = (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
+    return slug || 'video';
   }
+
+  // ==============================
+  // ERROR DISMISS
+  // ==============================
+  document.getElementById('error-dismiss').addEventListener('click', function() {
+    document.getElementById('error-section').classList.add('hidden');
+  });
 
   // ==============================
   // PASTE BUTTON
@@ -1249,6 +1276,7 @@
     <div class="bv-head">
       <span class="bv-head-icon">&#127908;</span>
       <h3 class="bv-title" id="bv-title">Brand Voice</h3>
+      <span style="margin-left:8px;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--cta);padding:3px 8px;border-radius:100px;background:color-mix(in srgb, var(--cta) 10%, transparent);">Pro</span>
     </div>
     <p class="bv-subtitle">Make every script sound like <em>you</em>. Teach the AI what you sell and how you talk — once, and it applies to every generation.</p>
 
@@ -1260,7 +1288,7 @@
         <button type="button" class="bv-fetch-btn" id="bv-fetch-product">Fetch</button>
       </div>
       <div class="bv-status" id="bv-product-status"></div>
-      <textarea class="bv-textarea" id="bv-product-text" placeholder="e.g. PostMaxx turns any video into ready-to-post content for creators and solo marketers. Key features: multi-platform support, AI brand voice, scheduled posting..." maxlength="3000"></textarea>
+      <textarea class="bv-textarea" id="bv-product-text" placeholder="e.g. Acme is a productivity app for solo founders. We help you batch-process content, automate repetitive marketing, and stay focused on shipping." maxlength="3000"></textarea>
       <div class="bv-char"><span id="bv-product-count">0</span> / 3000</div>
     </div>
 
@@ -1382,19 +1410,29 @@
   }
 
   function renderToggle() {
-    if (state.configured && isPro()) {
-      toggleWrap.classList.remove('hidden');
-      if (state.useForNext) {
-        toggleBtn.classList.remove('off');
-        toggleLabel.textContent = 'Using Brand Voice';
-        toggleCheck.textContent = '\u2713';
-      } else {
-        toggleBtn.classList.add('off');
-        toggleLabel.textContent = 'Brand Voice off for this one';
-        toggleCheck.textContent = '';
-      }
-    } else {
+    // Always show toggle for Pro users \u2014 even if no profile yet (acts as setup CTA).
+    // Hide entirely for non-Pro / non-signed-in (the chip is the entry point for them).
+    if (!isPro()) {
       toggleWrap.classList.add('hidden');
+      return;
+    }
+    toggleWrap.classList.remove('hidden');
+
+    if (!state.configured) {
+      toggleBtn.classList.add('off');
+      toggleLabel.textContent = 'Set up Brand Voice';
+      toggleCheck.textContent = '\u2192';
+      return;
+    }
+
+    if (state.useForNext) {
+      toggleBtn.classList.remove('off');
+      toggleLabel.textContent = 'Using Brand Voice';
+      toggleCheck.textContent = '\u2713';
+    } else {
+      toggleBtn.classList.add('off');
+      toggleLabel.textContent = 'Brand Voice off for this one';
+      toggleCheck.textContent = '';
     }
   }
 
@@ -1456,13 +1494,28 @@
   }
 
   // ============================================
-  // FETCH URL (scrape)
+  // FETCH URL (scrape) \u2014 15s client timeout, cancellable
   // ============================================
+  var FETCH_TIMEOUT_MS = 15000;
+  var activeFetches = { product: null, tone: null };
+
   async function fetchUrl(which) {
     var urlEl = which === 'product' ? prodUrl : toneUrl;
     var textEl = which === 'product' ? prodText : toneText;
     var statusEl = which === 'product' ? prodStatus : toneStatus;
     var btn = which === 'product' ? prodFetch : toneFetch;
+
+    // Second click cancels in-flight request
+    if (activeFetches[which]) {
+      activeFetches[which].abort();
+      activeFetches[which] = null;
+      statusEl.classList.remove('success');
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Cancelled.';
+      btn.disabled = false;
+      btn.textContent = 'Fetch';
+      return;
+    }
 
     var u = (urlEl.value || '').trim();
     if (!u) {
@@ -1471,8 +1524,13 @@
       statusEl.textContent = 'Paste a URL first.';
       return;
     }
-    btn.disabled = true;
-    btn.textContent = 'Fetching...';
+
+    var controller = new AbortController();
+    activeFetches[which] = controller;
+    var timer = setTimeout(function(){ controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    btn.disabled = false;          // keep enabled so user can click to cancel
+    btn.textContent = 'Cancel';
     statusEl.classList.remove('error', 'success');
     statusEl.textContent = 'Reading page...';
 
@@ -1481,7 +1539,8 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: u })
+        body: JSON.stringify({ url: u }),
+        signal: controller.signal
       });
       var d = await r.json();
       if (!r.ok) {
@@ -1494,11 +1553,22 @@
         statusEl.textContent = 'Fetched from ' + (d.source || 'page') + ' \u2014 edit as you like.';
       }
     } catch (e) {
-      statusEl.classList.add('error');
-      statusEl.textContent = 'Connection error.';
+      if (e.name === 'AbortError') {
+        // already handled by cancel-click branch above; if it fires from timeout, set message
+        if (!statusEl.textContent || statusEl.textContent === 'Reading page...') {
+          statusEl.classList.add('error');
+          statusEl.textContent = 'Took too long \u2014 try again or paste the text manually.';
+        }
+      } else {
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Connection error.';
+      }
+    } finally {
+      clearTimeout(timer);
+      activeFetches[which] = null;
+      btn.disabled = false;
+      btn.textContent = 'Fetch';
     }
-    btn.disabled = false;
-    btn.textContent = 'Fetch';
   }
 
   // ============================================
@@ -1600,6 +1670,11 @@
   toneText.addEventListener('input', updateCounts);
 
   toggleBtn.addEventListener('click', function(){
+    // For Pro users without a profile, the toggle is a setup CTA — open the modal.
+    if (isPro() && !state.configured) {
+      openModal();
+      return;
+    }
     state.useForNext = !state.useForNext;
     renderToggle();
   });

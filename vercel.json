@@ -37,6 +37,8 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/workspace", "destination": "/workspace.html" },
     { "source": "/library", "destination": "/library.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
   ]
 }

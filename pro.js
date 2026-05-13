@@ -77,7 +77,7 @@
               '</button>' +
               '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
                 '<span class="tg-plan-price">$49<small>/mo</small></span>' +
-                '<span class="tg-plan-desc">200 videos/month + bulk</span>' +
+                '<span class="tg-plan-desc">200 videos + Brand Voice</span>' +
               '</button>' +
             '</div>' +
             '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
@@ -97,7 +97,7 @@
               '</button>' +
               '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
                 '<span class="tg-plan-price">$49<small>/mo</small></span>' +
-                '<span class="tg-plan-desc">200 videos/month + bulk</span>' +
+                '<span class="tg-plan-desc">200 videos + Brand Voice</span>' +
               '</button>' +
             '</div>' +
             '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
