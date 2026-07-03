@@ -1,6 +1,13 @@
-﻿// api/brand-voice.js — Brand Voice profile + URL scraping (Pro only)
+﻿// api/profile.js — Business profile CRUD + URL import (scrape + AI structuring).
+//
+// GET  /api/profile                          -> { profile }
+// POST /api/profile {action:'save', profile} -> save reviewed profile
+// POST /api/profile {action:'import', url}   -> scrape URL, return AI-prefilled
+//                                               profile fields (NOT saved; Pro only)
 
-import { getSession, getBrandVoice, saveBrandVoice } from './_db.js';
+import { getSession, getProfile, saveProfile } from './_db.js';
+import { callGemini } from './_shared.js';
+import { PROFILE_IMPORT_PROMPT } from './_prompts.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
@@ -256,46 +263,65 @@ function parseScrapedContent(html, url) {
   return { text: '', source: 'empty' };
 }
 
+const VALID_TONES = ['casual', 'professional', 'funny', 'authority'];
+
+function cleanProfile(p) {
+  if (!p || typeof p !== 'object') return null;
+  const results = Array.isArray(p.results)
+    ? p.results.map((r) => clipText(String(r), 300)).filter(Boolean).slice(0, 5)
+    : [];
+  return {
+    sells: clipText(p.sells, 1000),
+    audience: clipText(p.audience, 600),
+    results,
+    tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
+    niche_slug: clipText(p.niche_slug, 50),
+    source_url: clipText(p.source_url, MAX_URL_LEN),
+  };
+}
+
 export default async function handler(req, res) {
   corsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const user = await getSession(req).catch(() => null);
   if (!user) return res.status(401).json({ error: 'Sign in required.' });
-  if (user.tier !== 'pro') return res.status(403).json({ error: 'Brand Voice is a Pro feature.', upgrade: true });
 
-  const action = (req.query && req.query.action) || '';
-
-  if (req.method === 'GET' && action === 'profile') {
+  if (req.method === 'GET') {
     try {
-      const voice = await getBrandVoice(user.id);
-      return res.status(200).json({ voice: voice || { product: '', productUrl: '', tone: '', toneUrl: '' } });
+      const profile = await getProfile(user.id);
+      return res.status(200).json({ profile });
     } catch (e) {
-      console.error('brand-voice profile error:', e);
-      return res.status(500).json({ error: 'Could not load your brand voice.' });
+      console.error('profile get error:', e);
+      return res.status(500).json({ error: 'Could not load your profile.' });
     }
   }
 
-  if (req.method === 'POST' && action === 'save') {
-    const { product, productUrl, tone, toneUrl } = req.body || {};
-    const cleaned = {
-      product: clipText(product, MAX_TEXT_LEN),
-      productUrl: clipText(productUrl, MAX_URL_LEN),
-      tone: clipText(tone, MAX_TEXT_LEN),
-      toneUrl: clipText(toneUrl, MAX_URL_LEN),
-    };
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let body = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+  const action = (body && body.action) || (req.query && req.query.action) || '';
+
+  if (action === 'save') {
+    const cleaned = cleanProfile(body.profile);
+    if (!cleaned || !cleaned.sells) {
+      return res.status(400).json({ error: 'Tell us what you sell \u2014 that field is required.' });
+    }
     try {
-      await saveBrandVoice(user.id, cleaned);
-      return res.status(200).json({ ok: true, voice: cleaned });
+      await saveProfile(user.id, cleaned);
+      return res.status(200).json({ ok: true, profile: cleaned });
     } catch (e) {
-      console.error('brand-voice save error:', e);
-      const detail = (e && e.message) ? String(e.message).slice(0, 240) : 'Unknown error';
-      return res.status(500).json({ error: 'Could not save your brand voice.', detail });
+      console.error('profile save error:', e);
+      return res.status(500).json({ error: 'Could not save your profile.' });
     }
   }
 
-  if (req.method === 'POST' && action === 'fetch') {
-    const { url } = req.body || {};
+  if (action === 'import') {
+    if (user.tier !== 'pro') {
+      return res.status(403).json({ error: 'Profile import is a Pro feature. You can fill the form manually for free.', upgrade: true });
+    }
+    const { url } = body || {};
     if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Paste a URL first.' });
     const trimmed = url.trim();
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
@@ -304,16 +330,22 @@ export default async function handler(req, res) {
     try {
       const html = await fetchHtml(normalized);
       const parsed = parseScrapedContent(html, normalized);
-      if (parsed.source === 'blocked') {
-        return res.status(400).json({ error: 'This site blocks automated reading \u2014 please paste the text manually.' });
+      if (parsed.source === 'blocked' || !parsed.text) {
+        return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please fill the form manually.' });
       }
-      if (!parsed.text) {
-        return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please paste the text manually.' });
-      }
-      return res.status(200).json({ text: parsed.text, source: parsed.source });
+      const structured = await callGemini(PROFILE_IMPORT_PROMPT, parsed.text, 0.3);
+      const prefill = cleanProfile({
+        sells: structured.sells,
+        audience: structured.audience,
+        results: structured.results,
+        tone: structured.tone,
+        niche_slug: structured.suggested_niche,
+        source_url: normalized,
+      });
+      return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {
-      console.error('brand-voice fetch error:', e.message);
-      return res.status(400).json({ error: 'Couldn\u2019t fetch that URL \u2014 please paste the text manually.' });
+      console.error('profile import error:', e.message);
+      return res.status(400).json({ error: 'Couldn\u2019t import from that URL \u2014 please fill the form manually.' });
     }
   }
 

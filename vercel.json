@@ -23,7 +23,9 @@
     { "source": "/api/checkout", "destination": "/api/checkout" },
     { "source": "/api/webhook", "destination": "/api/webhook" },
     { "source": "/api/generate", "destination": "/api/generate" },
+    { "source": "/api/profile", "destination": "/api/profile" },
     { "source": "/library", "destination": "/library.html" },
+    { "source": "/profile", "destination": "/profile.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" }
   ]

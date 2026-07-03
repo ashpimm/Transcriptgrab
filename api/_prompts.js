@@ -218,3 +218,24 @@ Rules:
 - format must be one of: talking_head, whiteboard, audio_broll, skit, other. Without visual evidence default to talking_head.
 - topic is plain lowercase, no hashtags.
 - Output raw JSON array only. No markdown fences, no commentary.`;
+
+// ============================================
+// HOOKLAB: PROFILE IMPORT (URL -> structured business profile)
+// ============================================
+export const PROFILE_IMPORT_PROMPT = `You receive scraped text from a business website, Play Store page, or App Store page. Extract a structured business profile for content marketing.
+
+Return ONLY this JSON object:
+{
+  "sells": "1-3 sentences: what the product/service is and what it does, in plain words",
+  "audience": "1-2 sentences: who it is for",
+  "results": ["specific outcomes, numbers, or claims found in the text (max 3, empty array if none)"],
+  "tone": "casual",
+  "suggested_niche": "appdev"
+}
+
+Rules:
+- Use only facts present in the text. Never invent numbers, features, or claims.
+- tone must be one of: casual, professional, funny, authority — infer from the writing style of the source.
+- suggested_niche must be one of: fitness, realtors, coaches, appdev — pick the closest fit ("appdev" for any app, software, or tech product).
+- Write in second person about the business owner's offering (e.g. "A habit tracking app that...").
+- Output raw JSON only. No markdown fences.`;
