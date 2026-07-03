@@ -10,8 +10,13 @@
       ]
     }
   ],
+  "crons": [
+    { "path": "/api/mine", "schedule": "0 6 * * *" }
+  ],
   "rewrites": [
     { "source": "/api/auth/google", "destination": "/api/auth/google" },
+    { "source": "/api/mine", "destination": "/api/mine" },
+    { "source": "/api/hooks", "destination": "/api/hooks" },
     { "source": "/api/auth/callback", "destination": "/api/auth/callback" },
     { "source": "/api/auth/me", "destination": "/api/auth/me" },
     { "source": "/api/auth/link-stripe", "destination": "/api/auth/callback" },

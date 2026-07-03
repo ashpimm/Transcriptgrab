@@ -517,6 +517,23 @@ export async function upsertHook(nicheId, h) {
   return rows[0];
 }
 
+export async function getExistingHookUrls(urls) {
+  if (!urls || urls.length === 0) return new Set();
+  const sql = getSQL();
+  const rows = await sql`SELECT video_url FROM hooks WHERE video_url = ANY(${urls})`;
+  return new Set(rows.map((r) => r.video_url));
+}
+
+export async function refreshHookStats(videoUrl, views, followers, outlierScore) {
+  const sql = getSQL();
+  await sql`
+    UPDATE hooks
+    SET views = ${views}, followers = ${followers},
+        outlier_score = ${outlierScore}, last_verified = NOW()
+    WHERE video_url = ${videoUrl}
+  `;
+}
+
 // ============================================
 // HOOKLAB: SWIPE FILE
 // ============================================
