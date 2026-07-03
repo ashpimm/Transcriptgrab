@@ -1,4 +1,4 @@
-/* hooklab.css — Hooklab design system
+﻿/* hooklab.css — Hooklab design system
    Palette: lab paper + ink + safety-orange outlier flag
    Type: Bricolage Grotesque (display) / Outfit (body) / IBM Plex Mono (data) */
 
@@ -31,59 +31,6 @@ body {
 img { max-width: 100%; }
 a { color: inherit; }
 ::selection { background: var(--signal); color: var(--white); }
-
-/* ============ NAV (markup injected by nav.js) ============ */
-.suite-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  background: rgba(250, 250, 247, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
-}
-.suite-nav-inner {
-  max-width: 1200px; margin: 0 auto; height: var(--nav-h);
-  display: flex; align-items: center; gap: 28px; padding: 0 24px;
-}
-.suite-nav-brand {
-  font-family: var(--display); font-weight: 700; font-size: 20px;
-  text-decoration: none; letter-spacing: -0.02em;
-}
-.suite-nav-brand::after { content: '_'; color: var(--signal); }
-.suite-nav-links { display: flex; gap: 4px; flex: 1; }
-.suite-nav-link {
-  text-decoration: none; font-size: 14px; font-weight: 500; color: var(--graphite);
-  padding: 6px 12px; border-radius: 8px; transition: color .15s, background .15s;
-}
-.suite-nav-link:hover { color: var(--ink); background: var(--wash); }
-.suite-nav-link.active { color: var(--ink); }
-.suite-nav-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.suite-nav-signin {
-  font-family: var(--body); font-size: 14px; font-weight: 500; cursor: pointer;
-  background: none; border: 1px solid var(--line); border-radius: 999px;
-  padding: 7px 16px; color: var(--ink); transition: border-color .15s;
-}
-.suite-nav-signin:hover { border-color: var(--ink); }
-.suite-nav-gopro {
-  text-decoration: none; font-size: 14px; font-weight: 600;
-  background: var(--ink); color: var(--white);
-  padding: 8px 16px; border-radius: 999px; transition: background .15s;
-}
-.suite-nav-gopro:hover { background: var(--signal); }
-.suite-nav-user { position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.suite-nav-avatar { width: 30px; height: 30px; border-radius: 50%; }
-.suite-nav-username { font-size: 14px; font-weight: 500; }
-.suite-nav-dropdown {
-  display: none; position: absolute; top: calc(100% + 10px); right: 0;
-  background: var(--white); border: 1px solid var(--line); border-radius: 12px;
-  min-width: 220px; padding: 6px; box-shadow: 0 12px 32px rgba(16,20,24,.10);
-}
-.suite-nav-dropdown.show { display: block; }
-.suite-nav-drop-item {
-  display: block; width: 100%; text-align: left; padding: 9px 12px;
-  font-family: var(--body); font-size: 14px; color: var(--ink);
-  background: none; border: none; border-radius: 8px; cursor: pointer;
-}
-.suite-nav-drop-item:hover { background: var(--wash); }
 
 /* ============ BUTTONS ============ */
 .btn {

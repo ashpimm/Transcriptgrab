@@ -50,9 +50,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ user: null });
     }
 
-    const hasBrandVoice = !!((user.brand_voice_product && user.brand_voice_product.trim()) ||
-                              (user.brand_voice_tone && user.brand_voice_tone.trim()));
-
     return res.status(200).json({
       user: {
         id: user.id,
@@ -60,14 +57,12 @@ export default async function handler(req, res) {
         name: user.name,
         picture: user.picture,
         tier: user.tier,
-        credits: user.credits,
-        monthly_usage: user.monthly_usage,
-        usage_limit: user.tier === 'pro' ? 200 : 0,
-        brandVoice: {
-          hasProfile: hasBrandVoice,
-          hasProduct: !!(user.brand_voice_product && user.brand_voice_product.trim()),
-          hasTone: !!(user.brand_voice_tone && user.brand_voice_tone.trim()),
-        },
+        packsUsed: user.packs_used || 0,
+        packsLimit: user.tier === 'pro' ? 10 : 0,
+        carouselsUsed: user.carousels_used || 0,
+        carouselsLimit: user.tier === 'pro' ? 30 : 0,
+        samplePackUsed: !!user.sample_pack_used,
+        profileComplete: !!(user.profile && user.profile.sells),
       },
     });
   } catch (err) {

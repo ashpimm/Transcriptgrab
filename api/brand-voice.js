@@ -1,11 +1,11 @@
-﻿// api/brand-voice.js â€” Brand Voice profile + URL scraping (Pro only)
+﻿// api/brand-voice.js — Brand Voice profile + URL scraping (Pro only)
 
 import { getSession, getBrandVoice, saveBrandVoice } from './_db.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
 const FETCH_TIMEOUT_MS = 8000;
-const FETCH_MAX_BYTES = 3 * 1024 * 1024; // 3MB â€” Play Store pages are big
+const FETCH_MAX_BYTES = 3 * 1024 * 1024; // 3MB — Play Store pages are big
 
 function corsHeaders(req, res) {
   const origin = req.headers.origin || '';
@@ -166,7 +166,7 @@ function findDescriptionInJsonLd(node) {
 function parseScrapedContent(html, url) {
   const host = (() => { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } })();
 
-  // Known hostile targets â€” bail early with a friendly message.
+  // Known hostile targets — bail early with a friendly message.
   const blocked = ['x.com', 'twitter.com', 'instagram.com', 'facebook.com', 'tiktok.com'];
   if (blocked.some(b => host === b || host.endsWith('.' + b))) {
     return { text: '', source: 'blocked' };
@@ -226,7 +226,7 @@ function parseScrapedContent(html, url) {
       const combined = [title, desc].filter(Boolean).join(' \u2014 ');
       return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store_short' : 'app_store_short' };
     }
-    // Don't fall through to body stripping for these SPAs â€” it's noisy.
+    // Don't fall through to body stripping for these SPAs — it's noisy.
     return { text: '', source: 'empty' };
   }
 

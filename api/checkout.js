@@ -1,8 +1,8 @@
-﻿// api/checkout.js â€” Stripe Checkout sessions + anonymous single-video checkout
-// GET  /api/checkout              â†’ Stripe Customer Portal (manage subscription)
-// POST /api/checkout              â†’ Create checkout session (pro or single, signed-in)
-// GET  /api/checkout-single       â†’ Start anonymous $5 checkout (rewritten here via vercel.json)
-// GET  /api/checkout-single?session_id=... â†’ Verify anonymous payment + set credit cookie
+﻿// api/checkout.js — Stripe Checkout sessions + anonymous single-video checkout
+// GET  /api/checkout              → Stripe Customer Portal (manage subscription)
+// POST /api/checkout              → Create checkout session (pro or single, signed-in)
+// GET  /api/checkout-single       → Start anonymous $5 checkout (rewritten here via vercel.json)
+// GET  /api/checkout-single?session_id=... → Verify anonymous payment + set credit cookie
 
 import Stripe from 'stripe';
 import { getSession, createSingleCredit, getSingleCreditBySession, setCreditCookie } from './_db.js';
@@ -120,7 +120,7 @@ async function handleSingleCredit(req, res) {
         return res.writeHead(302, { Location: '/studio?payment=error' }).end();
       }
 
-      // Idempotent â€” return existing token if session already processed
+      // Idempotent — return existing token if session already processed
       const existing = await getSingleCreditBySession(session.id);
       if (existing) {
         setCreditCookie(res, existing.token);
