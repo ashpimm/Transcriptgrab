@@ -1,9 +1,9 @@
-(function(){
+﻿(function(){
   // ============================================
-  // TGUser — global user state from server
+  // TGUser â€” global user state from server
   // ============================================
   var CACHE_KEY = 'tg_user_cache';
-  var CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — short enough to stay fresh-ish, long enough to kill flash
+  var CACHE_TTL_MS = 5 * 60 * 1000; // 5 min â€” short enough to stay fresh-ish, long enough to kill flash
 
   var _user = null;
   var _ready = false;
@@ -104,7 +104,7 @@
   document.body.insertBefore(nav, document.body.firstChild);
 
   function renderNav() {
-    var brandHref = _user ? '/app' : '/';
+    var brandHref = _user ? '/library' : '/';
     var appLink = _user ? 'App' : 'Try Free';
 
     var rightHtml = '';
@@ -138,15 +138,15 @@
     } else {
       rightHtml =
         '<button class="suite-nav-signin" onclick="window.location.href=\'/api/auth/google\'">Sign in</button>' +
-        '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">Try Free</a>' +
+        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>' +
         '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
 
     var linksHtml = '';
     if (_user) {
       linksHtml =
-        '<a href="/app" class="suite-nav-link' + (path === '/app' ? ' active' : '') + '">App</a>' +
-        '<a href="/workspace" class="suite-nav-link' + (path === '/workspace' ? ' active' : '') + '">Workspace</a>';
+        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>' +
+        '<a href="/studio" class="suite-nav-link' + (path === '/studio' ? ' active' : '') + '">Studio</a>';
     }
 
     nav.innerHTML =

@@ -1,8 +1,8 @@
-// api/checkout.js — Stripe Checkout sessions + anonymous single-video checkout
-// GET  /api/checkout              → Stripe Customer Portal (manage subscription)
-// POST /api/checkout              → Create checkout session (pro or single, signed-in)
-// GET  /api/checkout-single       → Start anonymous $5 checkout (rewritten here via vercel.json)
-// GET  /api/checkout-single?session_id=... → Verify anonymous payment + set credit cookie
+﻿// api/checkout.js â€” Stripe Checkout sessions + anonymous single-video checkout
+// GET  /api/checkout              â†’ Stripe Customer Portal (manage subscription)
+// POST /api/checkout              â†’ Create checkout session (pro or single, signed-in)
+// GET  /api/checkout-single       â†’ Start anonymous $5 checkout (rewritten here via vercel.json)
+// GET  /api/checkout-single?session_id=... â†’ Verify anonymous payment + set credit cookie
 
 import Stripe from 'stripe';
 import { getSession, createSingleCredit, getSingleCreditBySession, setCreditCookie } from './_db.js';
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     try {
       const user = await getSession(req);
       if (!user || !user.stripe_customer_id) {
-        return res.writeHead(302, { Location: '/app' }).end();
+        return res.writeHead(302, { Location: '/library' }).end();
       }
 
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -39,13 +39,13 @@ export default async function handler(req, res) {
 
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: user.stripe_customer_id,
-        return_url: `${baseUrl}/app`,
+        return_url: `${baseUrl}/studio`,
       });
 
       return res.writeHead(302, { Location: portalSession.url }).end();
     } catch (err) {
       console.error('Billing portal error:', err);
-      return res.writeHead(302, { Location: '/app' }).end();
+      return res.writeHead(302, { Location: '/library' }).end();
     }
   }
 
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       client_reference_id: String(user.id),
       customer_email: user.email,
       success_url: `${baseUrl}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/app`,
+      cancel_url: `${baseUrl}/studio`,
     };
 
     if (plan === 'pro') {
@@ -117,24 +117,24 @@ async function handleSingleCredit(req, res) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
 
       if (session.payment_status !== 'paid') {
-        return res.writeHead(302, { Location: '/app?payment=error' }).end();
+        return res.writeHead(302, { Location: '/studio?payment=error' }).end();
       }
 
-      // Idempotent — return existing token if session already processed
+      // Idempotent â€” return existing token if session already processed
       const existing = await getSingleCreditBySession(session.id);
       if (existing) {
         setCreditCookie(res, existing.token);
-        return res.writeHead(302, { Location: '/app?payment=single_success' }).end();
+        return res.writeHead(302, { Location: '/studio?payment=single_success' }).end();
       }
 
       const token = await createSingleCredit(session.id);
       setCreditCookie(res, token);
 
-      res.writeHead(302, { Location: '/app?payment=single_success' });
+      res.writeHead(302, { Location: '/studio?payment=single_success' });
       res.end();
     } catch (err) {
       console.error('Verify-single error:', err);
-      res.writeHead(302, { Location: '/app?payment=error' });
+      res.writeHead(302, { Location: '/studio?payment=error' });
       res.end();
     }
     return;
@@ -154,7 +154,7 @@ async function handleSingleCredit(req, res) {
         quantity: 1,
       }],
       success_url: `${baseUrl}/api/checkout-single?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/app`,
+      cancel_url: `${baseUrl}/studio`,
     });
 
     res.writeHead(302, { Location: session.url });
