@@ -25,7 +25,9 @@
     { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/profile", "destination": "/api/profile" },
     { "source": "/library", "destination": "/library.html" },
+    { "source": "/api/carousel", "destination": "/api/carousel" },
     { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/studio", "destination": "/studio.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" }
   ]

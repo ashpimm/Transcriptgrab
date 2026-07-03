@@ -48,13 +48,34 @@
 
       // Variant copy map
       var copy = { anon: {}, signedIn: {} };
-      if (variant === 'brandVoice') {
+      if (variant === 'packs') {
         copy.anon.label = 'PRO FEATURE';
-        copy.anon.title = 'Sound like <em>you</em> \u2014 every time.';
-        copy.anon.subtitle = 'Brand Voice is a Pro feature. Sign in to start, or unlock it with Pro.';
-        copy.signedIn.label = 'UNLOCK BRAND VOICE';
-        copy.signedIn.title = 'Sound like <em>you</em> \u2014 every time.';
-        copy.signedIn.subtitle = 'Save your product context and tone once. Every generation stays on-brand.';
+        copy.anon.title = 'Your niche, scripted for the month.';
+        copy.anon.subtitle = 'Sign in free for a 3-script sample pack, or go Pro for 10 packs a month.';
+        copy.signedIn.label = 'UNLOCK SCRIPT PACKS';
+        copy.signedIn.title = 'Your niche, scripted for the month.';
+        copy.signedIn.subtitle = '10 script packs a month, built from hooks with real receipts.';
+      } else if (variant === 'carousels') {
+        copy.anon.label = 'PRO FEATURE';
+        copy.anon.title = 'Post daily. Never film.';
+        copy.anon.subtitle = 'Faceless carousels are a Pro feature. 30 a month, designed by AI.';
+        copy.signedIn.label = 'UNLOCK CAROUSELS';
+        copy.signedIn.title = 'Post daily. Never film.';
+        copy.signedIn.subtitle = '30 AI-designed carousels a month. Pick a hook, download the slides.';
+      } else if (variant === 'library') {
+        copy.anon.label = 'PRO FEATURE';
+        copy.anon.title = 'The drawer goes deeper.';
+        copy.anon.subtitle = 'Free accounts see the top 20 hooks per niche and save 25. Pro opens all of it.';
+        copy.signedIn.label = 'UNLOCK THE FULL LIBRARY';
+        copy.signedIn.title = 'The drawer goes deeper.';
+        copy.signedIn.subtitle = 'Full library depth, unlimited swipe file, updated daily.';
+      } else if (variant === 'profile') {
+        copy.anon.label = 'PRO FEATURE';
+        copy.anon.title = 'Import your business in one paste.';
+        copy.anon.subtitle = 'Profile import reads your store page or site for you. The manual form is free.';
+        copy.signedIn.label = 'UNLOCK PROFILE IMPORT';
+        copy.signedIn.title = 'Import your business in one paste.';
+        copy.signedIn.subtitle = 'Paste your Play Store, App Store, or website link and review the prefill.';
       }
 
       if (!isSignedIn) {
@@ -69,15 +90,11 @@
               '<svg style="width:18px;height:18px;margin-right:8px;" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>' +
               'Continue with Google' +
             '</a>' +
-            '<div style="text-align:center;color:#bbb;font-size:12px;margin:16px 0 8px;font-weight:500;">or purchase</div>' +
+            '<div style="text-align:center;color:#bbb;font-size:12px;margin:16px 0 8px;font-weight:500;">or go straight to Pro</div>' +
             '<div class="tg-modal-plans">' +
-              '<button class="tg-modal-plan-btn tg-plan-single" id="tg-buy-single">' +
-                '<span class="tg-plan-price">$4.99</span>' +
-                '<span class="tg-plan-desc">One video</span>' +
-              '</button>' +
-              '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
-                '<span class="tg-plan-price">$49<small>/mo</small></span>' +
-                '<span class="tg-plan-desc">200 videos + Brand Voice</span>' +
+              '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro" style="grid-column:1 / -1;">' +
+                '<span class="tg-plan-price">$39<small>/mo</small></span>' +
+                '<span class="tg-plan-desc">Full library + 10 script packs + 30 carousels</span>' +
               '</button>' +
             '</div>' +
             '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
@@ -91,13 +108,9 @@
             '<h3 class="tg-modal-title">' + (copy.signedIn.title || 'Get more content') + '</h3>' +
             '<p class="tg-modal-subtitle">' + (copy.signedIn.subtitle || 'Choose a plan to keep generating.') + '</p>' +
             '<div class="tg-modal-plans">' +
-              '<button class="tg-modal-plan-btn tg-plan-single" id="tg-buy-single">' +
-                '<span class="tg-plan-price">$4.99</span>' +
-                '<span class="tg-plan-desc">One video</span>' +
-              '</button>' +
-              '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
-                '<span class="tg-plan-price">$49<small>/mo</small></span>' +
-                '<span class="tg-plan-desc">200 videos + Brand Voice</span>' +
+              '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro" style="grid-column:1 / -1;">' +
+                '<span class="tg-plan-price">$39<small>/mo</small></span>' +
+                '<span class="tg-plan-desc">Full library + 10 script packs + 30 carousels</span>' +
               '</button>' +
             '</div>' +
             '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
@@ -108,16 +121,7 @@
       document.body.style.overflow = 'hidden';
       overlay.querySelector('.tg-modal-backdrop').addEventListener('click', function(){ TGPro.hideUpgradeModal(); });
 
-      // $5 click — always anonymous checkout, no sign-in needed
-      var singleBtn = document.getElementById('tg-buy-single');
-      if (singleBtn) {
-        singleBtn.addEventListener('click', function() {
-          singleBtn.disabled = true;
-          singleBtn.querySelector('.tg-plan-desc').textContent = 'Redirecting...';
-          window.location.href = '/api/checkout?flow=single';
-        });
-      }
-      // $49 click — if signed in, checkout; if not, OAuth with plan=pro
+      // Pro click — if signed in, checkout; if not, OAuth with plan=pro
       var proBtn = document.getElementById('tg-buy-pro');
       if (proBtn) {
         proBtn.addEventListener('click', function() {
