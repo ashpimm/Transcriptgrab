@@ -82,44 +82,6 @@ export async function createSession(userId) {
 }
 
 // ============================================
-// GENERATION GATING
-// ============================================
-const MONTHLY_LIMIT = 200;
-
-export function canGenerate(user) {
-  if (!user) return { allowed: false, reason: 'auth_required' };
-
-  if (user.tier === 'pro') {
-    if (user.monthly_usage >= MONTHLY_LIMIT) {
-      return { allowed: false, reason: 'monthly_limit' };
-    }
-    return { allowed: true };
-  }
-
-  // Free tier with purchased credits
-  if (user.credits > 0) {
-    return { allowed: true };
-  }
-
-  return { allowed: false, reason: 'upgrade' };
-}
-
-export async function consumeCredit(user) {
-  const sql = getSQL();
-  if (user.tier === 'pro') {
-    await sql`
-      UPDATE users SET monthly_usage = monthly_usage + 1, updated_at = NOW()
-      WHERE id = ${user.id}
-    `;
-  } else {
-    await sql`
-      UPDATE users SET credits = credits - 1, updated_at = NOW()
-      WHERE id = ${user.id}
-    `;
-  }
-}
-
-// ============================================
 // USER MANAGEMENT
 // ============================================
 export async function upsertGoogleUser({ googleId, email, name, picture }) {
@@ -169,11 +131,6 @@ export async function updateUser(id, fields) {
   }
 }
 
-export async function incrementCredits(userId) {
-  const sql = getSQL();
-  await sql`UPDATE users SET credits = credits + 1, updated_at = NOW() WHERE id = ${userId}`;
-}
-
 export async function setProStatus(userId, stripeCustomerId, stripeSubscriptionId) {
   const sql = getSQL();
   await sql`
@@ -206,26 +163,8 @@ export async function findUserByStripeCustomer(stripeCustomerId) {
 }
 
 // ============================================
-// SINGLE CREDIT (anonymous $5 purchases)
+// CHECKOUT IDEMPOTENCY
 // ============================================
-export async function createSingleCredit(stripeSessionId) {
-  const token = crypto.randomBytes(32).toString('hex');
-  const sql = getSQL();
-  await sql`
-    INSERT INTO single_credits (token, stripe_session_id)
-    VALUES (${token}, ${stripeSessionId})
-  `;
-  return token;
-}
-
-export async function getSingleCreditBySession(stripeSessionId) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT * FROM single_credits WHERE stripe_session_id = ${stripeSessionId}
-  `;
-  return rows[0] || null;
-}
-
 export async function claimCheckoutSession(stripeSessionId, userId) {
   const sql = getSQL();
   const rows = await sql`
@@ -233,123 +172,6 @@ export async function claimCheckoutSession(stripeSessionId, userId) {
     VALUES (${stripeSessionId}, ${userId})
     ON CONFLICT (stripe_session_id) DO NOTHING
     RETURNING *
-  `;
-  return rows.length > 0;
-}
-
-export async function getSingleCredit(token) {
-  if (!token || token.length !== 64) return null;
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT * FROM single_credits
-    WHERE token = ${token} AND used = FALSE
-  `;
-  return rows[0] || null;
-}
-
-export async function consumeSingleCredit(token) {
-  if (!token || token.length !== 64) return null;
-  const sql = getSQL();
-  const rows = await sql`
-    UPDATE single_credits
-    SET used = TRUE
-    WHERE token = ${token} AND used = FALSE
-    RETURNING *
-  `;
-  return rows[0] || null;
-}
-
-export function setCreditCookie(res, token) {
-  const existing = res.getHeader('Set-Cookie');
-  const cookie = `tg_credit=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
-  if (existing) {
-    const cookies = Array.isArray(existing) ? existing : [existing];
-    res.setHeader('Set-Cookie', [...cookies, cookie]);
-  } else {
-    res.setHeader('Set-Cookie', cookie);
-  }
-}
-
-export function clearCreditCookie(res) {
-  const existing = res.getHeader('Set-Cookie');
-  const cookie = 'tg_credit=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
-  if (existing) {
-    const cookies = Array.isArray(existing) ? existing : [existing];
-    res.setHeader('Set-Cookie', [...cookies, cookie]);
-  } else {
-    res.setHeader('Set-Cookie', cookie);
-  }
-}
-
-// ============================================
-// GENERATIONS (content workspace)
-// ============================================
-export async function saveGeneration(userId, videoId, videoTitle, videoThumb, platforms, content, platform) {
-  const sql = getSQL();
-  const rows = await sql`
-    INSERT INTO generations (user_id, video_id, video_title, video_thumb, platforms, content, platform)
-    VALUES (${userId}, ${videoId}, ${videoTitle || ''}, ${videoThumb || ''}, ${platforms || []}, ${JSON.stringify(content)}, ${platform || 'youtube'})
-    ON CONFLICT (user_id, video_id) DO UPDATE SET
-      video_title = EXCLUDED.video_title,
-      video_thumb = EXCLUDED.video_thumb,
-      platforms = EXCLUDED.platforms,
-      content = EXCLUDED.content,
-      platform = EXCLUDED.platform,
-      updated_at = NOW()
-    RETURNING id
-  `;
-  return rows[0];
-}
-
-export async function getGenerations(userId, limit = 50, offset = 0) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT id, video_id, video_title, video_thumb, platforms, platform, auto_generated, created_at, updated_at
-    FROM generations
-    WHERE user_id = ${userId}
-    ORDER BY updated_at DESC
-    LIMIT ${limit} OFFSET ${offset}
-  `;
-  const countRows = await sql`
-    SELECT COUNT(*)::int AS total FROM generations WHERE user_id = ${userId}
-  `;
-  return { videos: rows, total: countRows[0].total };
-}
-
-export async function getGeneration(userId, videoId) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT * FROM generations
-    WHERE user_id = ${userId} AND video_id = ${videoId}
-  `;
-  return rows[0] || null;
-}
-
-export async function deleteGeneration(userId, videoId) {
-  const sql = getSQL();
-  const rows = await sql`
-    DELETE FROM generations
-    WHERE user_id = ${userId} AND video_id = ${videoId}
-    RETURNING id
-  `;
-  return rows.length > 0;
-}
-
-export async function getGenerationById(userId, id) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT * FROM generations
-    WHERE user_id = ${userId} AND id = ${id}
-  `;
-  return rows[0] || null;
-}
-
-export async function deleteGenerationById(userId, id) {
-  const sql = getSQL();
-  const rows = await sql`
-    DELETE FROM generations
-    WHERE user_id = ${userId} AND id = ${id}
-    RETURNING id
   `;
   return rows.length > 0;
 }
@@ -374,59 +196,6 @@ export async function refreshUsage(user) {
     user.carousels_used = 0;
   }
   return user;
-}
-
-// ============================================
-// BRAND VOICE (Pro feature)
-// ============================================
-export async function getBrandVoice(userId) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT brand_voice_product, brand_voice_product_url, brand_voice_tone, brand_voice_tone_url
-    FROM users WHERE id = ${userId}
-  `;
-  if (rows.length === 0) return null;
-  return {
-    product: rows[0].brand_voice_product || '',
-    productUrl: rows[0].brand_voice_product_url || '',
-    tone: rows[0].brand_voice_tone || '',
-    toneUrl: rows[0].brand_voice_tone_url || '',
-  };
-}
-
-export async function saveBrandVoice(userId, { product, productUrl, tone, toneUrl }) {
-  const sql = getSQL();
-  await sql`
-    UPDATE users
-    SET brand_voice_product = ${product || null},
-        brand_voice_product_url = ${productUrl || null},
-        brand_voice_tone = ${tone || null},
-        brand_voice_tone_url = ${toneUrl || null},
-        updated_at = NOW()
-    WHERE id = ${userId}
-  `;
-}
-
-// ============================================
-// ANONYMOUS FREE GENERATION TRACKING
-// ============================================
-export async function hasUsedFreeGeneration(ip) {
-  const hash = crypto.createHash('sha256').update(ip).digest('hex');
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT 1 FROM free_generations WHERE ip_hash = ${hash} LIMIT 1
-  `;
-  return rows.length > 0;
-}
-
-export async function recordFreeGeneration(ip) {
-  const hash = crypto.createHash('sha256').update(ip).digest('hex');
-  const sql = getSQL();
-  await sql`
-    INSERT INTO free_generations (ip_hash)
-    VALUES (${hash})
-    ON CONFLICT (ip_hash) DO NOTHING
-  `;
 }
 
 // ============================================

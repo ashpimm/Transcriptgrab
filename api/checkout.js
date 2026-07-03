@@ -1,11 +1,26 @@
-﻿// api/checkout.js — Stripe Checkout sessions + anonymous single-video checkout
-// GET  /api/checkout              → Stripe Customer Portal (manage subscription)
-// POST /api/checkout              → Create checkout session (pro or single, signed-in)
-// GET  /api/checkout-single       → Start anonymous $5 checkout (rewritten here via vercel.json)
-// GET  /api/checkout-single?session_id=... → Verify anonymous payment + set credit cookie
+﻿// api/checkout.js — Stripe Checkout (single Pro tier)
+// GET  /api/checkout           → Stripe Customer Portal (manage subscription)
+// GET  /api/checkout?plan=pro  → Redirect straight into Pro checkout (signed-in)
+// POST /api/checkout           → Create Pro checkout session, returns { url }
 
 import Stripe from 'stripe';
-import { getSession, createSingleCredit, getSingleCreditBySession, setCreditCookie } from './_db.js';
+import { getSession } from './_db.js';
+
+function proSessionParams(user, baseUrl) {
+  const params = {
+    client_reference_id: String(user.id),
+    customer_email: user.email,
+    mode: 'subscription',
+    line_items: [{ price: process.env.STRIPE_PRO_PRICE_ID, quantity: 1 }],
+    success_url: `${baseUrl}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/studio`,
+  };
+  if (user.stripe_customer_id) {
+    params.customer = user.stripe_customer_id;
+    delete params.customer_email;
+  }
+  return params;
+}
 
 export default async function handler(req, res) {
   // CORS
@@ -18,33 +33,37 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // ===== ANONYMOUS SINGLE-VIDEO FLOW =====
-  // Detected by ?flow=single param (start) or ?session_id param (verify)
-  if (req.method === 'GET' && (req.query.flow === 'single' || req.query.session_id)) {
-    return handleSingleCredit(req, res);
-  }
-
-  // ===== GET: Stripe Customer Portal (manage subscription) =====
+  // ===== GET: Pro checkout redirect OR Customer Portal =====
   if (req.method === 'GET') {
     try {
       const user = await getSession(req);
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const baseUrl = `${protocol}://${req.headers.host}`;
+
+      // ?plan=pro: send straight into checkout (used by landing/library CTAs)
+      if (req.query.plan === 'pro') {
+        if (!user) {
+          return res.writeHead(302, { Location: '/api/auth/google?plan=pro' }).end();
+        }
+        if (user.tier === 'pro') {
+          return res.writeHead(302, { Location: '/studio' }).end();
+        }
+        const session = await stripe.checkout.sessions.create(proSessionParams(user, baseUrl));
+        return res.writeHead(302, { Location: session.url }).end();
+      }
+
+      // Default: customer portal
       if (!user || !user.stripe_customer_id) {
         return res.writeHead(302, { Location: '/library' }).end();
       }
-
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const hostHeader = req.headers.host;
-      const baseUrl = `${protocol}://${hostHeader}`;
-
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: user.stripe_customer_id,
         return_url: `${baseUrl}/studio`,
       });
-
       return res.writeHead(302, { Location: portalSession.url }).end();
     } catch (err) {
-      console.error('Billing portal error:', err);
+      console.error('Checkout GET error:', err);
       return res.writeHead(302, { Location: '/library' }).end();
     }
   }
@@ -60,107 +79,15 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Sign in required', auth_required: true });
     }
 
-    const { plan } = req.body || {};
-    if (!plan || !['pro', 'single'].includes(plan)) {
-      return res.status(400).json({ error: 'Invalid plan. Use "pro" or "single".' });
-    }
-
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const hostHeader = req.headers.host;
-    const baseUrl = `${protocol}://${hostHeader}`;
+    const baseUrl = `${protocol}://${req.headers.host}`;
 
-    const sessionParams = {
-      client_reference_id: String(user.id),
-      customer_email: user.email,
-      success_url: `${baseUrl}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/studio`,
-    };
-
-    if (plan === 'pro') {
-      sessionParams.mode = 'subscription';
-      sessionParams.line_items = [{
-        price: process.env.STRIPE_PRO_PRICE_ID,
-        quantity: 1,
-      }];
-    } else {
-      sessionParams.mode = 'payment';
-      sessionParams.line_items = [{
-        price: process.env.STRIPE_SINGLE_PRICE_ID,
-        quantity: 1,
-      }];
-    }
-
-    // Link to existing Stripe customer if available
-    if (user.stripe_customer_id) {
-      sessionParams.customer = user.stripe_customer_id;
-      delete sessionParams.customer_email;
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await stripe.checkout.sessions.create(proSessionParams(user, baseUrl));
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('Checkout error:', err);
-    return res.status(500).json({ error: 'Failed to create checkout session' });
-  }
-}
-
-// ===== ANONYMOUS SINGLE-VIDEO CHECKOUT =====
-async function handleSingleCredit(req, res) {
-  const { session_id } = req.query;
-
-  // Verify mode (returning from Stripe)
-  if (session_id) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-
-      if (session.payment_status !== 'paid') {
-        return res.writeHead(302, { Location: '/studio?payment=error' }).end();
-      }
-
-      // Idempotent — return existing token if session already processed
-      const existing = await getSingleCreditBySession(session.id);
-      if (existing) {
-        setCreditCookie(res, existing.token);
-        return res.writeHead(302, { Location: '/studio?payment=single_success' }).end();
-      }
-
-      const token = await createSingleCredit(session.id);
-      setCreditCookie(res, token);
-
-      res.writeHead(302, { Location: '/studio?payment=single_success' });
-      res.end();
-    } catch (err) {
-      console.error('Verify-single error:', err);
-      res.writeHead(302, { Location: '/studio?payment=error' });
-      res.end();
-    }
-    return;
-  }
-
-  // Start checkout mode
-  try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const hostHeader = req.headers.host;
-    const baseUrl = `${protocol}://${hostHeader}`;
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [{
-        price: process.env.STRIPE_SINGLE_PRICE_ID,
-        quantity: 1,
-      }],
-      success_url: `${baseUrl}/api/checkout-single?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/studio`,
-    });
-
-    res.writeHead(302, { Location: session.url });
-    res.end();
-  } catch (err) {
-    console.error('Checkout-single error:', err);
     return res.status(500).json({ error: 'Failed to create checkout session' });
   }
 }

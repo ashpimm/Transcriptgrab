@@ -1,7 +1,7 @@
 // api/webhook.js — Stripe webhook for subscription lifecycle events
 
 import Stripe from 'stripe';
-import { downgradeUser, findUserByStripeCustomer, setProStatus, claimCheckoutSession, incrementCredits, updateUser } from './_db.js';
+import { downgradeUser, findUserByStripeCustomer, setProStatus, claimCheckoutSession } from './_db.js';
 
 export const config = {
   api: {
@@ -44,8 +44,7 @@ export default async function handler(req, res) {
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
-        // Authoritative credit/pro grant for signed-in users.
-        // Anonymous $5 purchases have no client_reference_id — handled by redirect only.
+        // Authoritative Pro grant for signed-in users.
         const session = event.data.object;
         const userId = parseInt(session.client_reference_id, 10);
         if (!userId || session.payment_status !== 'paid') break;
@@ -60,11 +59,6 @@ export default async function handler(req, res) {
           const subId = typeof session.subscription === 'string'
             ? session.subscription : session.subscription.id;
           await setProStatus(userId, customerId, subId);
-        } else {
-          await incrementCredits(userId);
-          if (customerId) {
-            await updateUser(userId, { stripe_customer_id: customerId });
-          }
         }
         break;
       }

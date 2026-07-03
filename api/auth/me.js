@@ -32,12 +32,11 @@ export default async function handler(req, res) {
   }
 
   // ===== GET: Current user =====
-  // Lazy cleanup: ~1 in 50 requests, delete expired sessions + old single credits
+  // Lazy cleanup: ~1 in 50 requests, delete expired sessions
   if (Math.random() < 0.02) {
     try {
       const sql = getSQL();
       await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
-      await sql`DELETE FROM single_credits WHERE used = TRUE AND created_at < NOW() - INTERVAL '7 days'`;
     } catch (e) {
       // Non-fatal — just housekeeping
     }

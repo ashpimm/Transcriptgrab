@@ -1,6 +1,6 @@
 ﻿// api/auth/callback.js — Handle Google OAuth return + Stripe link redirect
 import Stripe from 'stripe';
-import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, incrementCredits, updateUser, claimCheckoutSession } from '../_db.js';
+import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession } from '../_db.js';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -139,11 +139,6 @@ async function handleStripeLink(req, res) {
         ? session.subscription
         : session.subscription.id;
       await setProStatus(user.id, customerId, subId);
-    } else {
-      await incrementCredits(user.id);
-      if (customerId) {
-        await updateUser(user.id, { stripe_customer_id: customerId });
-      }
     }
 
     res.writeHead(302, { Location: '/studio?payment=success' });
