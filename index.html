@@ -1,818 +1,510 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hooklab â€” AI Video Scripts in Your Brand Voice</title>
-<meta name="description" content="Turn any video into on-brand scripts, tweets, LinkedIn posts and blogs. Set your AI Brand Voice once â€” every generation sounds like you. YouTube, TikTok, Instagram, and more.">
-<link rel="canonical" href="https://hooklab.vercel.app">
-
-<!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="Hooklab â€” AI Video Scripts in Your Brand Voice">
-<meta property="og:description" content="Turn any video into on-brand content. Save your Brand Voice once and every AI-generated script, tweet, LinkedIn post and blog stays aligned with your product and tone.">
-<meta property="og:url" content="https://hooklab.vercel.app">
-<meta property="og:site_name" content="Hooklab">
-<meta property="og:image" content="https://hooklab.vercel.app/og-image.png?v=5">
-<meta property="og:image:width" content="2400">
-<meta property="og:image:height" content="1260">
-<meta property="og:image:alt" content="Hooklab â€” AI video scripts in your brand voice">
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Hooklab â€” AI Video Scripts in Your Brand Voice">
-<meta name="twitter:description" content="Paste any video, set your Brand Voice once, and get on-brand scripts, tweets, LinkedIn posts and blogs every time.">
-<meta name="twitter:image" content="https://hooklab.vercel.app/og-image.png?v=5">
-<meta name="twitter:image:alt" content="Hooklab â€” AI video scripts in your brand voice">
-
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>T</text></svg>">
+<title>Hooklab — Viral hooks with receipts. Scripts in your voice.</title>
+<meta name="description" content="Hooklab mines the short-form hooks already proven viral in your niche (5x rule, real view counts) and turns them into ready-to-film scripts and faceless carousels. The $3,000/mo content agency, as software.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
 <style>
-  :root {
-    --white: #ffffff; --bg: #f8f9fb; --surface: #ffffff; --border: #e5e7ec; --border-light: #eef0f4;
-    --text: #0f1115; --text-2: #2d3039; --text-3: #5c5f6a; --text-4: #8f929d; --text-5: #b5b8c2;
-    --accent: #0f1115; --accent-hover: #2d3039; --accent-subtle: #f3f4f7;
-    --cta: #0071e3; --cta-hover: #0077ED;
-    --premium-bg: #1d1d1f; --premium-text: #f5f5f7;
-    --success: #34c759; --error: #ff3b30;
-    --radius: 16px; --radius-sm: 10px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.03);
-    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Outfit', -apple-system, sans-serif;
-    background: var(--bg);
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,113,227,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(120,90,220,0.03) 0%, transparent 50%);
-    color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-  ::selection { background: var(--cta); color: var(--white); }
+/* ============ HERO ============ */
+.hero { padding: calc(var(--nav-h) + 72px) 0 40px; overflow: hidden; }
+.hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+.hero h1 { font-size: clamp(40px, 6vw, 72px); margin: 18px 0 22px; }
+.hero h1 .flag { color: var(--signal); }
+.hero-sub { font-size: 19px; color: var(--graphite); max-width: 480px; margin-bottom: 32px; }
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-note { margin-top: 18px; }
 
-  /* ===== HERO ===== */
-  .hero { text-align: center; padding: 48px 40px 40px; max-width: 1200px; margin: 0 auto; position: relative; }
-  .hero::before { content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%); width: 1000px; height: 700px; background: radial-gradient(ellipse 70% 55%, rgba(0,113,227,0.06) 0%, rgba(120,90,220,0.02) 40%, transparent 70%); pointer-events: none; z-index: 0; }
-  .hero > * { position: relative; z-index: 1; }
-  .hero-title { font-size: clamp(34px, 6vw, 56px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; color: var(--text); margin-bottom: 14px; }
-  .hero-accent { color: var(--cta); }
-  .hero-subtitle { font-size: 16px; font-weight: 400; color: var(--text-3); line-height: 1.5; max-width: 500px; margin: 0 auto 32px; }
-  .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 36px; border: none; border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition); letter-spacing: -0.01em; text-decoration: none; }
-  .btn-blue { background: var(--cta); color: var(--white); box-shadow: 0 2px 8px rgba(0,113,227,0.15); }
-  .btn-blue:hover { background: var(--cta-hover); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,113,227,0.25); }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  .btn-ghost:hover { border-color: var(--text-4); background: var(--accent-subtle); }
+/* specimen feed — the signature */
+.feed-window {
+  position: relative; height: 560px; display: flex; gap: 18px;
+  transform: rotate(2.5deg);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+}
+.feed-col { display: flex; flex-direction: column; gap: 18px; animation: drift 38s linear infinite; }
+.feed-col.fast { animation-duration: 26s; margin-top: -60px; }
+.feed-window:hover .feed-col { animation-play-state: paused; }
+@keyframes drift { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.specimen {
+  width: 210px; aspect-ratio: 9 / 14; flex-shrink: 0;
+  background: linear-gradient(165deg, var(--ink-2), var(--ink));
+  border-radius: 18px; padding: 18px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  color: var(--white); border: 1px solid rgba(255,255,255,.07);
+}
+.specimen .s-hook { font-family: var(--display); font-weight: 600; font-size: 15.5px; line-height: 1.35; letter-spacing: -0.01em; }
+.specimen .s-stats { display: flex; flex-direction: column; gap: 7px; }
+.specimen .s-row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: rgba(255,255,255,.55); }
+.specimen .s-row b { color: var(--white); font-weight: 500; }
+.specimen .s-score { align-self: flex-start; }
 
-  /* ===== DEMO WINDOW ===== */
-  .demo-window { max-width: 640px; margin: 0 auto; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 24px 80px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.02); overflow: hidden; }
-  .demo-chrome { display: flex; align-items: center; gap: 12px; padding: 11px 16px; background: var(--accent-subtle); border-bottom: 1px solid var(--border-light); }
-  .demo-dots { display: flex; gap: 6px; }
-  .demo-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
-  .demo-bar { flex: 1; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-4); background: var(--surface); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-light); }
-  .demo-content { position: relative; height: 360px; overflow: hidden; }
+/* receipt ticker */
+.ticker { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 0; overflow: hidden; }
+.ticker-track { display: flex; gap: 48px; white-space: nowrap; animation: tick 40s linear infinite; width: max-content; }
+@keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ticker .stat b { color: var(--ink); font-weight: 600; }
+.ticker .stat .x { color: var(--signal); font-weight: 600; }
 
-  /* Demo phases */
-  .demo-phase { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; animation-duration: 16s; animation-iteration-count: infinite; animation-fill-mode: both; }
+/* ============ HOW IT WORKS ============ */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.step {
+  background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 30px 26px;
+}
+.step .n { font-family: var(--mono); font-size: 12px; color: var(--signal); letter-spacing: .1em; }
+.step h3 { font-family: var(--display); font-size: 23px; margin: 12px 0 10px; letter-spacing: -0.015em; }
+.step p { color: var(--graphite); font-size: 15.5px; }
+.step .mock { margin-top: 22px; background: var(--wash); border-radius: 10px; padding: 14px; font-family: var(--mono); font-size: 11px; color: var(--graphite); line-height: 1.9; }
+.step .mock .hl { color: var(--ink); }
+.step .mock .fl { color: var(--signal); }
 
-  /* Phase 1: Input */
-  .demo-phase-input { animation-name: phaseInput; align-items: center; gap: 12px; padding: 28px 32px 20px; }
-  .demo-fake-input { width: 100%; max-width: 400px; padding: 11px 18px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); text-align: center; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
-  .demo-paste-btn { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-subtle); border: 1px solid var(--border-light); position: absolute; right: 6px; display: flex; align-items: center; justify-content: center; animation: demoPasteClick 16s ease infinite; }
-  .demo-paste-btn svg { width: 12px; height: 12px; color: var(--text-4); }
-  .demo-pasted-url { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); white-space: nowrap; opacity: 0; animation: demoPasteReveal 16s ease infinite; }
-  .demo-pills-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; max-width: 460px; }
-  .demo-pill { padding: 4px 11px; border-radius: 100px; font-size: 10px; font-weight: 500; font-family: 'Outfit', sans-serif; border: 1px solid var(--border); color: var(--text-4); background: var(--surface); }
-  .demo-pill.sel { background: var(--text); color: var(--white); border-color: var(--text); }
-  .demo-gen { padding: 10px 32px; background: var(--cta); color: var(--white); border-radius: 100px; font-size: 13px; font-weight: 600; font-family: 'Outfit', sans-serif; }
+/* ============ 5X RULE (dark panel) ============ */
+.rule-panel { background: var(--ink); color: var(--white); border-radius: 24px; padding: 72px 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.rule-panel .eyebrow { color: var(--signal); }
+.rule-panel h2 { font-size: clamp(28px, 3.6vw, 42px); margin: 14px 0 16px; }
+.rule-panel p { color: rgba(255,255,255,.62); font-size: 17px; }
+.fraction { text-align: center; font-family: var(--mono); }
+.fraction .views { font-size: clamp(40px, 5vw, 62px); font-weight: 600; }
+.fraction .bar { height: 2px; background: rgba(255,255,255,.25); margin: 14px 10%; }
+.fraction .followers { font-size: clamp(20px, 2.6vw, 30px); color: rgba(255,255,255,.6); }
+.fraction .verdict {
+  display: inline-block; margin-top: 26px; font-size: 15px; font-weight: 600;
+  border: 1.5px solid var(--signal); color: var(--signal);
+  padding: 8px 20px; border-radius: 999px; letter-spacing: .12em;
+}
+.fraction .lbl { display: block; font-size: 11px; letter-spacing: .14em; color: rgba(255,255,255,.4); margin-top: 6px; }
 
-  /* Phase 2: Processing */
-  .demo-phase-proc { animation-name: phaseProc; align-items: center; justify-content: center; }
-  .demo-spinner-wrap { text-align: center; }
-  .demo-spin { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--cta); border-radius: 50%; margin: 0 auto 14px; animation: spin 0.8s linear infinite; }
-  .demo-proc-label { font-size: 14px; font-weight: 500; color: var(--text-3); margin-bottom: 4px; }
-  .demo-proc-sub { font-size: 12px; color: var(--text-5); }
+/* ============ LIBRARY PREVIEW ============ */
+.niche-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+.pill {
+  font-family: var(--body); font-size: 14px; font-weight: 500; cursor: pointer;
+  background: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 18px;
+  color: var(--graphite); transition: all .15s;
+}
+.pill:hover { border-color: var(--ink); color: var(--ink); }
+.pill.on { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.preview-more { text-align: center; margin-top: 40px; }
 
-  /* Phase 3: Results */
-  .demo-phase-results { animation-name: phaseResults; padding: 14px 20px 20px; display: block; }
-  .demo-results-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
-  .demo-results-title { font-size: 13px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
-  .demo-results-dl { padding: 4px 12px; border-radius: 100px; font-size: 9px; font-weight: 600; font-family: 'Outfit', sans-serif; background: var(--accent); color: var(--white); }
-  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .demo-result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; opacity: 0; }
-  .demo-result-card.demo-fw { grid-column: 1 / -1; }
-  .demo-rc-head { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--border-light); font-size: 10px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
-  .demo-rc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
-  .demo-rc-body { padding: 8px 10px; font-size: 9.5px; line-height: 1.5; color: var(--text-3); }
-  .demo-rc-copy { margin-left: auto; padding: 2px 8px; border-radius: 100px; font-size: 8px; font-weight: 600; font-family: 'Outfit', sans-serif; background: var(--accent-subtle); border: 1px solid var(--border); color: var(--text-4); flex-shrink: 0; }
-  .demo-rc1 { animation: cr1 16s ease infinite; }
-  .demo-rc2 { animation: cr2 16s ease infinite; }
-  .demo-rc3 { animation: cr3 16s ease infinite; }
-  .demo-rc4 { animation: cr4 16s ease infinite; }
-  .demo-rc5 { animation: cr5 16s ease infinite; }
-  .demo-rc6 { animation: cr6 16s ease infinite; }
-  .demo-rc7 { animation: cr7 16s ease infinite; }
+/* ============ CAROUSEL BLOCK ============ */
+.caro-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 56px; align-items: center; }
+.caro-fan { position: relative; height: 380px; }
+.caro-slide {
+  position: absolute; width: 230px; aspect-ratio: 4 / 5; border-radius: 16px; padding: 22px;
+  font-family: var(--display); font-weight: 700; font-size: 19px; line-height: 1.3;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  box-shadow: 0 18px 44px rgba(16,20,24,.14); transition: transform .3s;
+}
+.caro-slide small { font-family: var(--mono); font-weight: 400; font-size: 10.5px; letter-spacing: .1em; opacity: .65; margin-bottom: auto; }
+.caro-slide:nth-child(1) { background: var(--ink); color: var(--white); transform: rotate(-7deg) translate(0, 14px); z-index: 1; }
+.caro-slide:nth-child(2) { background: var(--signal); color: var(--white); transform: rotate(1deg) translate(120px, -8px); z-index: 2; }
+.caro-slide:nth-child(3) { background: var(--white); color: var(--ink); border: 1px solid var(--line); transform: rotate(8deg) translate(240px, 20px); z-index: 3; }
+.caro-fan:hover .caro-slide:nth-child(1) { transform: rotate(-9deg) translate(-10px, 10px); }
+.caro-fan:hover .caro-slide:nth-child(3) { transform: rotate(10deg) translate(250px, 14px); }
+.check-list { list-style: none; margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+.check-list li { padding-left: 28px; position: relative; color: var(--graphite); }
+.check-list li::before { content: '×'; position: absolute; left: 0; top: -2px; color: var(--signal); font-family: var(--mono); font-weight: 600; font-size: 18px; }
 
-  /* Demo keyframes â€” 16s total cycle */
-  @keyframes phaseInput {
-    0% { opacity: 0; transform: translateY(10px); }
-    2% { opacity: 1; transform: translateY(0); }
-    25% { opacity: 1; transform: translateY(0); }
-    30% { opacity: 0; transform: translateY(-10px); }
-    100% { opacity: 0; }
-  }
-  @keyframes phaseProc {
-    0%, 28% { opacity: 0; transform: translateY(10px); }
-    32% { opacity: 1; transform: translateY(0); }
-    42% { opacity: 1; transform: translateY(0); }
-    47% { opacity: 0; transform: translateY(-10px); }
-    100% { opacity: 0; }
-  }
-  @keyframes phaseResults {
-    0%, 44% { opacity: 0; }
-    49% { opacity: 1; }
-    88% { opacity: 1; }
-    94% { opacity: 0; }
-    100% { opacity: 0; }
-  }
-  @keyframes demoPasteClick {
-    0%, 5% { transform: scale(1); background: var(--accent-subtle); }
-    7% { transform: scale(0.85); background: var(--border); }
-    9% { transform: scale(1); background: var(--success); }
-    13%, 100% { transform: scale(1); background: var(--accent-subtle); }
-  }
-  @keyframes demoPasteReveal {
-    0%, 8% { opacity: 0; }
-    10% { opacity: 1; }
-    25%, 100% { opacity: 1; }
-  }
-  /* Staggered card reveals â€” each row offset by ~2% (~0.32s) */
-  @keyframes cr1 {
-    0%, 47% { opacity: 0; transform: translateY(12px); }
-    52% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr2 {
-    0%, 49% { opacity: 0; transform: translateY(12px); }
-    54% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr3 {
-    0%, 51% { opacity: 0; transform: translateY(12px); }
-    56% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr4 {
-    0%, 53% { opacity: 0; transform: translateY(12px); }
-    58% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr5 {
-    0%, 55% { opacity: 0; transform: translateY(12px); }
-    60% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr6 {
-    0%, 57% { opacity: 0; transform: translateY(12px); }
-    62% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes cr7 {
-    0%, 59% { opacity: 0; transform: translateY(12px); }
-    64% { opacity: 1; transform: translateY(0); }
-    88% { opacity: 1; } 94% { opacity: 0; } 100% { opacity: 0; }
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ============ RECEIPTS ============ */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.compare-card { border-radius: var(--radius); padding: 34px 30px; }
+.compare-card.them { background: var(--wash); color: var(--graphite); }
+.compare-card.us { background: var(--ink); color: var(--white); }
+.compare-card h3 { font-family: var(--display); font-size: 21px; margin-bottom: 14px; letter-spacing: -0.01em; }
+.compare-card.them h3 { color: var(--ink); }
+.compare-card p { font-size: 15.5px; }
+.compare-card.us p { color: rgba(255,255,255,.65); }
+.compare-card .receipt {
+  margin-top: 20px; font-family: var(--mono); font-size: 12px;
+  background: rgba(255,255,255,.08); border-radius: 10px; padding: 12px 14px; line-height: 1.8;
+}
+.compare-card .receipt .x { color: var(--signal); font-weight: 600; }
 
-  /* ===== SECTIONS ===== */
-  .section { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
-  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cta); text-align: center; margin-bottom: 16px; }
-  .section-title { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 48px; line-height: 1.2; }
+/* ============ PRICING ============ */
+.price-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 380px)); gap: 20px; justify-content: center; }
+.price-card { background: var(--white); border: 1px solid var(--line); border-radius: 20px; padding: 38px 32px; display: flex; flex-direction: column; }
+.price-card.pro { border: 2px solid var(--ink); position: relative; }
+.price-card .tag { position: absolute; top: -13px; left: 32px; }
+.price-card h3 { font-family: var(--display); font-size: 22px; }
+.price-card .amount { font-family: var(--display); font-size: 46px; font-weight: 700; margin: 14px 0 4px; letter-spacing: -0.03em; }
+.price-card .amount span { font-family: var(--body); font-size: 16px; font-weight: 400; color: var(--graphite); }
+.price-card ul { list-style: none; margin: 24px 0 30px; display: flex; flex-direction: column; gap: 11px; }
+.price-card li { padding-left: 26px; position: relative; font-size: 15px; color: var(--graphite); }
+.price-card li::before { content: '×'; position: absolute; left: 0; top: -2px; color: var(--signal); font-family: var(--mono); font-weight: 600; }
+.price-card .btn { margin-top: auto; }
 
+/* ============ FAQ / FOOTER ============ */
+.faq { max-width: 720px; margin: 0 auto; }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item button {
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--ink);
+  padding: 22px 40px 22px 0; position: relative; letter-spacing: -0.01em;
+}
+.faq-item button::after { content: '+'; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 20px; color: var(--signal); transition: transform .2s; }
+.faq-item.open button::after { transform: translateY(-50%) rotate(45deg); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height .3s ease; color: var(--graphite); }
+.faq-item.open .faq-a { max-height: 300px; }
+.faq-a p { padding: 0 0 22px; font-size: 16px; }
+footer { border-top: 1px solid var(--line); padding: 44px 0 60px; }
+.foot-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+.foot-links { display: flex; gap: 22px; }
+.foot-links a { font-size: 14px; color: var(--graphite); text-decoration: none; }
+.foot-links a:hover { color: var(--ink); }
 
-  /* ===== HOW IT WORKS ===== */
-  .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 80px; }
-  .step-card { text-align: center; padding: 32px 20px; }
-  .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--white); font-size: 14px; font-weight: 700; margin-bottom: 16px; }
-  .step-card h4 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
-  .step-card p { font-size: 13px; color: var(--text-3); line-height: 1.5; }
-
-  /* ===== OUTPUT SHOWCASE ===== */
-  .output-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 80px; }
-  .output-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 24px 20px; text-align: center; box-shadow: var(--shadow-sm);
-    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-  .output-card:hover { box-shadow: 0 8px 32px rgba(0,113,227,0.08), 0 2px 8px rgba(0,0,0,0.04); transform: translateY(-3px); border-color: rgba(0,113,227,0.15); }
-  .output-icon { font-size: 24px; margin-bottom: 12px; display: block; }
-  .output-card h4 { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
-  .output-card p { font-size: 12px; color: var(--text-4); line-height: 1.4; }
-
-  /* ===== PRICING ===== */
-  .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 80px; }
-  .price-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 36px 28px; box-shadow: var(--shadow-sm); transition: all 0.3s ease;
-  }
-  .price-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-  .price-card.featured {
-    background: var(--premium-bg); color: var(--premium-text); border-color: transparent;
-    box-shadow: 0 16px 64px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1);
-    transform: scale(1.02);
-  }
-  .price-card.featured:hover { transform: scale(1.03) translateY(-2px); box-shadow: 0 20px 72px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.12); }
-  .price-card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-4); margin-bottom: 12px; }
-  .price-card.featured .price-card-label { color: var(--cta); }
-  .price-card-price { font-size: 44px; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 4px; }
-  .price-card.featured .price-card-price { color: var(--premium-text); }
-  .price-card-sub { font-size: 14px; color: var(--text-4); margin-bottom: 24px; }
-  .price-card.featured .price-card-sub { color: #888; }
-  .price-features { list-style: none; }
-  .price-features li {
-    padding: 8px 0; font-size: 14px; color: var(--text-3);
-    display: flex; align-items: center; gap: 10px;
-    border-bottom: 1px solid var(--border-light);
-  }
-  .price-features li:last-child { border-bottom: none; }
-  .price-card.featured .price-features li { color: #aaa; border-color: rgba(255,255,255,0.06); }
-  .price-features li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-  .price-card .price-features li::before { background: var(--text); }
-  .price-card.featured .price-features li::before { background: var(--cta); }
-  .price-card-cta {
-    display: block; width: 100%; margin-top: 24px; padding: 14px; text-align: center;
-    border-radius: 100px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s; text-decoration: none; border: none;
-  }
-  .price-card .price-card-cta { background: var(--accent-subtle); color: var(--text); }
-  .price-card .price-card-cta:hover { background: var(--border); }
-  .price-card.featured .price-card-cta { background: var(--cta); color: var(--white); }
-  .price-card.featured .price-card-cta:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.2); }
-
-  /* ===== BRAND VOICE SECTION ===== */
-  .bv-section-hero {
-    max-width: 1000px; margin: 0 auto 80px; padding: 48px 44px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--cta) 7%, var(--surface)) 0%, var(--surface) 100%);
-    border: 1px solid color-mix(in srgb, var(--cta) 18%, var(--border));
-    border-radius: 24px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;
-    box-shadow: 0 8px 32px rgba(0,113,227,0.05);
-  }
-  .bv-sec-label {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--cta); margin-bottom: 12px;
-  }
-  .bv-sec-new {
-    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 2px 7px; border-radius: 100px; background: var(--cta); color: var(--white);
-  }
-  .bv-sec-title { font-size: clamp(26px, 3.5vw, 36px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 14px; color: var(--text); }
-  .bv-sec-title em { color: var(--cta); font-style: normal; }
-  .bv-sec-sub { font-size: 15px; color: var(--text-3); line-height: 1.6; margin-bottom: 24px; }
-  .bv-sec-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-  .bv-sec-step { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-2); line-height: 1.5; }
-  .bv-sec-step-num {
-    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-    background: var(--cta); color: var(--white);
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 800;
-  }
-  .bv-sec-step strong { color: var(--text); font-weight: 700; }
-  .bv-sec-cta {
-    display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
-    background: var(--cta); color: var(--white); border: none; border-radius: 100px;
-    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer;
-    text-decoration: none; transition: all 0.2s;
-  }
-  .bv-sec-cta:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,113,227,0.22); }
-  .bv-sec-visual {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-  }
-  .bv-sec-visual-row {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    border: 1px solid var(--border-light); border-radius: 10px; background: var(--bg);
-    margin-bottom: 10px; font-size: 12px; color: var(--text-2);
-  }
-  .bv-sec-visual-row .bv-ico { font-size: 14px; }
-  .bv-sec-visual-row .bv-tag {
-    margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--cta); padding: 2px 7px; border-radius: 100px; background: color-mix(in srgb, var(--cta) 10%, transparent);
-  }
-  .bv-sec-visual-arrow { text-align: center; font-size: 18px; color: var(--text-4); margin: 4px 0 10px; }
-  .bv-sec-visual-out {
-    padding: 12px 14px; background: var(--accent-subtle); border-radius: 10px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.6;
-  }
-  .bv-sec-visual-out em { font-style: normal; color: var(--cta); font-weight: 700; }
-  @media (max-width: 820px) {
-    .bv-section-hero { grid-template-columns: 1fr; padding: 32px 24px; gap: 28px; margin-bottom: 48px; }
-  }
-
-  /* ===== SOCIAL PROOF ===== */
-  .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 80px; }
-  .proof-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 28px 24px; box-shadow: var(--shadow-sm); transition: all 0.3s ease;
-  }
-  .proof-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-  .proof-quote { font-size: 14px; line-height: 1.6; color: var(--text-2); margin-bottom: 20px; font-style: italic; }
-  .proof-author { display: flex; align-items: center; gap: 12px; }
-  .proof-avatar {
-    width: 36px; height: 36px; border-radius: 50%; background: var(--cta);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; color: var(--white); flex-shrink: 0;
-  }
-  .proof-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .proof-role { font-size: 12px; color: var(--text-4); }
-  .proof-stats { display: flex; justify-content: center; gap: 48px; margin-bottom: 80px; }
-  .proof-stat { text-align: center; }
-  .proof-stat-number { font-size: clamp(28px, 4vw, 36px); font-weight: 900; letter-spacing: -0.04em; color: var(--text); }
-  .proof-stat-label { font-size: 13px; color: var(--text-4); margin-top: 4px; }
-
-  /* ===== FAQ ===== */
-  .faq-list { max-width: 680px; margin: 0 auto 80px; }
-  .faq-item { border-bottom: 1px solid var(--border-light); }
-  .faq-q {
-    width: 100%; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
-    font-size: 15px; font-weight: 600; color: var(--text); text-align: left; transition: color 0.2s;
-  }
-  .faq-q:hover { color: var(--cta); }
-  .faq-arrow { font-size: 18px; color: var(--text-4); transition: transform 0.3s; flex-shrink: 0; }
-  .faq-item.open .faq-arrow { transform: rotate(45deg); }
-  .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; }
-  .faq-item.open .faq-a { max-height: 200px; }
-  .faq-a-inner { padding: 0 0 20px; font-size: 14px; line-height: 1.6; color: var(--text-3); }
-
-  /* ===== FOOTER ===== */
-  footer { text-align: center; padding: 48px 40px 40px; border-top: 1px solid rgba(0,0,0,0.04); max-width: 1200px; margin: 0 auto; }
-  footer p { font-size: 12px; color: var(--text-5); }
-  footer a { color: var(--text-4); text-decoration: none; font-weight: 500; }
-  footer a:hover { color: var(--text); }
-
-  @media (max-width: 600px) {
-    .hero { padding: 32px 24px 32px; }
-    .hero-title { font-size: 32px; }
-    .hero-ctas { margin-bottom: 28px; }
-    .demo-content { height: 320px; }
-    .demo-phase-input { padding: 20px 14px 16px; gap: 10px; }
-    .demo-phase-results { padding: 10px 12px 16px; }
-    .demo-grid { gap: 6px; }
-    .demo-fake-input { padding: 9px 12px; }
-    .demo-pasted-url { font-size: 9px; }
-    .demo-pill { padding: 3px 8px; font-size: 9px; }
-    .demo-pills-row { gap: 4px; }
-    .demo-rc-head { padding: 5px 8px; font-size: 9px; }
-    .demo-rc-body { padding: 6px 8px; font-size: 8.5px; }
-    .demo-rc-copy { padding: 1px 6px; font-size: 7px; }
-    .demo-gen { padding: 7px 20px; font-size: 11px; }
-    .demo-results-head { margin-bottom: 8px; }
-    .demo-results-title { font-size: 11px; }
-    .demo-results-dl { font-size: 8px; padding: 3px 10px; }
-    .steps-grid { grid-template-columns: 1fr; gap: 8px; }
-    .step-card { padding: 20px 16px; }
-    .output-grid { grid-template-columns: 1fr 1fr; }
-    .pricing-grid { grid-template-columns: 1fr; }
-    .price-card { padding: 28px 24px; }
-    .proof-grid { grid-template-columns: 1fr; }
-    .proof-stats { gap: 28px; }
-    .proof-stat-number { font-size: 28px; }
-  }
+@media (max-width: 920px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .feed-window { height: 420px; transform: rotate(0); justify-content: center; }
+  .steps, .compare, .preview-grid { grid-template-columns: 1fr; }
+  .rule-panel { grid-template-columns: 1fr; padding: 48px 28px; }
+  .caro-grid { grid-template-columns: 1fr; }
+  .caro-fan { height: 320px; transform: scale(.8); transform-origin: left; }
+  .price-grid { grid-template-columns: 1fr; }
+}
 </style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Hooklab",
-  "url": "https://hooklab.vercel.app",
-  "description": "Turn any video into on-brand AI content. Extract transcripts from YouTube, TikTok, Instagram and more, then generate scripts, tweets, LinkedIn posts and blogs in your own Brand Voice.",
-  "applicationCategory": "MultimediaApplication",
-  "applicationSubCategory": "AI Content Generator",
-  "operatingSystem": "Web",
-  "featureList": [
-    "AI Brand Voice profiles â€” scripts that sound like you",
-    "Video-to-Script Flipper (short-form scripts with hook + CTA)",
-    "Multi-platform transcript extraction (YouTube, TikTok, Instagram, Facebook, X/Twitter)",
-    "Ready-to-post Twitter threads, LinkedIn posts, Facebook posts, Instagram captions and blogs",
-    "Scheduled posting to X and Facebook (Pro)"
-  ],
-  "offers": [
-    { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "First video free" },
-    { "@type": "Offer", "price": "4.99", "priceCurrency": "USD", "description": "Per video" },
-    { "@type": "Offer", "price": "49", "priceCurrency": "USD", "description": "Pro monthly â€” 200 videos, Brand Voice, and scheduled posting" }
-  ]
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Can AI write video scripts in my brand voice?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Hooklab Pro includes Brand Voice â€” a saved profile that combines your product context (what you sell, who it's for) with your voice and tone (how you talk). Every video script, tweet, LinkedIn post and blog you generate is rewritten to match. Set it up once and it applies to everything." }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I keep AI-generated content on-brand?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Paste a link to your Play Store listing, App Store page, website, or a sample of past writing. We pull the description into an editable Brand Voice profile stored on your account. Each time you generate content, the AI reads your profile first, so the output references your product accurately and sounds like you â€” not a generic AI." }
-    },
-    {
-      "@type": "Question",
-      "name": "Does Brand Voice work for App Store and Play Store descriptions?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Paste your Play Store or App Store listing URL and we automatically fetch the app description to pre-fill your product context. You can edit it freely afterwards. It also works with personal websites, blog posts, LinkedIn bios, and most public pages." }
-    },
-    {
-      "@type": "Question",
-      "name": "What is an AI Brand Voice profile?",
-      "acceptedAnswer": { "@type": "Answer", "text": "A Brand Voice profile is two short blocks of text saved to your account: (1) product or brand context â€” what you sell and who it's for; (2) voice and tone â€” how you talk, words you use, things to avoid. The AI reads both every time it generates content, so scripts, tweets and posts all stay aligned with your brand without you having to re-prompt every time." }
-    },
-    {
-      "@type": "Question",
-      "name": "How does transcript extraction work?",
-      "acceptedAnswer": { "@type": "Answer", "text": "When you paste a video URL, we automatically extract the full transcript. For YouTube, we pull existing captions including auto-generated subtitles. For TikTok, Instagram, Facebook, and X/Twitter, we use speech-to-text transcription. The transcript is then processed by AI to generate your content." }
-    },
-    {
-      "@type": "Question",
-      "name": "What platforms can I get transcripts from?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Hooklab extracts transcripts from YouTube, TikTok, Instagram Reels, Facebook videos, and X/Twitter. YouTube transcripts come from captions including auto-generated speech-to-text." }
-    },
-    {
-      "@type": "Question",
-      "name": "What's the difference between free and $4.99?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Your first video is completely free, no account needed. After that, you can buy additional videos for $4.99 each. If you process videos regularly, Pro at $49/month is much better value â€” it also unlocks Brand Voice profiles and scheduled posting." }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I cancel Pro anytime?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes, cancel anytime from your account dropdown. Your Pro access stays active until the end of your current billing period." }
-    }
-  ]
-}
-</script>
 </head>
 <body>
-<script>
-// Auto-redirect signed-in users from bare "/" â†’ "/app". Skip if user followed a deep link
-// (hash or query). Reads cached user state synchronously so redirect happens before paint.
-(function(){
-  try {
-    if (window.location.hash || window.location.search) return;
-    var raw = localStorage.getItem('tg_user_cache');
-    if (!raw) return;
-    var cached = JSON.parse(raw);
-    if (cached && cached.t && cached.u && (Date.now() - cached.t) < 5 * 60 * 1000) {
-      window.location.replace('/library');
-    }
-  } catch (e) { /* ignore */ }
-})();
-</script>
-<script src="/nav.js"></script>
-<script src="/pro.js"></script>
 
-<!-- ===== HERO ===== -->
-<section class="hero">
-  <h1 class="hero-title">Grab the transcript.<br><span class="hero-accent">Post in your voice.</span></h1>
-  <p class="hero-subtitle">Paste any YouTube, TikTok, or Instagram URL. Extract the transcript and turn it into on-brand scripts, tweets, LinkedIn posts and blogs â€” aligned with your <strong>AI Brand Voice</strong>.</p>
-
-  <div class="demo-window">
-    <div class="demo-chrome">
-      <div class="demo-dots"><span></span><span></span><span></span></div>
-      <div class="demo-bar">hooklab.com/app</div>
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Hook research · Scripts · Faceless carousels</span>
+      <h1 class="display">Steal hooks that already went <span class="flag">viral.</span></h1>
+      <p class="hero-sub">Hooklab finds the short-form hooks proven to work in your niche — real videos, real view counts — and turns them into ready-to-film scripts and faceless carousels for your business. The $3,000/mo content agency, as software.</p>
+      <div class="hero-ctas">
+        <a href="/library" class="btn btn-ink">Browse the hook library</a>
+        <a href="#how" class="btn btn-ghost">How it works</a>
+      </div>
+      <p class="hero-note stat">Free to browse. No card. Every hook shows its receipts.</p>
     </div>
-    <div class="demo-content">
-      <!-- Phase 1: Input -->
-      <div class="demo-phase demo-phase-input">
-        <div class="demo-fake-input">
-          <span class="demo-pasted-url">youtube.com/watch?v=dQw4w9</span>
-          <div class="demo-paste-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
-        </div>
-        <div class="demo-pills-row">
-          <span class="demo-pill sel">&#120143; Twitter</span>
-          <span class="demo-pill sel">in LinkedIn</span>
-          <span class="demo-pill sel">f Facebook</span>
-          <span class="demo-pill sel">&#128247; Instagram</span>
-          <span class="demo-pill">&#9835; TikTok</span>
-          <span class="demo-pill sel">&#9997;&#65039; Blog</span>
-          <span class="demo-pill">&#128172; Quotes</span>
-          <span class="demo-pill">&#128196; Transcript</span>
-        </div>
-        <div class="demo-gen">Generate Content</div>
-      </div>
-
-      <!-- Phase 2: Processing -->
-      <div class="demo-phase demo-phase-proc">
-        <div class="demo-spinner-wrap">
-          <div class="demo-spin"></div>
-          <div class="demo-proc-label">Generating 5 formats...</div>
-          <div class="demo-proc-sub">This may take a moment</div>
-        </div>
-      </div>
-
-      <!-- Phase 3: Results (matches app.html platform-grid layout) -->
-      <div class="demo-phase demo-phase-results">
-        <div class="demo-results-head">
-          <span class="demo-results-title">Your content is ready</span>
-          <span style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:8px;font-weight:600;color:#34c759;padding:2px 8px;border:1px solid rgba(52,199,89,0.2);border-radius:100px;background:rgba(52,199,89,0.06);">Saved to Library</span>
-            <span class="demo-results-dl">Download All</span>
-          </span>
-        </div>
-        <div class="demo-grid">
-          <!-- Row: Twitter | LinkedIn -->
-          <div class="demo-result-card demo-rc1">
-            <div class="demo-rc-head"><span class="demo-rc-icon">&#120143;</span> Twitter <span class="demo-rc-copy">Copy</span></div>
-            <div class="demo-rc-body">1/ The biggest mistake creators make is repurposing content manually...</div>
-          </div>
-          <div class="demo-result-card demo-rc2">
-            <div class="demo-rc-head"><span class="demo-rc-icon">in</span> LinkedIn <span class="demo-rc-copy">Copy</span></div>
-            <div class="demo-rc-body">I repurposed a 10-minute video into a week of content. Here's how...</div>
-          </div>
-          <!-- Row: Instagram | Facebook -->
-          <div class="demo-result-card demo-rc3">
-            <div class="demo-rc-head"><span class="demo-rc-icon">&#128247;</span> Instagram <span class="demo-rc-copy">Copy</span></div>
-            <div class="demo-rc-body">The secret to consistent content? Stop starting from scratch every time...</div>
-          </div>
-          <div class="demo-result-card demo-rc4">
-            <div class="demo-rc-head"><span class="demo-rc-icon">f</span> Facebook <span class="demo-rc-copy">Copy</span></div>
-            <div class="demo-rc-body">I used to spend hours writing posts from scratch. Then I discovered a smarter way to repurpose...</div>
-          </div>
-          <!-- Full-width: Blog -->
-          <div class="demo-result-card demo-fw demo-rc5">
-            <div class="demo-rc-head"><span class="demo-rc-icon">&#9997;&#65039;</span> Blog Post <span class="demo-rc-copy">Copy</span></div>
-            <div class="demo-rc-body"><strong>How to 10x Your Content Without Burning Out</strong> &mdash; Most creators think more content means more work. But the smartest ones...</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="feed-window" id="feed" aria-hidden="true"></div>
   </div>
+</header>
 
-  <div class="hero-ctas">
-    <a href="/library" class="btn btn-blue" id="hero-cta-primary">Try It Free</a>
-    <a href="#pricing" class="btn btn-ghost">See Pricing</a>
+<!-- receipt ticker -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section" id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">The machine</span>
+      <h2 class="display">Agencies charge $2-4k/month for this exact process.</h2>
+      <p>Top short-form agencies research outlier videos, template the hooks, and script around their client's expertise. Hooklab runs the same machine.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n">STEP 1</span>
+        <h3>Research, automated</h3>
+        <p>Hooklab continuously mines your niche for outlier videos — the ones that massively beat the account's size — and catalogs every hook, topic, and format.</p>
+        <div class="mock">scanning: app developers &amp; saas<br><span class="hl">"How ___ makes money"</span> · <span class="fl">38.2×</span><br><span class="hl">"I built ___ in 30 days"</span> · <span class="fl">12.5×</span><br><span class="hl">"___ vs ___: real numbers"</span> · <span class="fl">9.1×</span></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">STEP 2</span>
+        <h3>Scripts in your voice</h3>
+        <p>Pick hooks, and Hooklab writes filming-ready scripts: the proven hook, your expertise as the value, bullet-by-bullet notes on how to shoot it.</p>
+        <div class="mock"><span class="fl">NOTES</span> talking head, cut between bullets<br><span class="fl">SCRIPT</span> <span class="hl">7 bullets, 42 sec</span><br><span class="fl">CAPTION</span> <span class="hl">with CTA slot</span></div>
+      </div>
+      <div class="step reveal">
+        <span class="n">STEP 3</span>
+        <h3>Never on camera</h3>
+        <p>Camera-shy? Turn any hook into a designed carousel — AI-generated slides for Instagram and TikTok. Download and post. No filming, no editor.</p>
+        <div class="mock"><span class="hl">slide 1/6</span> hook<br><span class="hl">slide 2-5</span> value<br><span class="hl">slide 6</span> CTA → <span class="fl">download PNGs</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- ===== HOW IT WORKS ===== -->
-<div class="section">
-  <div class="section-label">How it works</div>
-  <h2 class="section-title">From video transcript to content in 3 steps</h2>
-  <div class="steps-grid">
-    <div class="step-card">
-      <div class="step-num">1</div>
-      <h4>Paste a video URL</h4>
-      <p>Drop any YouTube, TikTok, Instagram, Facebook, or X link â€” no downloads, no file uploads.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">2</div>
-      <h4>We extract the transcript</h4>
-      <p>AI pulls the full video transcript automatically â€” captions, speech-to-text, any language.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">3</div>
-      <h4>Get ready-to-post content</h4>
-      <p>Your transcript is converted into tweets, LinkedIn posts, blog articles, and more â€” in seconds.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ===== BRAND VOICE (Pro) ===== -->
-<div class="section">
-  <div class="bv-section-hero">
-    <div>
-      <div class="bv-sec-label"><span>&#127908;</span> Brand Voice <span class="bv-sec-new">New</span></div>
-      <h2 class="bv-sec-title">AI scripts that sound like <em>you</em>, every time.</h2>
-      <p class="bv-sec-sub">Teach the AI what you sell and how you talk â€” once. Every video script, tweet, LinkedIn post and blog you generate stays on-brand. No re-prompting. No robotic phrasing.</p>
-      <div class="bv-sec-steps">
-        <div class="bv-sec-step"><span class="bv-sec-step-num">1</span><span>Paste your <strong>Play Store, App Store, or website link</strong> â€” we auto-fill your product context.</span></div>
-        <div class="bv-sec-step"><span class="bv-sec-step-num">2</span><span>Describe your <strong>voice &amp; tone</strong> (or link to a past post) in a few lines.</span></div>
-        <div class="bv-sec-step"><span class="bv-sec-step-num">3</span><span>Every generation from now on is rewritten to match. Toggle off per-video if you need a neutral take.</span></div>
+<!-- ============ 5X RULE ============ -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="rule-panel reveal">
+      <div>
+        <span class="eyebrow">The 5× rule</span>
+        <h2 class="display">A hook earns its place here.</h2>
+        <p>A video only enters the library when its views are at least five times the account's followers — proof the hook carried it, not the audience. Guessing is what everyone else does.</p>
       </div>
-      <a href="/profile" class="bv-sec-cta">Set up your Brand Voice <span>&rarr;</span></a>
-    </div>
-    <div class="bv-sec-visual" aria-hidden="true">
-      <div class="bv-sec-visual-row"><span class="bv-ico">&#128241;</span><span>Product: Acme â€” habit tracker for busy parents</span><span class="bv-tag">Saved</span></div>
-      <div class="bv-sec-visual-row"><span class="bv-ico">&#128172;</span><span>Tone: warm, direct, no jargon</span><span class="bv-tag">Saved</span></div>
-      <div class="bv-sec-visual-arrow">&darr;</div>
-      <div class="bv-sec-visual-out">"Most parents lose track of routines by Tuesday. <em>Acme</em> nudges you exactly when it counts â€” no guilt-trip, no streak shame. One tap, done."</div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== WHAT YOU GET ===== -->
-<div class="section">
-  <div class="section-label">What you get</div>
-  <h2 class="section-title">Six formats from one transcript</h2>
-  <div class="output-grid">
-    <div class="output-card">
-      <span class="output-icon">&#120143;</span>
-      <h4>Twitter Thread</h4>
-      <p>Turn your video transcript into a hook + numbered tweet thread</p>
-    </div>
-    <div class="output-card">
-      <span class="output-icon">in</span>
-      <h4>LinkedIn Post</h4>
-      <p>Convert any transcript into thought leadership content</p>
-    </div>
-    <div class="output-card">
-      <span class="output-icon">f</span>
-      <h4>Facebook Post</h4>
-      <p>Transcript to conversational, comment-driving posts</p>
-    </div>
-    <div class="output-card">
-      <span class="output-icon">&#128247;</span>
-      <h4>Instagram Caption</h4>
-      <p>Video transcript to caption with storytelling + hashtags</p>
-    </div>
-    <div class="output-card">
-      <span class="output-icon">&#9997;&#65039;</span>
-      <h4>Blog Post</h4>
-      <p>Full blog article generated from your video transcript</p>
-    </div>
-    <div class="output-card">
-      <span class="output-icon">&#128172;</span>
-      <h4>Key Quotes</h4>
-      <p>Extract the best quotes from any video transcript</p>
+      <div class="fraction">
+        <div class="views" id="rule-views">7,900,000</div>
+        <span class="lbl">VIEWS</span>
+        <div class="bar"></div>
+        <div class="followers">100,000</div>
+        <span class="lbl">FOLLOWERS</span>
+        <div><span class="verdict" id="rule-verdict">79× — OUTLIER</span></div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ===== VALUE COMPARISON ===== -->
-<div class="section">
-  <div class="section-label">Why use it</div>
-  <h2 class="section-title">Repurposing without the busywork</h2>
-  <div class="proof-grid">
-    <div class="proof-card">
-      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-4);margin-bottom:8px;">Doing it yourself</div>
-      <p class="proof-quote" style="font-style:normal;">Watch the video. Pull quotes. Rewrite for each platform. Format. Schedule. <strong>2&ndash;3 hours per video</strong>, every time.</p>
+<!-- ============ LIBRARY PREVIEW ============ -->
+<section class="section" style="padding-top:0" id="library-preview">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">The library</span>
+      <h2 class="display">Open the specimen drawer.</h2>
+      <p>Templated hooks by niche, each with its source video, view count, and outlier score. Save the ones that fit you.</p>
     </div>
-    <div class="proof-card">
-      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-4);margin-bottom:8px;">Hiring a VA</div>
-      <p class="proof-quote" style="font-style:normal;">$400&ndash;$1,000 per month. Onboarding. Brand-voice training. Quality varies. <strong>Locked into a person</strong> doing one task.</p>
-    </div>
-    <div class="proof-card" style="border-color:color-mix(in srgb, var(--cta) 25%, var(--border)); background:color-mix(in srgb, var(--cta) 4%, var(--surface));">
-      <div style="font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cta);margin-bottom:8px;">Hooklab</div>
-      <p class="proof-quote" style="font-style:normal;color:var(--text);">Paste the URL. Six on-brand formats in under a minute. <strong>$49/month for up to 200 videos</strong>. Your voice, every time.</p>
+    <div class="niche-pills reveal" id="niche-pills"></div>
+    <div class="preview-grid reveal" id="preview-grid"></div>
+    <div class="preview-more reveal">
+      <a href="/library" class="btn btn-signal">Open the full library</a>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ===== PRICING ===== -->
-<div class="section" id="pricing">
-  <div class="section-label">Pricing</div>
-  <h2 class="section-title">Start free.<br>Pay when you need more.</h2>
-  <div class="pricing-grid">
-    <div class="price-card">
-      <div class="price-card-label">Try it out</div>
-      <div class="price-card-price">$0</div>
-      <div class="price-card-sub">your first video is free</div>
-      <ul class="price-features">
-        <li>All 6 content formats</li>
-        <li>Copy & download</li>
-        <li>No account needed</li>
+<!-- ============ CAROUSELS ============ -->
+<section class="section" style="padding-top:0">
+  <div class="wrap caro-grid">
+    <div class="reveal">
+      <span class="eyebrow">Faceless mode</span>
+      <h2 class="display" style="font-size:clamp(28px,3.6vw,42px);margin:14px 0 16px">Post daily without filming once.</h2>
+      <p style="color:var(--graphite);font-size:17px">Most people quit content because they hate being on camera. Hooklab turns proven hooks into designed carousel posts instead.</p>
+      <ul class="check-list">
+        <li>AI-designed slides in four styles, sized for Instagram and TikTok</li>
+        <li>Hook slide, value slides, CTA — written from your business profile</li>
+        <li>Regenerate any slide you don't like, then download the set</li>
       </ul>
-      <a href="/library" class="price-card-cta" id="try-free-btn">Try It Free</a>
     </div>
-    <div class="price-card">
-      <div class="price-card-label">Pay as you go</div>
-      <div class="price-card-price">$4.99</div>
-      <div class="price-card-sub">per video, no subscription</div>
-      <ul class="price-features">
-        <li>All 6 content formats</li>
-        <li>No account required</li>
-        <li>Buy more anytime</li>
-      </ul>
-      <a href="/library" class="price-card-cta" id="buy-single-btn">Buy 1 Video</a>
-    </div>
-    <div class="price-card featured">
-      <div class="price-card-label">Pro</div>
-      <div class="price-card-price">$49</div>
-      <div class="price-card-sub">per month &middot; best value</div>
-      <ul class="price-features">
-        <li><strong>Brand Voice</strong> &mdash; scripts that sound like you</li>
-        <li>200 videos per month</li>
-        <li>Scheduled posting (X &amp; Facebook)</li>
-        <li>All content formats</li>
-        <li>Priority support</li>
-      </ul>
-      <a href="/library" class="price-card-cta" id="buy-pro-btn">Go Pro</a>
+    <div class="caro-fan reveal" aria-hidden="true">
+      <div class="caro-slide"><small>1 / 6</small>This feature took me 3 months. Nobody used it.</div>
+      <div class="caro-slide"><small>2 / 6</small>The mistake: building before asking.</div>
+      <div class="caro-slide"><small>6 / 6</small>Steal my checklist — link in bio.</div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ===== FAQ ===== -->
-<div class="section">
-  <div class="section-label">FAQ</div>
-  <h2 class="section-title">Common questions</h2>
-  <div class="faq-list">
-    <div class="faq-item">
-      <button class="faq-q">Can AI write video scripts in my brand voice?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes. Pro includes <strong>Brand Voice</strong> â€” a saved profile combining your product context (what you sell, who it's for) with your voice and tone (how you talk). Every video script, tweet, LinkedIn post and blog you generate is rewritten to match. Set it up once and it applies to everything, with a one-click per-video override.</div></div>
+<!-- ============ RECEIPTS ============ -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Why it works</span>
+      <h2 class="display">Generic AI guesses. Hooklab shows receipts.</h2>
     </div>
-    <div class="faq-item">
-      <button class="faq-q">Does Brand Voice work with Play Store or App Store links?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes. Paste your Play Store or App Store listing URL and we automatically fetch the description to pre-fill your product context. You can edit it freely afterwards. It also works with personal websites, blog posts, LinkedIn bios, and most public pages. For sites that block automated reading, just paste the text directly.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">How does transcript extraction work?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">When you paste a video URL, we automatically extract the full transcript. For YouTube, we pull existing captions â€” including auto-generated subtitles. For TikTok, Instagram, Facebook, and X/Twitter, we use speech-to-text transcription. The transcript is then processed by AI to generate your content. No manual copying required.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">What platforms can I get transcripts from?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Hooklab extracts transcripts from YouTube, TikTok, Instagram Reels, Facebook videos, and X/Twitter. YouTube transcripts come from captions (including auto-generated speech-to-text). Other platforms use audio transcription. The only rare exception is a video with no captions or audio available â€” we'll let you know if that happens.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">Can I edit the generated content?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes. Once content is generated from your transcript, you can copy it and edit however you like. We give you a strong starting point â€” most people just tweak a few lines and post.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">What's the difference between free and $4.99?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Your first video is completely free, no account needed. After that, you can buy additional videos for $4.99 each â€” also with no account required. If you process videos regularly, Pro at $49/month is much better value.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">Do you store my data or post on my behalf?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">No. We never post anything on your behalf and we don't store your generated content. Sign-in is only used to track your usage and manage your subscription. Your Google account is safe.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">Can I get a transcript from a YouTube video?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes â€” just paste the YouTube URL and we extract the full transcript automatically. Works with any YouTube video that has captions or auto-generated subtitles. You can also select "Transcript" as one of your output formats to get a clean, readable copy of the full transcript alongside your generated content.</div></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q">Can I cancel Pro anytime?<span class="faq-arrow">+</span></button>
-      <div class="faq-a"><div class="faq-a-inner">Yes, cancel anytime from your account dropdown. You won't be charged again, and your Pro access stays active until the end of your current billing period â€” so you always get what you paid for.</div></div>
+    <div class="compare">
+      <div class="compare-card them reveal">
+        <h3>AI content tools</h3>
+        <p>Prompt goes in, plausible-sounding post comes out. No evidence anyone ever watched content like it. You're publishing a guess — and audiences can smell it.</p>
+      </div>
+      <div class="compare-card us reveal">
+        <h3>Hooklab</h3>
+        <p>Every script starts from a hook that already carried a real video past the 5× line. The receipt travels with it.</p>
+        <div class="receipt">source: youtube short<br>views <b>4,200,000</b> · followers <b>80,000</b><br>outlier score <span class="x">52.5×</span> · verified this month</div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="section" style="padding-top:0" id="pricing">
+  <div class="wrap">
+    <div class="section-head reveal" style="text-align:center;max-width:none">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="display">One plan. The whole machine.</h2>
+    </div>
+    <div class="price-grid">
+      <div class="price-card reveal">
+        <h3>Free</h3>
+        <div class="amount">$0</div>
+        <ul>
+          <li>Browse top hooks in every niche</li>
+          <li>Save 25 hooks to your swipe file</li>
+          <li>One sample script pack — see your business in it</li>
+        </ul>
+        <a href="/api/auth/google" class="btn btn-ghost">Start free</a>
+      </div>
+      <div class="price-card pro reveal">
+        <span class="tag score-badge">FULL ACCESS</span>
+        <h3>Pro</h3>
+        <div class="amount">$39<span>/month</span></div>
+        <ul>
+          <li>Full library depth, every niche</li>
+          <li>10 script packs a month — up to 200 ready-to-film scripts</li>
+          <li>30 faceless carousels a month</li>
+          <li>Business profile import from your app store page or website</li>
+          <li>Unlimited swipe file</li>
+        </ul>
+        <a href="/api/auth/google?plan=pro" class="btn btn-ink" id="pro-cta">Go Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">Questions</span><h2 class="display">FAQ</h2></div>
+    <div class="faq reveal">
+      <div class="faq-item"><button>Where do the hooks come from?</button><div class="faq-a"><p>Hooklab scans short-form video in each niche and keeps only outliers — videos with at least 5× more views than the account has followers. Hooks are templatized so you can reuse the structure with your own substance, and stats are re-verified on a rolling basis.</p></div></div>
+      <div class="faq-item"><button>Isn't using someone else's hook copying?</button><div class="faq-a"><p>The hook is the packaging; the video is the product. You reuse the proven opening structure, and the value comes from your expertise and your results. Copying the whole video makes you look like a fraud — Hooklab is built to prevent exactly that.</p></div></div>
+      <div class="faq-item"><button>I've never made content. Will this work for me?</button><div class="faq-a"><p>That's who it's for. Scripts include filming notes (read a bullet, say it to camera, repeat), and if you don't want to film at all, carousels need no camera whatsoever.</p></div></div>
+      <div class="faq-item"><button>What if a script doesn't sound like me?</button><div class="faq-a"><p>Your business profile — what you sell, who you serve, results you can point to, your tone — drives every script. Regenerate any script or swap its hook until it fits.</p></div></div>
+      <div class="faq-item"><button>Can I cancel anytime?</button><div class="faq-a"><p>Yes. Manage or cancel from your account menu; you keep Pro until the end of the billing period.</p></div></div>
+    </div>
+  </div>
+</section>
 
 <footer>
-  <p>Hooklab &nbsp;&middot;&nbsp; <a href="/privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="/terms">Terms</a></p>
-  <p style="margin-top:8px;">Video transcript extraction & AI content generation.</p>
+  <div class="wrap foot-row">
+    <span class="stat">Hooklab — hooks with receipts.</span>
+    <div class="foot-links">
+      <a href="/library">Library</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
 </footer>
 
+<script src="/nav.js" defer></script>
 <script>
-(function(){
-  // $5 button â€” always anonymous checkout, no sign-in needed
-  var singleBtn = document.getElementById('buy-single-btn');
-  if (singleBtn) {
-    singleBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      window.location.href = '/api/checkout?flow=single';
-    });
-  }
+// ---------- data: fallback specimens (replaced by live /api/hooks when available)
+var FALLBACK = [
+  { hook_template: 'How ___ makes money (it’s not what you think)', views: 11200000, followers: 294000, outlier_score: 38.1, niche_name: 'Apps & SaaS' },
+  { hook_template: 'How my client went from ___ to ___ (with photos)', views: 4200000, followers: 80000, outlier_score: 52.5, niche_name: 'Fitness' },
+  { hook_template: 'How much a ___ owner makes vs a ___ owner', views: 9000000, followers: 61000, outlier_score: 147.5, niche_name: 'Franchise' },
+  { hook_template: 'Not to flex, but I’m really good at ___', views: 7900000, followers: 100000, outlier_score: 79.0, niche_name: 'Marketing' },
+  { hook_template: 'Stop doing ___. Do this instead.', views: 3100000, followers: 210000, outlier_score: 14.8, niche_name: 'Fitness' },
+  { hook_template: 'I built ___ in 30 days. Here’s the revenue.', views: 1800000, followers: 42000, outlier_score: 42.9, niche_name: 'Apps & SaaS' },
+  { hook_template: 'The ___ mistake that costs sellers ___', views: 2600000, followers: 95000, outlier_score: 27.4, niche_name: 'Real estate' },
+  { hook_template: 'If I had to start over with 0 followers…', views: 5400000, followers: 380000, outlier_score: 14.2, niche_name: 'Coaching' }
+];
 
-  // $49 Pro button â€” if signed in, checkout; if not, OAuth with plan=pro
-  var proBtn = document.getElementById('buy-pro-btn');
-  if (proBtn) {
-    proBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      if (window.TGUser && TGUser.isSignedIn()) {
-        if (TGUser.isPro()) {
-          window.location.href = '/library';
-        } else if (window.TGPro) {
-          TGPro._checkout('pro');
-        }
-      } else {
-        window.location.href = '/api/auth/google?plan=pro';
-      }
-    });
-  }
+function fmt(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1000) return Math.round(n / 1000) + 'K';
+  return String(n);
+}
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-  // FAQ toggles
-  document.querySelectorAll('.faq-q').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var item = btn.parentElement;
-      var wasOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item.open').forEach(function(i) { i.classList.remove('open'); });
-      if (!wasOpen) item.classList.add('open');
-    });
+// ---------- hero specimen feed
+function specimenHtml(h) {
+  return '<div class="specimen"><div class="s-hook">' + esc(h.hook_template) + '</div>' +
+    '<div class="s-stats"><div class="s-row"><span>VIEWS</span><b>' + fmt(h.views) + '</b></div>' +
+    '<div class="s-row"><span>FOLLOWERS</span><b>' + fmt(h.followers) + '</b></div>' +
+    '<span class="score-badge s-score">' + Number(h.outlier_score).toFixed(1) + '×</span></div></div>';
+}
+function buildFeed(hooks) {
+  var el = document.getElementById('feed');
+  if (!el) return;
+  var a = hooks.filter(function (_, i) { return i % 2 === 0; });
+  var b = hooks.filter(function (_, i) { return i % 2 === 1; });
+  function col(list, cls) {
+    var items = list.concat(list); // duplicate for seamless loop
+    return '<div class="feed-col ' + cls + '">' + items.map(specimenHtml).join('') + '</div>';
+  }
+  el.innerHTML = col(a, '') + col(b, 'fast');
+}
+
+// ---------- ticker
+function buildTicker(hooks) {
+  var track = document.getElementById('ticker-track');
+  if (!track) return;
+  var frag = hooks.map(function (h) {
+    return '<span class="stat">' + esc((h.niche_name || '').toUpperCase()) + ' · VIEWS <b>' + fmt(h.views) + '</b> · FOLLOWERS <b>' + fmt(h.followers) + '</b> · <span class="x">' + Number(h.outlier_score).toFixed(1) + '× OUTLIER</span></span>';
+  }).join('');
+  track.innerHTML = frag + frag; // loop
+}
+
+// ---------- library preview
+var PREVIEW_STATE = { all: [], niche: null };
+function renderPreview() {
+  var grid = document.getElementById('preview-grid');
+  if (!grid) return;
+  var rows = PREVIEW_STATE.all.filter(function (h) {
+    return !PREVIEW_STATE.niche || h.niche_slug === PREVIEW_STATE.niche;
+  }).slice(0, 6);
+  grid.innerHTML = rows.map(function (h) {
+    var receipts = h.views > 0
+      ? '<span class="stat">' + fmt(h.views) + ' views · ' + fmt(h.followers) + ' followers</span><span class="score-badge">' + Number(h.outlier_score).toFixed(1) + '×</span>'
+      : '<span class="format-tag">curated</span>';
+    return '<div class="hook-card"><div class="hook-text">' + esc(h.hook_template) + '</div>' +
+      '<div class="hook-meta"><span class="format-tag">' + esc((h.format || 'talking head').replace(/_/g, ' ')) + '</span>' + receipts + '</div></div>';
+  }).join('');
+}
+function buildPills(niches) {
+  var el = document.getElementById('niche-pills');
+  if (!el || !niches.length) return;
+  var html = '<button class="pill on" data-n="">All niches</button>';
+  niches.forEach(function (n) { html += '<button class="pill" data-n="' + esc(n.slug) + '">' + esc(n.name) + '</button>'; });
+  el.innerHTML = html;
+  el.addEventListener('click', function (e) {
+    var b = e.target.closest('.pill');
+    if (!b) return;
+    el.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
+    b.classList.add('on');
+    PREVIEW_STATE.niche = b.getAttribute('data-n') || null;
+    renderPreview();
   });
+}
 
-  // Personalize CTAs for signed-in users (relevant when they hit /#pricing while logged in)
-  if (window.TGUser) {
-    TGUser.ready.then(function() {
-      if (!TGUser.isSignedIn()) return;
+// ---------- boot: try live data, fall back gracefully
+buildFeed(FALLBACK);
+buildTicker(FALLBACK);
+PREVIEW_STATE.all = FALLBACK.map(function (h) { return Object.assign({ niche_slug: null, format: 'talking_head' }, h); });
+renderPreview();
 
-      var heroPrimary = document.getElementById('hero-cta-primary');
-      if (heroPrimary) heroPrimary.textContent = 'Open App';
+fetch('/api/hooks').then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+  if (!data || !data.hooks || !data.hooks.length) return;
+  var withStats = data.hooks.filter(function (h) { return h.views > 0; });
+  if (withStats.length >= 4) { buildFeed(withStats); buildTicker(withStats); }
+  PREVIEW_STATE.all = data.hooks;
+  buildPills(data.niches || []);
+  renderPreview();
+}).catch(function () { /* fallback already rendered */ });
 
-      var tryFreeBtn = document.getElementById('try-free-btn');
-      if (tryFreeBtn) tryFreeBtn.textContent = 'Open App';
+// ---------- scroll reveals
+var io = new IntersectionObserver(function (entries) {
+  entries.forEach(function (en) {
+    if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
 
-      if (TGUser.isPro()) {
-        var cards = document.querySelectorAll('.price-card.featured .price-card-cta');
-        cards.forEach(function(c){ c.textContent='Open App'; });
+// ---------- 5x rule counter
+var ruleEl = document.getElementById('rule-views');
+var verdictEl = document.getElementById('rule-verdict');
+if (ruleEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  var ruleIO = new IntersectionObserver(function (entries) {
+    if (!entries[0].isIntersecting) return;
+    ruleIO.disconnect();
+    var target = 7900000, t0 = null;
+    verdictEl.style.opacity = '0';
+    function tick(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min((ts - t0) / 1600, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      ruleEl.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+      else { verdictEl.style.transition = 'opacity .4s'; verdictEl.style.opacity = '1'; }
+    }
+    requestAnimationFrame(tick);
+  }, { threshold: 0.4 });
+  ruleIO.observe(ruleEl);
+}
+
+// ---------- FAQ
+document.querySelectorAll('.faq-item button').forEach(function (btn) {
+  btn.addEventListener('click', function () { btn.parentElement.classList.toggle('open'); });
+});
+
+// ---------- Pro CTA: signed-in users go straight to checkout
+window.addEventListener('load', function () {
+  if (window.TGUser && window.TGUser.ready) {
+    window.TGUser.ready.then(function (u) {
+      if (u && document.getElementById('pro-cta')) {
+        document.getElementById('pro-cta').setAttribute('href', '/api/checkout?plan=pro');
       }
     });
   }
-})();
+});
 </script>
-<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
