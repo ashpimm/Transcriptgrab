@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
     // Check if user came from a checkout flow (plan=pro)
     const checkoutPlan = cookies.tg_checkout_plan;
-    const redirectTo = checkoutPlan === 'pro' ? '/studio?checkout=pro' : '/app';
+    const redirectTo = checkoutPlan === 'pro' ? '/api/checkout?plan=pro' : '/library';
 
     // Set cookies: clear state/plan + set session
     res.setHeader('Set-Cookie', [
