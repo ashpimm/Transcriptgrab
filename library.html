@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hook Library — Hooklab</title>
+<meta name="description" content="Browse viral short-form hooks by niche — each with source video, view count, and outlier score.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
+<style>
+.page { padding: calc(var(--nav-h) + 44px) 0 90px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+.page-head h1 { font-size: clamp(30px, 4vw, 44px); }
+.page-head .sub { color: var(--graphite); margin-top: 8px; max-width: 520px; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 26px; }
+.toolbar .spacer { flex: 1; }
+.pill { font-family: var(--body); font-size: 14px; font-weight: 500; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 18px; color: var(--graphite); transition: all .15s; }
+.pill:hover { border-color: var(--ink); color: var(--ink); }
+.pill.on { background: var(--ink); border-color: var(--ink); color: var(--white); }
+select.pill { appearance: none; padding-right: 30px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.hook-card .hook-verbatim { font-size: 13.5px; color: var(--graphite); font-style: italic; }
+.hook-card .row2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.save-btn { background: none; border: 1px solid var(--line); border-radius: 999px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; color: var(--graphite); transition: all .15s; flex-shrink: 0; }
+.save-btn:hover { border-color: var(--signal); color: var(--signal); }
+.save-btn.saved { background: var(--signal); border-color: var(--signal); color: var(--white); }
+.src-link { font-family: var(--mono); font-size: 11.5px; color: var(--graphite); text-decoration: none; }
+.src-link:hover { color: var(--signal); }
+.locked-strip { margin-top: 34px; text-align: center; background: var(--wash); border-radius: var(--radius); padding: 40px 24px; }
+.locked-strip h3 { font-family: var(--display); font-size: 21px; margin-bottom: 8px; }
+.locked-strip p { color: var(--graphite); margin-bottom: 18px; }
+.drawer-toggle { position: fixed; right: 24px; bottom: 24px; z-index: 60; }
+.drawer { position: fixed; top: 0; right: -420px; width: 400px; max-width: 92vw; height: 100vh; background: var(--white); border-left: 1px solid var(--line); z-index: 110; transition: right .3s ease; display: flex; flex-direction: column; }
+.drawer.open { right: 0; box-shadow: -20px 0 60px rgba(16,20,24,.12); }
+.drawer-head { padding: 22px 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.drawer-head h2 { font-family: var(--display); font-size: 20px; }
+.drawer-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--graphite); }
+.drawer-list { flex: 1; overflow-y: auto; padding: 18px 24px; display: flex; flex-direction: column; gap: 12px; }
+.drawer-item { border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.drawer-item .t { font-family: var(--display); font-weight: 600; font-size: 15px; line-height: 1.35; }
+.drawer-item .m { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.drawer-foot { padding: 18px 24px; border-top: 1px solid var(--line); }
+.drawer-foot .btn { width: 100%; }
+.empty { text-align: center; color: var(--graphite); padding: 60px 0; }
+.skel { height: 150px; border-radius: var(--radius); background: linear-gradient(90deg, var(--wash) 25%, #f7f7f2 50%, var(--wash) 75%); background-size: 200% 100%; animation: sh 1.2s infinite; }
+@keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (max-width: 920px) { .grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="page wrap">
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">The library</span>
+      <h1 class="display">Hook library</h1>
+      <p class="sub">Every hook here carried a real video past the 5× line — views at least five times the account's followers. Save the ones that fit your business.</p>
+    </div>
+    <button class="btn btn-ghost" id="drawer-open">Swipe file <span id="swipe-count" class="score-badge" style="display:none"></span></button>
+  </div>
+
+  <div class="toolbar" id="niche-bar"></div>
+  <div class="toolbar">
+    <select class="pill" id="format-sel" aria-label="Filter by format">
+      <option value="">All formats</option>
+      <option value="talking_head">Talking head</option>
+      <option value="whiteboard">Whiteboard</option>
+      <option value="audio_broll">Audio B-roll</option>
+      <option value="skit">Skit</option>
+      <option value="other">Other</option>
+    </select>
+    <div class="spacer"></div>
+    <span class="stat" id="result-count"></span>
+  </div>
+
+  <div class="grid" id="grid"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
+
+  <div class="locked-strip" id="locked" style="display:none">
+    <h3 id="locked-title">There's more in this drawer.</h3>
+    <p id="locked-sub">Sign in free to browse the top 20 hooks in every niche and start your swipe file.</p>
+    <a class="btn btn-ink" id="locked-cta" href="/api/auth/google">Sign in free</a>
+  </div>
+</main>
+
+<!-- swipe file drawer -->
+<aside class="drawer" id="drawer" aria-label="Swipe file">
+  <div class="drawer-head">
+    <h2>Swipe file</h2>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+  </div>
+  <div class="drawer-list" id="drawer-list"><div class="empty">Nothing saved yet. Tap × on a hook card to collect it.</div></div>
+  <div class="drawer-foot">
+    <a class="btn btn-signal" id="drawer-generate" href="/studio">Generate scripts from these</a>
+  </div>
+</aside>
+
+<script src="/nav.js" defer></script>
+<script>
+var S = { niche: null, format: null, tier: 'anon', hooks: [], total: 0, swipe: [] };
+
+function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function load() {
+  var qs = [];
+  if (S.niche) qs.push('niche=' + encodeURIComponent(S.niche));
+  if (S.format) qs.push('format=' + encodeURIComponent(S.format));
+  fetch('/api/hooks' + (qs.length ? '?' + qs.join('&') : ''), { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      S.tier = data.tier || 'anon';
+      S.hooks = data.hooks || [];
+      S.total = data.total || 0;
+      renderNiches(data.niches || []);
+      render();
+    })
+    .catch(function () {
+      document.getElementById('grid').innerHTML = '<div class="empty">The library didn\'t load. Refresh to try again.</div>';
+    });
+}
+
+function renderNiches(niches) {
+  var bar = document.getElementById('niche-bar');
+  if (bar.childElementCount) return;
+  var html = '<button class="pill on" data-n="">All niches</button>';
+  niches.forEach(function (n) { html += '<button class="pill" data-n="' + esc(n.slug) + '">' + esc(n.name) + '</button>'; });
+  bar.innerHTML = html;
+  bar.addEventListener('click', function (e) {
+    var b = e.target.closest('.pill'); if (!b) return;
+    bar.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
+    b.classList.add('on');
+    S.niche = b.getAttribute('data-n') || null;
+    load();
+  });
+}
+
+function cardHtml(h) {
+  var receipts = h.views > 0
+    ? '<span class="stat">' + fmt(h.views) + ' views · ' + fmt(h.followers) + ' followers</span><span class="score-badge">' + Number(h.outlier_score).toFixed(1) + '×</span>'
+    : '<span class="format-tag">curated</span>';
+  var src = (h.video_url && h.video_url.indexOf('http') === 0)
+    ? '<a class="src-link" href="' + esc(h.video_url) + '" target="_blank" rel="noopener">watch source ↗</a>'
+    : '<span class="src-link">hooklab curated</span>';
+  return '<div class="hook-card" data-id="' + h.id + '">' +
+    '<div class="hook-text">' + esc(h.hook_template) + '</div>' +
+    (h.hook_verbatim ? '<div class="hook-verbatim">"' + esc(h.hook_verbatim) + '"</div>' : '') +
+    '<div class="hook-meta"><span class="format-tag">' + esc((h.format || '').replace(/_/g, ' ')) + '</span>' + receipts + '</div>' +
+    '<div class="row2">' + src +
+    '<button class="save-btn' + (h.saved ? ' saved' : '') + '" data-save="' + h.id + '" aria-label="Save to swipe file" title="Save to swipe file">×</button></div>' +
+    '</div>';
+}
+
+function render() {
+  var grid = document.getElementById('grid');
+  grid.innerHTML = S.hooks.length ? S.hooks.map(cardHtml).join('') : '<div class="empty">No hooks match these filters yet. The lab restocks daily.</div>';
+  document.getElementById('result-count').textContent = S.hooks.length + ' of ' + S.total + ' hooks';
+
+  var locked = document.getElementById('locked');
+  if (S.tier === 'anon') {
+    locked.style.display = 'block';
+  } else if (S.tier !== 'pro' && S.total > S.hooks.length) {
+    locked.style.display = 'block';
+    document.getElementById('locked-title').textContent = (S.total - S.hooks.length) + ' more hooks in this drawer.';
+    document.getElementById('locked-sub').textContent = 'Pro unlocks the library\'s full depth, updated daily.';
+    var cta = document.getElementById('locked-cta');
+    cta.textContent = 'Go Pro — $39/mo';
+    cta.setAttribute('href', '/api/checkout?plan=pro');
+  } else {
+    locked.style.display = 'none';
+  }
+}
+
+document.getElementById('grid').addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-save]'); if (!btn) return;
+  if (S.tier === 'anon') { window.location.href = '/api/auth/google'; return; }
+  var id = btn.getAttribute('data-save');
+  var saving = !btn.classList.contains('saved');
+  fetch('/api/hooks', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: saving ? 'save' : 'unsave', hookId: id })
+  }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, s: r.status, j: j }; }); })
+    .then(function (res) {
+      if (res.ok) { btn.classList.toggle('saved', saving); loadSwipe(); }
+      else if (res.s === 402 && window.TGPro) window.TGPro.showUpgradeModal({ variant: 'library' });
+      else if (res.j && res.j.error) alert(res.j.error);
+    });
+});
+
+document.getElementById('format-sel').addEventListener('change', function () {
+  S.format = this.value || null; load();
+});
+
+// drawer
+function loadSwipe() {
+  fetch('/api/hooks?swipe=1', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      if (!data) return;
+      S.swipe = data.hooks || [];
+      var badge = document.getElementById('swipe-count');
+      badge.style.display = S.swipe.length ? 'inline-block' : 'none';
+      badge.textContent = S.swipe.length;
+      var list = document.getElementById('drawer-list');
+      list.innerHTML = S.swipe.length
+        ? S.swipe.map(function (h) {
+            return '<div class="drawer-item"><div class="t">' + esc(h.hook_template) + '</div>' +
+              '<div class="m"><span class="stat">' + (h.views > 0 ? fmt(h.views) + ' views · ' + Number(h.outlier_score).toFixed(1) + '×' : 'curated') + '</span>' +
+              '<button class="save-btn saved" data-unsave="' + h.id + '" aria-label="Remove">×</button></div></div>';
+          }).join('')
+        : '<div class="empty">Nothing saved yet. Tap × on a hook card to collect it.</div>';
+      document.getElementById('drawer-generate').setAttribute('href',
+        S.swipe.length ? '/studio?hooks=' + S.swipe.map(function (h) { return h.id; }).join(',') : '/studio');
+    });
+}
+document.getElementById('drawer-list').addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-unsave]'); if (!btn) return;
+  fetch('/api/hooks', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'unsave', hookId: btn.getAttribute('data-unsave') })
+  }).then(function () { loadSwipe(); load(); });
+});
+document.getElementById('drawer-open').addEventListener('click', function () {
+  if (S.tier === 'anon') { window.location.href = '/api/auth/google'; return; }
+  document.getElementById('drawer').classList.add('open');
+});
+document.getElementById('drawer-close').addEventListener('click', function () {
+  document.getElementById('drawer').classList.remove('open');
+});
+
+load();
+window.addEventListener('load', function () {
+  if (window.TGUser && window.TGUser.ready) window.TGUser.ready.then(function (u) { if (u) loadSwipe(); });
+});
+</script>
+</body>
+</html>
