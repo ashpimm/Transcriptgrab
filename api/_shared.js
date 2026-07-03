@@ -21,6 +21,39 @@ export function handleCors(req, res) {
 }
 
 /**
+ * Generate one image with gemini-2.5-flash-image.
+ * Returns a base64 PNG string (no data: prefix). Throws on failure.
+ */
+export async function callGeminiImage(prompt) {
+  if (!GEMINI_KEY) throw new Error('AI service is not available.');
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE'] },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail = err?.error?.message || err?.error?.status || String(response.status);
+    console.error('Gemini image error:', response.status, detail);
+    throw new Error('Image generation failed (' + response.status + ').');
+  }
+
+  const data = await response.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const imgPart = parts.find((p) => p.inlineData?.data);
+  if (!imgPart) throw new Error('Image generation returned no image.');
+  return imgPart.inlineData.data;
+}
+
+/**
  * Call Gemini Flash Lite and return parsed JSON.
  * Truncates input text to 120k chars, sends prompt + text to Gemini.
  */
