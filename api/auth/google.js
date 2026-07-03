@@ -1,4 +1,4 @@
-// api/auth/google.js — Initiate Google OAuth flow
+﻿// api/auth/google.js â€” Initiate Google OAuth flow
 import crypto from 'crypto';
 
 export default function handler(req, res) {
@@ -22,8 +22,8 @@ export default function handler(req, res) {
 
   res.setHeader('Set-Cookie', cookies);
 
-  // Use production domain — Vercel preview URLs won't match Google's allowed redirect URIs
-  const redirectUri = `https://transcriptgrab.vercel.app/api/auth/callback`;
+  // Use production domain â€” Vercel preview URLs won't match Google's allowed redirect URIs
+  const redirectUri = `https://hooklab.vercel.app/api/auth/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,

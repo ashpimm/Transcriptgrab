@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   ];
 
   try {
-    const redirectUri = `https://transcriptgrab.vercel.app/api/auth/callback`;
+    const redirectUri = `https://hooklab.vercel.app/api/auth/callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

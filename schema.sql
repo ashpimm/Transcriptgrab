@@ -1,4 +1,4 @@
--- TranscriptGrab Database Schema
+﻿-- Hooklab Database Schema
 -- Run this in the Neon/Vercel Postgres console to set up the database.
 
 CREATE TABLE users (

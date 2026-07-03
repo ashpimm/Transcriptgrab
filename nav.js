@@ -151,7 +151,7 @@
 
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
-        '<a href="' + brandHref + '" class="suite-nav-brand">TranscriptGrab</a>' +
+        '<a href="' + brandHref + '" class="suite-nav-brand">Hooklab</a>' +
         '<div class="suite-nav-links">' + linksHtml + '</div>' +
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
