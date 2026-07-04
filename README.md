@@ -1,4 +1,4 @@
-﻿# Hooklab 🎬
+# Hooklab 🎬
 
 A YouTube transcript downloader that works on **every video** — even ones without captions.
 

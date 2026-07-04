@@ -1,4 +1,4 @@
-﻿// api/profile.js — Business profile CRUD + URL import (scrape + AI structuring).
+// api/profile.js — Business profile CRUD + URL import (scrape + AI structuring).
 //
 // GET  /api/profile                          -> { profile }
 // POST /api/profile {action:'save', profile} -> save reviewed profile

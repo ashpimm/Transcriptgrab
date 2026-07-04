@@ -1,4 +1,4 @@
-﻿// api/checkout.js — Stripe Checkout (single Pro tier)
+// api/checkout.js — Stripe Checkout (single Pro tier)
 // GET  /api/checkout           → Stripe Customer Portal (manage subscription)
 // GET  /api/checkout?plan=pro  → Redirect straight into Pro checkout (signed-in)
 // POST /api/checkout           → Create Pro checkout session, returns { url }

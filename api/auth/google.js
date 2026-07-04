@@ -1,4 +1,4 @@
-﻿// api/auth/google.js — Initiate Google OAuth flow
+// api/auth/google.js — Initiate Google OAuth flow
 import crypto from 'crypto';
 
 export default function handler(req, res) {

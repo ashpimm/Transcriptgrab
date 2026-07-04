@@ -1,4 +1,4 @@
-﻿// api/auth/callback.js — Handle Google OAuth return + Stripe link redirect
+// api/auth/callback.js — Handle Google OAuth return + Stripe link redirect
 import Stripe from 'stripe';
 import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession } from '../_db.js';
 
