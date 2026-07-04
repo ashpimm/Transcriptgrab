@@ -22,8 +22,10 @@ export default function handler(req, res) {
 
   res.setHeader('Set-Cookie', cookies);
 
-  // Use production domain — Vercel preview URLs won't match Google's allowed redirect URIs
-  const redirectUri = `https://hooklab.vercel.app/api/auth/callback`;
+  // Derive redirect URI from the request host so it works on any deploy
+  // (preview + production). Each host used must be registered in Google Cloud
+  // → Credentials → Authorized redirect URIs.
+  const redirectUri = `https://${req.headers.host}/api/auth/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,

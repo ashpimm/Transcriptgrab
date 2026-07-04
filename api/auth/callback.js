@@ -33,7 +33,8 @@ export default async function handler(req, res) {
   ];
 
   try {
-    const redirectUri = `https://hooklab.vercel.app/api/auth/callback`;
+    // Must match the redirect_uri sent in google.js — derive from request host.
+    const redirectUri = `https://${req.headers.host}/api/auth/callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
