@@ -1,22 +1,43 @@
 /* hooklab.css — Hooklab design system
-   Palette: lab paper + ink + safety-orange outlier flag
+   Control-room dark: near-black lab surface + safety-orange outlier signal.
+   Bold, punchy, creator-native. Receipts are the loudest thing on screen.
    Type: Bricolage Grotesque (display) / Outfit (body) / IBM Plex Mono (data) */
 
 :root {
-  --paper: #FAFAF7;
-  --ink: #101418;
-  --ink-2: #1C232B;
-  --graphite: #5A6169;
-  --signal: #FF4D00;
-  --signal-soft: #FFE9DF;
-  --wash: #EFF0EA;
-  --line: #E2E3DC;
-  --white: #FFFFFF;
+  /* surfaces (dark → raised) */
+  --paper: #0B0E11;      /* body / base */
+  --surface: #14191F;    /* cards, panels */
+  --surface-2: #1C222B;  /* raised: inputs, feature panels, active chips */
+  --wash: #171C22;       /* subtle inset (mocks, muted tags) */
+  --line: #272E37;       /* hairline borders */
+  --line-2: #333B45;     /* stronger borders / hover */
+
+  /* text (light on dark) */
+  --ink: #F2F3EF;        /* primary text */
+  --ink-2: #C7CDD4;      /* secondary text */
+  --graphite: #969DA7;   /* muted text (≥4.5:1 on --paper) */
+
+  /* signal */
+  --signal: #FF4D00;     /* outlier flag / primary action */
+  --signal-hi: #FF6A2B;  /* hover / lift */
+  --signal-soft: rgba(255,77,0,.13);
+  --signal-line: rgba(255,77,0,.32);
+  --white: #FFFFFF;      /* true white — text on color/dark features */
+
   --display: 'Bricolage Grotesque', 'Outfit', sans-serif;
   --body: 'Outfit', -apple-system, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
   --radius: 14px;
-  --nav-h: 64px;
+  --nav-h: 60px;
+
+  /* z-scale */
+  --z-sticky: 100;
+  --z-drawer: 900;
+  --z-nav: 1000;
+  --z-dropdown: 1001;
+  --z-modal-backdrop: 1100;
+  --z-modal: 1101;
+  --z-toast: 1200;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -27,7 +48,11 @@ body {
   color: var(--ink);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip; /* backstop against decorative horizontal overflow; keeps sticky nav working */
 }
+/* let grid/flex children shrink below their content min-size (prevents track blowout on mobile) */
+.hero-grid > *, .caro-grid > *, .build-grid > *, .caro-build > *, .rule-panel > * { min-width: 0; }
 img { max-width: 100%; }
 a { color: inherit; }
 ::selection { background: var(--signal); color: var(--white); }
@@ -35,31 +60,38 @@ a { color: inherit; }
 /* ============ BUTTONS ============ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font-family: var(--body); font-size: 16px; font-weight: 600;
-  padding: 13px 26px; border-radius: 999px; text-decoration: none;
-  border: none; cursor: pointer; transition: transform .15s, background .15s, border-color .15s;
+  font-family: var(--body); font-size: 16px; font-weight: 600; line-height: 1;
+  padding: 14px 26px; border-radius: 999px; text-decoration: none;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform .16s cubic-bezier(.2,.7,.3,1), background .16s, border-color .16s, box-shadow .16s;
 }
-.btn:active { transform: scale(.98); }
-.btn-ink { background: var(--ink); color: var(--white); }
-.btn-ink:hover { background: var(--signal); }
-.btn-ghost { background: none; border: 1px solid var(--line); color: var(--ink); }
-.btn-ghost:hover { border-color: var(--ink); }
-.btn-signal { background: var(--signal); color: var(--white); }
-.btn-signal:hover { background: var(--ink); }
+.btn:active { transform: scale(.97); }
+/* primary = signal drench */
+.btn-signal { background: var(--signal); color: var(--white); box-shadow: 0 8px 24px -8px rgba(255,77,0,.6); }
+.btn-signal:hover { background: var(--signal-hi); transform: translateY(-2px); box-shadow: 0 14px 32px -8px rgba(255,77,0,.7); }
+/* high-contrast light button */
+.btn-ink { background: var(--ink); color: var(--paper); }
+.btn-ink:hover { background: var(--signal); color: var(--white); transform: translateY(-2px); box-shadow: 0 12px 28px -10px rgba(255,77,0,.6); }
+/* quiet outline */
+.btn-ghost { background: transparent; border-color: var(--line-2); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--ink); background: rgba(255,255,255,.03); }
 
 /* ============ SHARED ============ */
 .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 .eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--mono); font-size: 12px; font-weight: 500;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--signal);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--signal);
 }
+.eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 10px 1px var(--signal); }
 .display {
-  font-family: var(--display); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05;
+  font-family: var(--display); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02;
+  text-wrap: balance;
 }
-.section { padding: 110px 0; }
-.section-head { max-width: 620px; margin-bottom: 56px; }
-.section-head h2 { font-size: clamp(30px, 4.4vw, 46px); margin: 14px 0 16px; }
-.section-head p { color: var(--graphite); font-size: 18px; }
+.section { padding: 108px 0; }
+.section-head { max-width: 640px; margin-bottom: 52px; }
+.section-head h2 { font-size: clamp(32px, 4.6vw, 52px); margin: 16px 0 16px; }
+.section-head p { color: var(--graphite); font-size: 18px; max-width: 60ch; }
 
 /* stat / receipt text */
 .stat { font-family: var(--mono); font-size: 12.5px; color: var(--graphite); }
@@ -67,38 +99,39 @@ a { color: inherit; }
   font-family: var(--mono); font-size: 12px; font-weight: 600;
   background: var(--signal); color: var(--white);
   padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(255,77,0,.2), 0 4px 14px -4px rgba(255,77,0,.5);
 }
 
-/* hook card — light (library grids) */
+/* hook card */
 .hook-card {
-  background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 22px; display: flex; flex-direction: column; gap: 14px;
-  transition: transform .18s, box-shadow .18s;
+  transition: transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .2s, border-color .2s;
 }
-.hook-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(16,20,24,.08); }
+.hook-card:hover { transform: translateY(-4px); border-color: var(--signal-line); box-shadow: 0 20px 44px -18px rgba(0,0,0,.8), 0 0 0 1px var(--signal-line); }
 .hook-card .hook-text {
-  font-family: var(--display); font-size: 19px; font-weight: 600;
-  letter-spacing: -0.01em; line-height: 1.3;
+  font-family: var(--display); font-size: 19px; font-weight: 700;
+  letter-spacing: -0.015em; line-height: 1.28; color: var(--ink);
 }
 .hook-card .hook-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
 .format-tag {
   font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
-  border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--graphite);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; color: var(--graphite);
 }
 
-/* reveal on scroll */
-.reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+/* reveal on scroll — enhances an already-visible default (no visibility gating) */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s cubic-bezier(.2,.7,.3,1); }
 .reveal.in { opacity: 1; transform: none; }
 
 /* focus */
-a:focus-visible, button:focus-visible {
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
-  * { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+  *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .01s !important; }
 }
 @media (max-width: 720px) {
   .section { padding: 72px 0; }
