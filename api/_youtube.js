@@ -21,6 +21,18 @@ export function isOutlier(views, followers) {
   return views / followers >= 5;
 }
 
+// relevanceLanguage:'en' is only a hint to YouTube — Hindi/other-script videos
+// still rank into results. Hard-reject titles whose letters aren't mostly Latin.
+export function isMostlyLatin(text) {
+  const letters = String(text || '').match(/\p{L}/gu) || [];
+  if (letters.length === 0) return true;
+  let latin = 0;
+  for (const ch of letters) {
+    if (/\p{Script=Latin}/u.test(ch)) latin++;
+  }
+  return latin / letters.length >= 0.8;
+}
+
 // ============================================
 // YOUTUBE DATA API WRAPPERS
 // ============================================
@@ -52,7 +64,7 @@ export async function searchShorts(keyword, apiKey) {
   }, apiKey);
 
   return (data.items || [])
-    .filter((it) => it.id?.videoId)
+    .filter((it) => it.id?.videoId && isMostlyLatin(it.snippet?.title))
     .map((it) => ({
       videoId: it.id.videoId,
       title: it.snippet?.title || '',
@@ -75,7 +87,7 @@ export async function channelRecentShorts(channelId, apiKey) {
   }, apiKey);
 
   return (data.items || [])
-    .filter((it) => it.id?.videoId)
+    .filter((it) => it.id?.videoId && isMostlyLatin(it.snippet?.title))
     .map((it) => ({
       videoId: it.id.videoId,
       title: it.snippet?.title || '',
