@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account — Hooklab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
+<style>
+.page { padding: 52px 0 90px; max-width: 640px; }
+.page h1 { font-size: clamp(28px, 4vw, 40px); margin-bottom: 30px; }
+.acct-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; }
+.acct-card h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.who { display: flex; align-items: center; gap: 14px; }
+.who img { width: 44px; height: 44px; border-radius: 50%; }
+.who .n { font-weight: 700; }
+.who .e { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.row:last-child { border-bottom: none; }
+.row .v { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.usage-track { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 10px 0 6px; }
+.usage-fill { height: 100%; border-radius: 999px; background: var(--ink); transition: width .4s cubic-bezier(.22,1,.36,1); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.plan-badge { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; }
+.plan-badge.pro { background: var(--ink); color: #000; }
+.plan-badge.free { background: var(--glass-2); color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="page wrap">
+  <h1 class="display">Account</h1>
+
+  <div class="acct-card" id="who-card">
+    <div class="who" id="who"><span class="stat">Loading…</span></div>
+  </div>
+
+  <div class="acct-card">
+    <h2>Plan &amp; usage</h2>
+    <div id="plan-body"><span class="stat">Loading…</span></div>
+  </div>
+
+  <div class="acct-card">
+    <h2>Need more?</h2>
+    <div class="actions">
+      <button class="btn btn-primary" id="go-pro" style="display:none">Go Pro — $9/mo</button>
+      <button class="btn btn-ghost" id="buy-credits">Buy 8 credits — $5</button>
+      <a class="btn btn-ghost" id="manage-sub" href="/api/checkout" style="display:none">Manage subscription</a>
+    </div>
+  </div>
+
+  <div class="acct-card">
+    <div class="actions" style="margin-top:0">
+      <button class="btn btn-ghost btn-sm" id="signout">Sign out</button>
+      <a class="btn btn-ghost btn-sm" href="/privacy">Privacy</a>
+      <a class="btn btn-ghost btn-sm" href="/terms">Terms</a>
+    </div>
+  </div>
+</main>
+
+<script src="/nav.js" defer></script>
+<script src="/pro.js" defer></script>
+<script>
+function el(id) { return document.getElementById(id); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+window.addEventListener('load', function () {
+  var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
+  ready.then(function (u) {
+    if (!u) { window.location.href = '/api/auth/google'; return; }
+    render(u);
+  });
+});
+
+function render(u) {
+  el('who').innerHTML =
+    (u.picture ? '<img src="' + esc(u.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
+    '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Pro' : 'Free') + '</span></div>' +
+    '<div class="e">' + esc(u.email || '') + '</div></div>';
+
+  var body = '';
+  if (u.tier === 'pro') {
+    var used = u.carouselsUsed || 0, lim = u.carouselsLimit || 20;
+    body += '<div class="row"><span>Carousels this month</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
+      '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, used / lim * 100) + '%"></div></div>';
+  } else {
+    body += '<div class="row"><span>Free carousel</span><span class="v">' + (u.freeCarouselUsed ? 'used' : 'available') + '</span></div>';
+  }
+  body += '<div class="row"><span>Credits</span><span class="v">' + (u.credits || 0) + '</span></div>';
+  el('plan-body').innerHTML = body;
+
+  if (u.tier === 'pro') {
+    el('manage-sub').style.display = 'inline-flex';
+  } else {
+    el('go-pro').style.display = 'inline-flex';
+  }
+}
+
+el('go-pro').addEventListener('click', function () { TGPro._checkout('pro'); });
+el('buy-credits').addEventListener('click', function () { TGPro._checkout('credits'); });
+el('signout').addEventListener('click', function () {
+  fetch('/api/auth/me', { method: 'POST', credentials: 'same-origin' }).then(function () {
+    try { localStorage.removeItem('tg_user_cache'); } catch (e) {}
+    window.location.href = '/';
+  });
+});
+</script>
+</body>
+</html>

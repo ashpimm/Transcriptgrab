@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create — Hooklab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
+<style>
+.page { padding: 52px 0 90px; }
+.page-head { margin-bottom: 30px; }
+.page-head h1 { font-size: clamp(28px, 4vw, 44px); }
+.page-head .sub { color: var(--muted); margin-top: 8px; }
+
+/* auth gate */
+.gate { text-align: center; padding: 90px 24px; }
+.gate h2 { font-size: clamp(24px, 3.5vw, 36px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
+.gate p { color: var(--muted); margin-bottom: 24px; }
+
+/* app profile zone */
+.profile-zone { margin-bottom: 34px; }
+.profile-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+.profile-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.profile-card .hint-line { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
+.profile-card .pastebar { max-width: 100%; }
+.manual-toggle { background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 13px; cursor: pointer; margin-top: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.manual-toggle:hover { color: var(--ink); }
+.profile-form { margin-top: 22px; display: none; }
+.profile-form.show { display: block; }
+.profile-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.profile-summary .ps-main { min-width: 0; }
+.profile-summary .ps-name { font-weight: 700; font-size: 17px; }
+.profile-summary .ps-what { color: var(--ink-2); font-size: 14px; margin-top: 4px; max-width: 68ch; }
+.profile-summary .ps-meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+
+/* build grid */
+.build-grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+.picker { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; position: sticky; top: 84px; max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
+.picker h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.picker .hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.pick-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 120px; }
+.pick-item { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 12px 14px; cursor: pointer; font-size: 13.5px; font-weight: 500; line-height: 1.4; transition: all .12s; }
+.pick-item:hover { border-color: var(--line-2); }
+.pick-item.sel { border-color: var(--ink); background: var(--glass-2); }
+.pick-item .st { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; font-weight: 400; }
+.gen-bar { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
+.style-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.style-tile { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 13px 10px; text-align: center; cursor: pointer; font-weight: 600; font-size: 13px; transition: all .12s; }
+.style-tile:hover { border-color: var(--line-2); }
+.style-tile.sel { border-color: var(--ink); background: var(--glass-2); }
+.style-tile small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10px; color: var(--muted); margin-top: 4px; }
+.gen-bar .btn { width: 100%; }
+.gen-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; font-family: var(--mono); }
+
+/* output */
+.slide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.slide-box { aspect-ratio: 4 / 5; border-radius: var(--radius-s); border: 1px solid var(--line); background: var(--surface-2); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.slide-box img { width: 100%; height: 100%; object-fit: cover; }
+.slide-box .status { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; padding: 10px; }
+.slide-box .redo { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.75); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 4px 12px; font-size: 12px; cursor: pointer; font-family: var(--font); }
+.caption-card { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 18px; font-size: 14px; white-space: pre-wrap; line-height: 1.6; }
+.caption-card .lbl { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: .06em; }
+.dl-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+.mini-btn { background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--ink); transition: all .15s; }
+.mini-btn:hover { border-color: var(--line-2); }
+.mini-btn:disabled { opacity: .5; cursor: wait; }
+.empty-state { text-align: center; padding: 70px 20px; color: var(--muted); }
+.empty-state h3 { font-size: 19px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+
+/* history */
+.history { margin-top: 40px; }
+.history h2 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.hist-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 14px 18px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+.hist-row:hover { border-color: var(--line-2); }
+.hist-row .t { font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 920px) { .build-grid { grid-template-columns: 1fr; } .picker { position: static; max-height: 420px; } }
+</style>
+</head>
+<body>
+<main class="page wrap">
+  <!-- signed-out gate -->
+  <div class="gate" id="gate" style="display:none">
+    <h2>Sign in to start creating.</h2>
+    <p>Your first carousel is free — no card required.</p>
+    <a class="btn btn-primary" href="/api/auth/google">Continue with Google</a>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="page-head">
+      <h1 class="display">Create a post.</h1>
+      <p class="sub">Your app + a proven hook = a carousel ready to publish.</p>
+    </div>
+
+    <!-- ============ APP PROFILE ============ -->
+    <section class="profile-zone" id="profile-zone">
+      <div class="profile-card" id="profile-card">
+        <div id="profile-setup">
+          <h2>Tell us about your app — once.</h2>
+          <div class="hint-line">Paste your app’s link (site, Play Store, or App Store). We’ll read it and draft the profile for you.</div>
+          <form class="pastebar" id="import-form">
+            <input type="url" id="import-url" placeholder="https://your-app.com">
+            <button class="btn btn-primary" type="submit" id="import-btn">Read my app</button>
+          </form>
+          <button class="manual-toggle" id="manual-toggle" type="button">or fill it in manually</button>
+        </div>
+
+        <div class="profile-form" id="profile-form">
+          <div class="msg" id="p-msg" role="status"></div>
+          <div class="field"><label for="f-name">App name</label><input type="text" id="f-name" placeholder="GainLock"></div>
+          <div class="field"><label for="f-what">What does it do?</label><div class="hint">Plain words. This is the substance of every slide.</div><textarea id="f-what" rows="2" placeholder="Locks your phone until you finish your workout."></textarea></div>
+          <div class="field"><label for="f-who">Who is it for?</label><textarea id="f-who" rows="1" placeholder="Gym-goers who lose consistency after the first month."></textarea></div>
+          <div class="field"><label for="f-benefit">The one benefit that matters</label><input type="text" id="f-benefit" placeholder="Never skip a workout again."></div>
+          <div class="field"><label for="f-tone">Tone</label>
+            <select id="f-tone">
+              <option value="casual">Casual — like texting a friend</option>
+              <option value="professional">Professional — polished and direct</option>
+              <option value="funny">Funny — jokes welcome</option>
+              <option value="authority">Authority — the confident expert</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="save-profile">Save profile</button>
+        </div>
+
+        <div class="profile-summary" id="profile-summary" style="display:none">
+          <div class="ps-main">
+            <div class="ps-name" id="ps-name"></div>
+            <div class="ps-what" id="ps-what"></div>
+            <div class="ps-meta" id="ps-meta"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="edit-profile">Edit</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BUILD ============ -->
+    <section class="build-grid">
+      <aside class="picker">
+        <h2>Hook + style</h2>
+        <p class="hint">Saved hooks first, then the feed’s top performers. One hook per carousel.</p>
+        <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
+        <div class="gen-bar">
+          <div class="style-row">
+            <div class="style-tile sel" data-style="bold">Bold<small>high-contrast type</small></div>
+            <div class="style-tile" data-style="mono">Mono<small>black &amp; white</small></div>
+            <div class="style-tile" data-style="notebook">Notebook<small>hand-drawn paper</small></div>
+            <div class="style-tile" data-style="stat">Stat<small>dark data card</small></div>
+          </div>
+          <button class="btn btn-signal" id="gen-btn">Generate carousel</button>
+          <div class="gen-note" id="gen-note"></div>
+        </div>
+      </aside>
+      <div>
+        <div id="caro-out"><div class="empty-state">
+          <h3>Your next post starts here.</h3>
+          <p>Pick a hook on the left. You’ll get slides, a caption, and hashtags — the whole post.</p>
+        </div></div>
+        <div class="history" id="history" style="display:none"><h2>Past carousels</h2><div id="hist-list"></div></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="/nav.js" defer></script>
+<script src="/pro.js" defer></script>
+<script>
+function el(id) { return document.getElementById(id); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
+function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+var ST = { profile: null, hooks: [], hook: null, style: 'bold', carousel: null, watermark: false };
+
+// ============ AUTH GATE ============
+window.addEventListener('load', function () {
+  var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
+  ready.then(function (u) {
+    if (!u) { el('gate').style.display = 'block'; return; }
+    el('app').style.display = 'block';
+    loadProfile();
+    loadHooks();
+    loadHistory();
+    updateGenNote(u);
+  });
+});
+
+function updateGenNote(u) {
+  u = u || (window.TGUser && TGUser.get());
+  if (!u) return;
+  var note;
+  if (u.tier === 'pro') {
+    note = (u.carouselsLimit - u.carouselsUsed) + ' of ' + u.carouselsLimit + ' left this month';
+    if (u.credits > 0) note += ' · ' + u.credits + ' credits';
+  } else if (u.credits > 0) {
+    note = u.credits + ' credit' + (u.credits === 1 ? '' : 's') + ' left';
+  } else if (!u.freeCarouselUsed) {
+    note = 'your free carousel is ready · watermark on last slide';
+  } else {
+    note = 'free carousel used · go Pro or grab credits';
+  }
+  el('gen-note').textContent = note;
+}
+
+// ============ PROFILE ============
+function loadProfile() {
+  fetch('/api/profile', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      ST.profile = d && d.profile;
+      if (ST.profile && ST.profile.what) {
+        renderProfileSummary();
+      } else {
+        // fresh user — auto-import if the landing page stashed a URL
+        var pending = null;
+        try { pending = localStorage.getItem('tg_pending_url'); } catch (e) {}
+        if (pending) {
+          el('import-url').value = pending;
+          try { localStorage.removeItem('tg_pending_url'); } catch (e) {}
+          runImport(pending);
+        }
+      }
+    });
+}
+
+function renderProfileSummary() {
+  var p = ST.profile;
+  el('profile-setup').style.display = 'none';
+  el('profile-form').classList.remove('show');
+  el('profile-summary').style.display = 'flex';
+  el('ps-name').textContent = p.name || 'Your app';
+  el('ps-what').textContent = p.what || '';
+  el('ps-meta').textContent = [p.who, p.tone ? 'tone: ' + p.tone : ''].filter(Boolean).join(' · ');
+}
+
+function fillForm(p) {
+  el('f-name').value = p.name || '';
+  el('f-what').value = p.what || '';
+  el('f-who').value = p.who || '';
+  el('f-benefit').value = p.benefit || '';
+  if (p.tone) el('f-tone').value = p.tone;
+}
+
+el('manual-toggle').addEventListener('click', function () {
+  el('profile-form').classList.add('show');
+});
+
+el('edit-profile').addEventListener('click', function () {
+  el('profile-summary').style.display = 'none';
+  el('profile-setup').style.display = 'block';
+  el('profile-form').classList.add('show');
+  if (ST.profile) { fillForm(ST.profile); el('import-url').value = ST.profile.app_url || ''; }
+});
+
+el('import-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var url = el('import-url').value.trim();
+  if (!url) return;
+  runImport(url);
+});
+
+function runImport(url) {
+  var btn = el('import-btn');
+  btn.disabled = true; btn.textContent = 'Reading…';
+  fetch('/api/profile', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'import', url: url })
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (res) {
+      btn.disabled = false; btn.textContent = 'Read my app';
+      el('profile-form').classList.add('show');
+      if (res.s === 200 && res.j.prefill) {
+        fillForm(res.j.prefill);
+        ST.pendingAppUrl = res.j.prefill.app_url || url;
+        showMsg('Here’s what we read. Fix anything that’s off, then save.', true);
+      } else {
+        ST.pendingAppUrl = url;
+        showMsg(res.j.error || 'Couldn’t read that page — fill the form in and save.', false);
+      }
+    })
+    .catch(function () {
+      btn.disabled = false; btn.textContent = 'Read my app';
+      el('profile-form').classList.add('show');
+      showMsg('Couldn’t read that page — fill the form in and save.', false);
+    });
+}
+
+el('save-profile').addEventListener('click', function () {
+  var profile = {
+    app_url: ST.pendingAppUrl || el('import-url').value.trim() || (ST.profile && ST.profile.app_url) || '',
+    name: el('f-name').value,
+    what: el('f-what').value,
+    who: el('f-who').value,
+    benefit: el('f-benefit').value,
+    tone: el('f-tone').value
+  };
+  var btn = el('save-profile');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  fetch('/api/profile', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'save', profile: profile })
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (res) {
+      btn.disabled = false; btn.textContent = 'Save profile';
+      if (res.s === 200) { ST.profile = res.j.profile; renderProfileSummary(); }
+      else showMsg(res.j.error || 'Could not save.', false);
+    });
+});
+
+// ============ HOOK PICKER ============
+function loadHooks() {
+  Promise.all([
+    fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
+    fetch('/api/hooks?niche=appdev', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
+  ]).then(function (both) {
+    var swipe = both[0].hooks || [];
+    var lib = (both[1].hooks || []).filter(function (h) { return !swipe.some(function (s) { return s.id === h.id; }); });
+    ST.hooks = swipe.map(function (h) { h.fromSwipe = true; return h; }).concat(lib);
+    renderPicker();
+  });
+}
+
+function renderPicker() {
+  el('pick-list').innerHTML = ST.hooks.map(function (h) {
+    var sel = ST.hook === h.id;
+    return '<div class="pick-item' + (sel ? ' sel' : '') + '" data-id="' + h.id + '">' + esc(h.hook_template) +
+      '<span class="st">' + (h.fromSwipe ? '★ saved · ' : '') + (h.views > 0 ? fmt(h.views) + ' views · ' + Number(h.outlier_score).toFixed(1) + '×' : '') + '</span></div>';
+  }).join('') || '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">No hooks yet — browse the <a href="/feed" style="color:var(--ink)">feed</a>.</div>';
+}
+
+el('pick-list').addEventListener('click', function (e) {
+  var it = e.target.closest('.pick-item'); if (!it) return;
+  ST.hook = parseInt(it.getAttribute('data-id'), 10);
+  renderPicker();
+});
+
+document.querySelectorAll('.style-tile').forEach(function (t) {
+  t.addEventListener('click', function () {
+    document.querySelectorAll('.style-tile').forEach(function (x) { x.classList.remove('sel'); });
+    t.classList.add('sel');
+    ST.style = t.getAttribute('data-style');
+  });
+});
+
+// ============ GENERATE ============
+el('gen-btn').addEventListener('click', function () {
+  if (!ST.profile || !ST.profile.what) {
+    el('profile-zone').scrollIntoView({ behavior: 'smooth' });
+    showMsg('Set up your app profile first — it takes one paste.', false);
+    el('profile-form').classList.add('show');
+    return;
+  }
+  if (!ST.hook) {
+    // default to the top hook rather than blocking
+    if (ST.hooks.length) { ST.hook = ST.hooks[0].id; renderPicker(); }
+    else { el('gen-note').textContent = 'pick a hook first'; return; }
+  }
+  var btn = el('gen-btn');
+  btn.disabled = true; btn.textContent = 'Planning slides…';
+  fetch('/api/carousel', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'plan', hookId: ST.hook, style: ST.style })
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (res) {
+      btn.disabled = false; btn.textContent = 'Generate carousel';
+      if (res.s === 200) {
+        ST.carousel = res.j;
+        ST.watermark = !!res.j.watermark;
+        renderCarousel();
+        generateSlides();
+        if (window.TGUser) TGUser.refresh().then(updateGenNote);
+      }
+      else if (res.s === 401) window.location.href = '/api/auth/google';
+      else if (res.s === 400 && res.j.needsProfile) { el('profile-zone').scrollIntoView({ behavior: 'smooth' }); el('profile-form').classList.add('show'); }
+      else if (res.s === 402) window.TGPro && TGPro.showUpgradeModal({ variant: res.j.reason === 'monthly_limit' ? 'limit' : '' });
+      else alert(res.j.error || 'Failed. Try again.');
+    })
+    .catch(function () { btn.disabled = false; btn.textContent = 'Generate carousel'; alert('Network error. Try again.'); });
+});
+
+function renderCarousel() {
+  var c = ST.carousel;
+  el('caro-out').innerHTML =
+    '<div class="slide-grid">' + c.slides.map(function (s) {
+      return '<div class="slide-box" id="slide-' + s.index + '"><div class="status">' + esc(s.heading) + '<br><br>queued…</div></div>';
+    }).join('') + '</div>' +
+    '<div class="caption-card"><div class="lbl">CAPTION + HASHTAGS</div><div id="cap-text">' + esc(c.caption) + '</div></div>' +
+    '<div class="dl-row">' +
+      '<button class="btn btn-primary" id="dl-all" disabled>Download slides (.zip)</button>' +
+      '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
+    '</div>';
+  el('copy-cap').addEventListener('click', function () {
+    navigator.clipboard.writeText(c.caption);
+    this.textContent = 'Copied'; var b = this; setTimeout(function () { b.textContent = 'Copy caption'; }, 1500);
+  });
+  el('dl-all').addEventListener('click', downloadZip);
+}
+
+var SLIDE_IMAGES = {};
+function generateSlides() {
+  SLIDE_IMAGES = {};
+  var slides = ST.carousel.slides;
+  var i = 0;
+  function next() {
+    if (i >= slides.length) { el('dl-all').disabled = false; return; }
+    var s = slides[i];
+    renderSlideStatus(s.index, 'rendering ' + (i + 1) + ' / ' + slides.length + '…');
+    requestSlide(s.index, function () { i++; next(); });
+  }
+  next();
+}
+
+function renderSlideStatus(index, msg) {
+  var box = el('slide-' + index);
+  if (box) box.innerHTML = '<div class="status">' + esc(msg) + '</div>';
+}
+
+function requestSlide(index, done) {
+  fetch('/api/carousel', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'slide', carouselId: ST.carousel.carouselId, index: index })
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (res) {
+      var box = el('slide-' + index);
+      if (res.s === 200 && res.j.image) {
+        var finish = function (dataUrl) {
+          SLIDE_IMAGES[index] = dataUrl;
+          box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (index + 1) + '"><button class="redo" data-slide="' + index + '">redo</button>';
+          done();
+        };
+        if (res.j.watermark) applyWatermark(res.j.image, finish);
+        else finish(res.j.image);
+      } else {
+        box.innerHTML = '<div class="status">failed</div><button class="redo" data-slide="' + index + '">retry</button>';
+        done();
+      }
+    })
+    .catch(function () { renderSlideStatus(index, 'failed — retry below'); done(); });
+}
+
+// free-tier watermark: drawn client-side on the last slide
+function applyWatermark(dataUrl, cb) {
+  var img = new Image();
+  img.onload = function () {
+    var c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    var x = c.getContext('2d');
+    x.drawImage(img, 0, 0);
+    var fs = Math.round(c.width * 0.028);
+    var pad = Math.round(fs * 0.9);
+    var text = 'made with Hooklab';
+    x.font = '600 ' + fs + 'px Geist, sans-serif';
+    var tw = x.measureText(text).width;
+    var bx = (c.width - tw) / 2 - pad, by = c.height - fs * 3, bw = tw + pad * 2, bh = fs * 2;
+    x.fillStyle = 'rgba(0,0,0,0.65)';
+    x.beginPath();
+    x.roundRect(bx, by, bw, bh, bh / 2);
+    x.fill();
+    x.fillStyle = '#fff';
+    x.textBaseline = 'middle';
+    x.fillText(text, bx + pad, by + bh / 2);
+    cb(c.toDataURL('image/png'));
+  };
+  img.onerror = function () { cb(dataUrl); };
+  img.src = dataUrl;
+}
+
+el('caro-out').addEventListener('click', function (e) {
+  var redo = e.target.closest('[data-slide]');
+  if (redo) {
+    var idx = parseInt(redo.getAttribute('data-slide'), 10);
+    renderSlideStatus(idx, 'rendering…');
+    requestSlide(idx, function () {});
+  }
+});
+
+// ============ ZIP DOWNLOAD (store-only zip, no dependencies) ============
+var CRC_TABLE = (function () {
+  var t = new Uint32Array(256);
+  for (var n = 0; n < 256; n++) {
+    var c = n;
+    for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  var c = 0xFFFFFFFF;
+  for (var i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function b64ToBytes(dataUrl) {
+  var b64 = dataUrl.split(',')[1];
+  var bin = atob(b64);
+  var out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function makeZip(files) { // files: [{name, bytes}]
+  var parts = [], central = [], offset = 0;
+  files.forEach(function (f) {
+    var nameB = new TextEncoder().encode(f.name);
+    var crc = crc32(f.bytes);
+    var local = new Uint8Array(30 + nameB.length);
+    var dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true);
+    dv.setUint32(14, crc, true);
+    dv.setUint32(18, f.bytes.length, true); dv.setUint32(22, f.bytes.length, true);
+    dv.setUint16(26, nameB.length, true);
+    local.set(nameB, 30);
+    parts.push(local, f.bytes);
+
+    var cd = new Uint8Array(46 + nameB.length);
+    var cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, f.bytes.length, true); cv.setUint32(24, f.bytes.length, true);
+    cv.setUint16(28, nameB.length, true);
+    cv.setUint32(42, offset, true);
+    cd.set(nameB, 46);
+    central.push(cd);
+    offset += local.length + f.bytes.length;
+  });
+  var cdSize = central.reduce(function (a, c) { return a + c.length; }, 0);
+  var end = new Uint8Array(22);
+  var ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+  return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
+}
+function downloadZip() {
+  var files = Object.keys(SLIDE_IMAGES).sort().map(function (idx) {
+    return { name: 'hooklab-slide-' + (parseInt(idx, 10) + 1) + '.png', bytes: b64ToBytes(SLIDE_IMAGES[idx]) };
+  });
+  if (!files.length) return;
+  var blob = makeZip(files);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hooklab-carousel.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+
+// ============ HISTORY ============
+function loadHistory() {
+  fetch('/api/carousel', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.carousels || !d.carousels.length) return;
+      el('history').style.display = 'block';
+      el('hist-list').innerHTML = d.carousels.map(function (c) {
+        var first = (c.slides && c.slides[0] && c.slides[0].heading) || 'Carousel';
+        return '<div class="hist-row" data-c="' + c.id + '"><span class="t">' + esc(first) + '</span><span class="stat">' + esc(c.style) + ' · ' + new Date(c.created_at).toLocaleDateString() + '</span></div>';
+      }).join('');
+      ST.history = d.carousels;
+    });
+}
+el('hist-list').addEventListener('click', function (e) {
+  var row = e.target.closest('[data-c]'); if (!row) return;
+  var c = (ST.history || []).find(function (x) { return x.id === parseInt(row.getAttribute('data-c'), 10); });
+  if (!c) return;
+  ST.carousel = { carouselId: c.id, slides: c.slides, caption: c.caption, watermark: c.watermark };
+  ST.watermark = !!c.watermark;
+  renderCarousel();
+  generateSlides(); // re-renders slides (images aren't stored)
+  el('caro-out').scrollIntoView({ behavior: 'smooth' });
+});
+</script>
+</body>
+</html>

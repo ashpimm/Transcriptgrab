@@ -3,13 +3,12 @@
   // TGUser — global user state from server
   // ============================================
   var CACHE_KEY = 'tg_user_cache';
-  var CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — short enough to stay fresh-ish, long enough to kill flash
+  var CACHE_TTL_MS = 5 * 60 * 1000;
 
   var _user = null;
   var _ready = false;
   var _readyCallbacks = [];
 
-  // Hydrate from cache synchronously so first paint is correct
   try {
     var raw = localStorage.getItem(CACHE_KEY);
     if (raw) {
@@ -67,30 +66,31 @@
   // ============================================
   var css = document.createElement('style');
   css.textContent =
-    '.suite-nav{background:rgba(11,14,17,0.72);-webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid #272E37;position:sticky;top:0;z-index:1000;font-family:"Outfit",-apple-system,sans-serif;}' +
-    '.suite-nav-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:60px;gap:8px;position:relative;}' +
-    '.suite-nav-brand{font-family:"Bricolage Grotesque","Outfit",sans-serif;font-size:19px;font-weight:800;letter-spacing:-0.03em;color:#F2F3EF;text-decoration:none;flex-shrink:0;transition:color 0.2s;}' +
+    '.suite-nav{background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:1000;font-family:"Geist",-apple-system,sans-serif;}' +
+    '.suite-nav-inner{max-width:1160px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;gap:8px;position:relative;}' +
+    '.suite-nav-brand{font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#F5F5F6;text-decoration:none;flex-shrink:0;transition:opacity 0.2s;}' +
     '.suite-nav-brand::after{content:"_";color:#FF4D00;}' +
-    '.suite-nav-brand:hover{color:#FF4D00;}' +
+    '.suite-nav-brand:hover{opacity:.8;}' +
     '.suite-nav-links{display:flex;align-items:center;gap:2px;position:absolute;left:50%;transform:translateX(-50%);}' +
-    '.suite-nav-link{font-size:13px;font-weight:500;color:#969DA7;text-decoration:none;padding:6px 12px;border-radius:100px;transition:all 0.2s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}' +
-    '.suite-nav-link:hover{color:#F2F3EF;background:rgba(255,255,255,0.05);}' +
-    '.suite-nav-link.active{color:#F2F3EF;font-weight:600;background:rgba(255,255,255,0.06);}' +
+    '.suite-nav-link{font-size:13.5px;font-weight:500;color:#9C9FA6;text-decoration:none;padding:7px 14px;border-radius:999px;transition:all 0.2s;white-space:nowrap;}' +
+    '.suite-nav-link:hover{color:#F5F5F6;background:rgba(255,255,255,0.05);}' +
+    '.suite-nav-link.active{color:#F5F5F6;font-weight:600;background:rgba(255,255,255,0.08);}' +
     '.suite-nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}' +
-    '.suite-nav-signin{font-size:13px;font-weight:600;color:#F2F3EF;text-decoration:none;padding:6px 16px;border:1px solid #333B45;border-radius:100px;transition:all 0.2s;white-space:nowrap;cursor:pointer;background:none;font-family:"Outfit",sans-serif;}' +
-    '.suite-nav-signin:hover{border-color:#F2F3EF;background:rgba(255,255,255,0.04);}' +
+    '.suite-nav-signin{font-size:13.5px;font-weight:600;color:#F5F5F6;text-decoration:none;padding:8px 18px;border:1px solid rgba(255,255,255,0.2);border-radius:999px;transition:all 0.2s;white-space:nowrap;cursor:pointer;background:none;font-family:"Geist",sans-serif;}' +
+    '.suite-nav-signin:hover{border-color:#F5F5F6;background:rgba(255,255,255,0.05);}' +
+    '.suite-nav-gopro{font-size:13px;font-weight:700;color:#000;background:#F5F5F6;text-decoration:none;padding:8px 18px;border-radius:999px;transition:all 0.2s;white-space:nowrap;}' +
+    '.suite-nav-gopro:hover{background:#fff;transform:translateY(-1px);}' +
     '.suite-nav-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;cursor:pointer;}' +
-    '.suite-nav-user{display:flex;align-items:center;gap:8px;position:relative;}' +
-    '.suite-nav-username{font-size:13px;font-weight:500;color:#969DA7;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-    '.suite-nav-pro-badge{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FF4D00;padding:2px 8px;border:1px solid #FF4D0055;border-radius:100px;background:rgba(255,77,0,0.10);}' +
-    '.suite-nav-gopro{font-size:12px;font-weight:700;color:#fff;background:#FF4D00;text-decoration:none;padding:7px 16px;border-radius:100px;transition:all 0.2s;white-space:nowrap;box-shadow:0 6px 18px -8px rgba(255,77,0,0.7);}' +
-    '.suite-nav-gopro:hover{background:#FF6A2B;transform:translateY(-1px);}' +
-    '.suite-nav-dropdown{position:absolute;top:100%;right:0;margin-top:8px;background:rgba(20,25,31,0.92);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid #272E37;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,0.6);min-width:180px;padding:8px;z-index:1001;display:none;}' +
+    '.suite-nav-user{display:flex;align-items:center;gap:8px;position:relative;cursor:pointer;}' +
+    '.suite-nav-username{font-size:13px;font-weight:500;color:#9C9FA6;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
+    '.suite-nav-dropdown{position:absolute;top:100%;right:0;margin-top:10px;background:rgba(16,17,20,0.95);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,0.7);min-width:200px;padding:8px;z-index:1001;display:none;}' +
     '.suite-nav-dropdown.show{display:block;}' +
-    '.suite-nav-drop-item{display:block;width:100%;padding:10px 14px;font-family:"Outfit",sans-serif;font-size:13px;font-weight:500;color:#C7CDD4;border:none;background:none;cursor:pointer;text-align:left;border-radius:8px;transition:all 0.15s;text-decoration:none;}' +
-    '.suite-nav-drop-item:hover{background:rgba(255,255,255,0.05);color:#F2F3EF;}' +
+    '.suite-nav-drop-item{display:block;width:100%;padding:10px 14px;font-family:"Geist",sans-serif;font-size:13px;font-weight:500;color:#C9CCD1;border:none;background:none;cursor:pointer;text-align:left;border-radius:10px;transition:all 0.15s;text-decoration:none;}' +
+    '.suite-nav-drop-item:hover{background:rgba(255,255,255,0.06);color:#F5F5F6;}' +
+    '.suite-nav-drop-muted{color:#9C9FA6;cursor:default;font-size:12px;font-family:"Geist Mono",monospace;}' +
+    '.suite-nav-drop-muted:hover{background:none;color:#9C9FA6;}' +
     '@media(max-width:700px){.suite-nav-username{display:none !important;}.suite-nav-right .suite-nav-gopro{display:none !important;}}' +
-    '@media(max-width:600px){.suite-nav-inner{padding:0 16px;}.suite-nav-brand{font-size:16px;}.suite-nav-link{padding:6px 8px;font-size:12px;}}';
+    '@media(max-width:600px){.suite-nav-inner{padding:0 16px;}.suite-nav-brand{font-size:16px;}.suite-nav-link{padding:7px 10px;font-size:12.5px;}}';
   document.head.appendChild(css);
 
   // ============================================
@@ -104,49 +104,53 @@
   nav.className = 'suite-nav';
   document.body.insertBefore(nav, document.body.firstChild);
 
+  function usageLine(u) {
+    if (u.tier === 'pro') {
+      var line = (u.carouselsUsed || 0) + ' / ' + (u.carouselsLimit || 20) + ' carousels this month';
+      if (u.credits > 0) line += ' · ' + u.credits + ' credits';
+      return line;
+    }
+    if (u.credits > 0) return u.credits + ' credit' + (u.credits === 1 ? '' : 's') + ' left';
+    return u.freeCarouselUsed ? 'free carousel used' : '1 free carousel waiting';
+  }
+
   function renderNav() {
-    var brandHref = _user ? '/library' : '/';
-    var appLink = _user ? 'App' : 'Try Free';
+    var brandHref = _user ? '/create' : '/';
 
     var rightHtml = '';
     if (_user) {
       var avatarHtml = _user.picture
         ? '<img class="suite-nav-avatar" src="' + escapeAttr(_user.picture) + '" alt="" referrerpolicy="no-referrer">'
-        : '<div class="suite-nav-avatar" style="background:#1C222B;border:1px solid #333B45;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#F2F3EF;">' + (_user.name || _user.email || '?').charAt(0).toUpperCase() + '</div>';
+        : '<div class="suite-nav-avatar" style="background:#17191D;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#F5F5F6;">' + (_user.name || _user.email || '?').charAt(0).toUpperCase() + '</div>';
 
-      var badgeHtml = _user.tier === 'pro'
-        ? ''
-        : '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
+      var goProHtml = _user.tier === 'pro' ? '' : '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
 
       rightHtml =
         '<div class="suite-nav-user" id="nav-user-area">' +
           avatarHtml +
           '<span class="suite-nav-username">' + escapeHtml(_user.name || _user.email || '') + '</span>' +
-          badgeHtml +
+          goProHtml +
           '<div class="suite-nav-dropdown" id="nav-dropdown">' +
-            '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + escapeHtml(_user.email || '') + '</div>' +
+            '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(_user.email || '') + '</div>' +
+            '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(usageLine(_user)) + '</div>' +
+            '<a href="/account" class="suite-nav-drop-item" style="text-decoration:none;">Account</a>' +
             (_user.tier === 'pro'
-              ? '<div class="suite-nav-drop-item" style="color:#999;cursor:default;font-size:12px;">' + (_user.packsUsed || 0) + ' / ' + (_user.packsLimit || 10) + ' script packs this month</div>' +
-                '<a href="/api/checkout" class="suite-nav-drop-item" style="text-decoration:none;">Manage Subscription</a>'
+              ? '<a href="/api/checkout" class="suite-nav-drop-item" style="text-decoration:none;">Manage subscription</a>'
               : '') +
-            '<a href="/privacy" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#999;">Privacy</a>' +
-            '<a href="/terms" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#999;">Terms</a>' +
+            '<a href="/privacy" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#9C9FA6;">Privacy</a>' +
+            '<a href="/terms" class="suite-nav-drop-item" style="text-decoration:none;font-size:12px;color:#9C9FA6;">Terms</a>' +
             '<button class="suite-nav-drop-item" id="nav-signout-btn">Sign out</button>' +
           '</div>' +
         '</div>';
     } else {
       rightHtml =
         '<button class="suite-nav-signin" onclick="window.location.href=\'/api/auth/google\'">Sign in</button>' +
-        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>' +
         '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
     }
 
-    var linksHtml = '';
-    if (_user) {
-      linksHtml =
-        '<a href="/library" class="suite-nav-link' + (path === '/library' ? ' active' : '') + '">Library</a>' +
-        '<a href="/studio" class="suite-nav-link' + (path === '/studio' ? ' active' : '') + '">Studio</a>';
-    }
+    var linksHtml =
+      '<a href="/feed" class="suite-nav-link' + (path === '/feed' ? ' active' : '') + '">Feed</a>' +
+      '<a href="/create" class="suite-nav-link' + (path === '/create' ? ' active' : '') + '">Create</a>';
 
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
@@ -155,7 +159,6 @@
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
 
-    // Bind events
     var userArea = document.getElementById('nav-user-area');
     var dropdown = document.getElementById('nav-dropdown');
     if (userArea && dropdown) {
@@ -193,6 +196,39 @@
   }
   function escapeAttr(s) {
     return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ============================================
+  // SCROLL REVEAL — progressive enhancement only.
+  // Elements marked [data-reveal] stay fully visible without JS;
+  // here we hide-then-reveal them as they enter the viewport.
+  // ============================================
+  function initReveal() {
+    var nodes = document.querySelectorAll('[data-reveal]');
+    if (!nodes.length || !('IntersectionObserver' in window)) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(en) {
+        if (en.isIntersecting) {
+          en.target.classList.add('rv-in');
+          io.unobserve(en.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    nodes.forEach(function(n, i) {
+      // already in view at load? leave it alone — no pop-in on first paint
+      var r = n.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.92) return;
+      n.classList.add('rv');
+      var d = parseInt(n.getAttribute('data-reveal'), 10);
+      if (d) n.style.transitionDelay = (d * 70) + 'ms';
+      io.observe(n);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReveal);
+  } else {
+    initReveal();
   }
 
   // Initial render (empty state) then fetch
