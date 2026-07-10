@@ -15,9 +15,9 @@ export default function handler(req, res) {
   // Set state as HttpOnly cookie (10 min TTL)
   const cookies = [`tg_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`];
 
-  // If plan=pro param present, set checkout plan cookie so callback can redirect to checkout
-  if (req.query && req.query.plan === 'pro') {
-    cookies.push('tg_checkout_plan=pro; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600');
+  // If plan=pro|credits param present, set checkout plan cookie so callback can redirect to checkout
+  if (req.query && (req.query.plan === 'pro' || req.query.plan === 'credits')) {
+    cookies.push(`tg_checkout_plan=${req.query.plan}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
   }
 
   res.setHeader('Set-Cookie', cookies);

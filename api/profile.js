@@ -1,13 +1,13 @@
-// api/profile.js — Business profile CRUD + URL import (scrape + AI structuring).
+// api/profile.js — App profile CRUD + URL import (scrape + AI structuring).
 //
 // GET  /api/profile                          -> { profile }
 // POST /api/profile {action:'save', profile} -> save reviewed profile
 // POST /api/profile {action:'import', url}   -> scrape URL, return AI-prefilled
-//                                               profile fields (NOT saved; Pro only)
+//                                               profile fields (NOT saved)
 
 import { getSession, getProfile, saveProfile } from './_db.js';
 import { callGemini } from './_shared.js';
-import { PROFILE_IMPORT_PROMPT } from './_prompts.js';
+import { APP_PROFILE_PROMPT } from './_prompts.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
@@ -267,16 +267,13 @@ const VALID_TONES = ['casual', 'professional', 'funny', 'authority'];
 
 function cleanProfile(p) {
   if (!p || typeof p !== 'object') return null;
-  const results = Array.isArray(p.results)
-    ? p.results.map((r) => clipText(String(r), 300)).filter(Boolean).slice(0, 5)
-    : [];
   return {
-    sells: clipText(p.sells, 1000),
-    audience: clipText(p.audience, 600),
-    results,
+    app_url: clipText(p.app_url, MAX_URL_LEN),
+    name: clipText(p.name, 100),
+    what: clipText(p.what, 1000),
+    who: clipText(p.who, 600),
+    benefit: clipText(p.benefit, 300),
     tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
-    niche_slug: clipText(p.niche_slug, 50),
-    source_url: clipText(p.source_url, MAX_URL_LEN),
   };
 }
 
@@ -305,8 +302,8 @@ export default async function handler(req, res) {
 
   if (action === 'save') {
     const cleaned = cleanProfile(body.profile);
-    if (!cleaned || !cleaned.sells) {
-      return res.status(400).json({ error: 'Tell us what you sell \u2014 that field is required.' });
+    if (!cleaned || !cleaned.what) {
+      return res.status(400).json({ error: 'Tell us what your app does \u2014 that field is required.' });
     }
     try {
       await saveProfile(user.id, cleaned);
@@ -318,9 +315,6 @@ export default async function handler(req, res) {
   }
 
   if (action === 'import') {
-    if (user.tier !== 'pro') {
-      return res.status(403).json({ error: 'Profile import is a Pro feature. You can fill the form manually for free.', upgrade: true });
-    }
     const { url } = body || {};
     if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Paste a URL first.' });
     const trimmed = url.trim();
@@ -333,14 +327,14 @@ export default async function handler(req, res) {
       if (parsed.source === 'blocked' || !parsed.text) {
         return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please fill the form manually.' });
       }
-      const structured = await callGemini(PROFILE_IMPORT_PROMPT, parsed.text, 0.3);
+      const structured = await callGemini(APP_PROFILE_PROMPT, parsed.text, 0.3);
       const prefill = cleanProfile({
-        sells: structured.sells,
-        audience: structured.audience,
-        results: structured.results,
+        app_url: normalized,
+        name: structured.name,
+        what: structured.what,
+        who: structured.who,
+        benefit: structured.benefit,
         tone: structured.tone,
-        niche_slug: structured.suggested_niche,
-        source_url: normalized,
       });
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {

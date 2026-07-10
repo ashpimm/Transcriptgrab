@@ -1,6 +1,8 @@
 // api/auth/callback.js — Handle Google OAuth return + Stripe link redirect
 import Stripe from 'stripe';
-import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession } from '../_db.js';
+import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession, addCredits, updateUser } from '../_db.js';
+
+const CREDIT_PACK_SIZE = 8; // $5 pack — keep in sync with api/webhook.js
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -81,9 +83,11 @@ export default async function handler(req, res) {
     // Create session
     const token = await createSession(user.id);
 
-    // Check if user came from a checkout flow (plan=pro)
+    // Check if user came from a checkout flow (plan=pro|credits)
     const checkoutPlan = cookies.tg_checkout_plan;
-    const redirectTo = checkoutPlan === 'pro' ? '/api/checkout?plan=pro' : '/library';
+    const redirectTo = (checkoutPlan === 'pro' || checkoutPlan === 'credits')
+      ? `/api/checkout?plan=${checkoutPlan}`
+      : '/create';
 
     // Set cookies: clear state/plan + set session
     res.setHeader('Set-Cookie', [
@@ -106,29 +110,29 @@ export default async function handler(req, res) {
 async function handleStripeLink(req, res) {
   const sessionId = req.query.session_id;
   if (!sessionId || !sessionId.startsWith('cs_')) {
-    return res.writeHead(302, { Location: '/studio?payment=error' }).end();
+    return res.writeHead(302, { Location: '/create?payment=error' }).end();
   }
 
   try {
     const user = await getSession(req);
     if (!user) {
-      return res.writeHead(302, { Location: '/studio?payment=auth_required' }).end();
+      return res.writeHead(302, { Location: '/create?payment=auth_required' }).end();
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {
-      return res.writeHead(302, { Location: '/studio?payment=incomplete' }).end();
+      return res.writeHead(302, { Location: '/create?payment=incomplete' }).end();
     }
 
     if (session.client_reference_id !== String(user.id)) {
-      return res.writeHead(302, { Location: '/studio?payment=error' }).end();
+      return res.writeHead(302, { Location: '/create?payment=error' }).end();
     }
 
     const claimed = await claimCheckoutSession(session.id, user.id);
     if (!claimed) {
-      return res.writeHead(302, { Location: '/studio?payment=success' }).end();
+      return res.writeHead(302, { Location: '/create?payment=success' }).end();
     }
 
     const customerId = typeof session.customer === 'string'
@@ -140,13 +144,17 @@ async function handleStripeLink(req, res) {
         ? session.subscription
         : session.subscription.id;
       await setProStatus(user.id, customerId, subId);
+    } else if (session.mode === 'payment') {
+      // One-time credit pack (idempotent via claimCheckoutSession above)
+      await addCredits(user.id, CREDIT_PACK_SIZE);
+      if (customerId) await updateUser(user.id, { stripe_customer_id: customerId });
     }
 
-    res.writeHead(302, { Location: '/studio?payment=success' });
+    res.writeHead(302, { Location: '/create?payment=success' });
     res.end();
   } catch (err) {
     console.error('Link Stripe error:', err);
-    res.writeHead(302, { Location: '/studio?payment=error' });
+    res.writeHead(302, { Location: '/create?payment=error' });
     res.end();
   }
 }

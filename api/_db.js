@@ -57,14 +57,12 @@ export async function getSession(req) {
     await sql`
       UPDATE users
       SET monthly_usage = 0,
-          packs_used = 0,
           carousels_used = 0,
           usage_reset_at = date_trunc('month', NOW()) + INTERVAL '1 month',
           updated_at = NOW()
       WHERE id = ${user.id}
     `;
     user.monthly_usage = 0;
-    user.packs_used = 0;
     user.carousels_used = 0;
   }
 
@@ -88,7 +86,7 @@ export async function upsertGoogleUser({ googleId, email, name, picture }) {
   const sql = getSQL();
   const rows = await sql`
     INSERT INTO users (google_id, email, name, picture, credits)
-    VALUES (${googleId}, ${email}, ${name || ''}, ${picture || ''}, 3)
+    VALUES (${googleId}, ${email}, ${name || ''}, ${picture || ''}, 0)
     ON CONFLICT (google_id) DO UPDATE SET
       email = EXCLUDED.email,
       name = EXCLUDED.name,
@@ -185,14 +183,12 @@ export async function refreshUsage(user) {
     await sql`
       UPDATE users
       SET monthly_usage = 0,
-          packs_used = 0,
           carousels_used = 0,
           usage_reset_at = date_trunc('month', NOW()) + INTERVAL '1 month',
           updated_at = NOW()
       WHERE id = ${user.id}
     `;
     user.monthly_usage = 0;
-    user.packs_used = 0;
     user.carousels_used = 0;
   }
   return user;
@@ -217,9 +213,13 @@ export async function getNicheBySlug(slug) {
 
 export async function getStalestNiche() {
   const sql = getSQL();
+  // appdev is the launch audience's niche — jump the queue whenever it hasn't
+  // been mined in 48h, otherwise plain stalest-first rotation.
   const rows = await sql`
     SELECT * FROM niches WHERE active = TRUE
-    ORDER BY last_mined_at ASC NULLS FIRST LIMIT 1
+    ORDER BY (slug = 'appdev' AND (last_mined_at IS NULL OR last_mined_at < NOW() - INTERVAL '48 hours')) DESC,
+             last_mined_at ASC NULLS FIRST
+    LIMIT 1
   `;
   return rows[0] || null;
 }
@@ -229,10 +229,11 @@ export async function markNicheMined(nicheId) {
   await sql`UPDATE niches SET last_mined_at = NOW() WHERE id = ${nicheId}`;
 }
 
-export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0, freeTier = false }) {
+export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0 }) {
   const sql = getSQL();
-  const cappedLimit = freeTier ? Math.min(limit, 20) : Math.min(limit, 100);
-  const cappedOffset = freeTier ? 0 : offset;
+  // Feed is fully public. Rows with curated:// placeholder URLs have no real
+  // source video (no receipts), so they never ship to the client.
+  const cappedLimit = Math.min(limit, 100);
   const rows = await sql`
     SELECT h.id, h.hook_template, h.hook_verbatim, h.topic, h.format, h.platform,
            h.video_url, h.video_title, h.views, h.followers, h.outlier_score,
@@ -240,16 +241,18 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
+      AND h.video_url NOT LIKE 'curated://%'
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
     ORDER BY h.outlier_score DESC, h.last_verified DESC
-    LIMIT ${cappedLimit} OFFSET ${cappedOffset}
+    LIMIT ${cappedLimit} OFFSET ${offset}
   `;
   const countRows = await sql`
     SELECT COUNT(*)::int AS total
     FROM hooks h JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
+      AND h.video_url NOT LIKE 'curated://%'
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
@@ -358,49 +361,13 @@ export async function saveProfile(userId, profileObj) {
 }
 
 // ============================================
-// HOOKLAB: SCRIPT PACKS & CAROUSELS
+// HOOKLAB: CAROUSELS
 // ============================================
-export async function saveScriptPack(userId, nicheId, title, scripts, sample) {
+export async function saveCarousel(userId, hookId, style, slides, caption, watermark) {
   const sql = getSQL();
   const rows = await sql`
-    INSERT INTO script_packs (user_id, niche_id, title, scripts, sample)
-    VALUES (${userId}, ${nicheId || null}, ${title || ''}, ${JSON.stringify(scripts)}, ${!!sample})
-    RETURNING id, created_at
-  `;
-  return rows[0];
-}
-
-export async function getScriptPacks(userId) {
-  const sql = getSQL();
-  return sql`
-    SELECT id, niche_id, title, sample, created_at,
-           jsonb_array_length(scripts) AS script_count
-    FROM script_packs WHERE user_id = ${userId}
-    ORDER BY created_at DESC LIMIT 50
-  `;
-}
-
-export async function getScriptPack(userId, id) {
-  const sql = getSQL();
-  const rows = await sql`
-    SELECT * FROM script_packs WHERE user_id = ${userId} AND id = ${id}
-  `;
-  return rows[0] || null;
-}
-
-export async function updateScriptPack(userId, id, scripts) {
-  const sql = getSQL();
-  await sql`
-    UPDATE script_packs SET scripts = ${JSON.stringify(scripts)}
-    WHERE user_id = ${userId} AND id = ${id}
-  `;
-}
-
-export async function saveCarousel(userId, hookId, style, slides, caption) {
-  const sql = getSQL();
-  const rows = await sql`
-    INSERT INTO carousels (user_id, hook_id, style, slides, caption)
-    VALUES (${userId}, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''})
+    INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark)
+    VALUES (${userId}, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''}, ${!!watermark})
     RETURNING id, created_at
   `;
   return rows[0];
@@ -409,7 +376,7 @@ export async function saveCarousel(userId, hookId, style, slides, caption) {
 export async function getCarousels(userId) {
   const sql = getSQL();
   return sql`
-    SELECT id, hook_id, style, slides, caption, created_at
+    SELECT id, hook_id, style, slides, caption, watermark, created_at
     FROM carousels WHERE user_id = ${userId}
     ORDER BY created_at DESC LIMIT 50
   `;
@@ -426,45 +393,41 @@ export async function getCarousel(userId, id) {
 // ============================================
 // HOOKLAB: GATING
 // ============================================
-const PACKS_PER_MONTH = 10;
-const CAROUSELS_PER_MONTH = 30;
+export const CAROUSELS_PER_MONTH = 20;
 
-export function canGeneratePack(user, size) {
+// Consumption order: Pro monthly quota -> purchased credits -> the one free
+// watermarked carousel. Returns which bucket pays for this generation.
+export function canGenerateCarousel(user) {
   if (!user) return { allowed: false, reason: 'auth_required' };
-  if (user.tier === 'pro') {
-    if ((user.packs_used || 0) >= PACKS_PER_MONTH) {
-      return { allowed: false, reason: 'monthly_limit' };
-    }
-    return { allowed: true };
+  if (user.tier === 'pro' && (user.carousels_used || 0) < CAROUSELS_PER_MONTH) {
+    return { allowed: true, source: 'pro', watermark: false };
   }
-  // Free tier: one 3-script sample pack, ever
-  if (size === 3 && !user.sample_pack_used) {
-    return { allowed: true, sample: true };
+  if ((user.credits || 0) > 0) {
+    return { allowed: true, source: 'credit', watermark: false };
+  }
+  if (user.tier === 'pro') {
+    return { allowed: false, reason: 'monthly_limit' };
+  }
+  if (!user.free_carousel_used) {
+    return { allowed: true, source: 'free', watermark: true };
   }
   return { allowed: false, reason: 'upgrade' };
 }
 
-export function canGenerateCarousel(user) {
-  if (!user) return { allowed: false, reason: 'auth_required' };
-  if (user.tier !== 'pro') return { allowed: false, reason: 'upgrade' };
-  if ((user.carousels_used || 0) >= CAROUSELS_PER_MONTH) {
-    return { allowed: false, reason: 'monthly_limit' };
-  }
-  return { allowed: true };
-}
-
-export async function consumePack(user, isSample) {
+export async function consumeCarousel(user, source) {
   const sql = getSQL();
-  if (isSample) {
-    await sql`UPDATE users SET sample_pack_used = TRUE, updated_at = NOW() WHERE id = ${user.id}`;
+  if (source === 'credit') {
+    await sql`UPDATE users SET credits = GREATEST(COALESCE(credits, 0) - 1, 0), updated_at = NOW() WHERE id = ${user.id}`;
+  } else if (source === 'free') {
+    await sql`UPDATE users SET free_carousel_used = TRUE, updated_at = NOW() WHERE id = ${user.id}`;
   } else {
-    await sql`UPDATE users SET packs_used = packs_used + 1, updated_at = NOW() WHERE id = ${user.id}`;
+    await sql`UPDATE users SET carousels_used = carousels_used + 1, updated_at = NOW() WHERE id = ${user.id}`;
   }
 }
 
-export async function consumeCarousel(user) {
+export async function addCredits(userId, n) {
   const sql = getSQL();
-  await sql`UPDATE users SET carousels_used = carousels_used + 1, updated_at = NOW() WHERE id = ${user.id}`;
+  await sql`UPDATE users SET credits = COALESCE(credits, 0) + ${n}, updated_at = NOW() WHERE id = ${userId}`;
 }
 
 export { getSQL };

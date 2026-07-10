@@ -1,7 +1,9 @@
 // api/webhook.js — Stripe webhook for subscription lifecycle events
 
 import Stripe from 'stripe';
-import { downgradeUser, findUserByStripeCustomer, setProStatus, claimCheckoutSession } from './_db.js';
+import { downgradeUser, findUserByStripeCustomer, setProStatus, claimCheckoutSession, addCredits, updateUser } from './_db.js';
+
+const CREDIT_PACK_SIZE = 8; // $5 pack
 
 export const config = {
   api: {
@@ -59,6 +61,10 @@ export default async function handler(req, res) {
           const subId = typeof session.subscription === 'string'
             ? session.subscription : session.subscription.id;
           await setProStatus(userId, customerId, subId);
+        } else if (session.mode === 'payment') {
+          // One-time credit pack
+          await addCredits(userId, CREDIT_PACK_SIZE);
+          if (customerId) await updateUser(userId, { stripe_customer_id: customerId });
         }
         break;
       }

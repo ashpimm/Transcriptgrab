@@ -9,7 +9,6 @@ import {
   saveToSwipeFile, removeFromSwipeFile, swipeFileCount,
 } from './_db.js';
 
-const ANON_LIMIT = 8;
 const FREE_SWIPE_CAP = 25;
 
 function cors(req, res) {
@@ -38,10 +37,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ hooks: saved, cap: user.tier === 'pro' ? null : FREE_SWIPE_CAP });
       }
 
-      // Library
+      // Feed — fully public, same depth for everyone
       const tier = user ? user.tier : 'anon';
-      const freeTier = tier !== 'pro';
-      const limit = tier === 'anon' ? ANON_LIMIT : 50;
       const offset = parseInt(req.query.offset || '0', 10) || 0;
 
       const [{ hooks, total }, niches] = await Promise.all([
@@ -49,9 +46,8 @@ export default async function handler(req, res) {
           nicheSlug: req.query.niche || null,
           format: req.query.format || null,
           platform: req.query.platform || null,
-          limit,
+          limit: 50,
           offset,
-          freeTier,
         }),
         getNiches(),
       ]);

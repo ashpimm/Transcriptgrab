@@ -1,6 +1,7 @@
-// api/carousel.js — Faceless carousel generation (Pro only).
+// api/carousel.js — Faceless carousel generation.
 //
-// POST /api/carousel {action:'plan', hookId, style}       -> slide copy plan (counts 1 vs monthly cap)
+// POST /api/carousel {action:'plan', hookId, style}       -> slide copy plan + caption + hashtags
+//                                                            (consumes: pro quota | credit | the one free)
 // POST /api/carousel {action:'slide', carouselId, index}  -> ONE rendered slide as data URL
 // GET  /api/carousel                                      -> { carousels } (history, copy only)
 
@@ -64,19 +65,19 @@ export default async function handler(req, res) {
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
     const action = body.action || '';
 
-    // ===== PLAN: hook -> slide copy =====
+    // ===== PLAN: hook -> slide copy + caption + hashtags =====
     if (action === 'plan') {
       const gate = canGenerateCarousel(user);
       if (!gate.allowed) {
         const msg = gate.reason === 'monthly_limit'
-          ? 'You have used all 30 carousels this month. They reset on your billing date.'
-          : 'Faceless carousels are a Pro feature.';
+          ? 'You have used all 20 carousels this month. They reset on your billing date. Need more now? Grab a credit pack.'
+          : 'You have used your free carousel. Go Pro for 20 a month, or grab a $5 credit pack.';
         return res.status(402).json({ error: msg, reason: gate.reason, upgrade: gate.reason === 'upgrade' });
       }
 
       const profile = await getProfile(user.id);
-      if (!profile || !profile.sells) {
-        return res.status(400).json({ error: 'Set up your business profile first.', needsProfile: true });
+      if (!profile || !profile.what) {
+        return res.status(400).json({ error: 'Set up your app profile first.', needsProfile: true });
       }
 
       const hooks = await getHooksByIds([parseInt(body.hookId, 10)]);
@@ -85,10 +86,11 @@ export default async function handler(req, res) {
 
       const style = STYLES[body.style] ? body.style : 'bold';
       const payload = {
-        business: {
-          sells: profile.sells,
-          audience: profile.audience || '',
-          results: profile.results || [],
+        app: {
+          name: profile.name || '',
+          what: profile.what,
+          who: profile.who || '',
+          benefit: profile.benefit || '',
           tone: profile.tone || 'casual',
         },
         hook: { template: hook.hook_template, verbatim: hook.hook_verbatim || '', topic: hook.topic || '' },
@@ -104,12 +106,22 @@ export default async function handler(req, res) {
         heading: String(s.heading || '').substring(0, 120),
         body: String(s.body || '').substring(0, 220),
       }));
-      const caption = String(out.caption || '').substring(0, 1000);
+      const hashtags = (Array.isArray(out.hashtags) ? out.hashtags : [])
+        .map((h) => String(h).replace(/^#/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())
+        .filter(Boolean)
+        .slice(0, 8);
+      let caption = String(out.caption || '').substring(0, 1000);
+      if (hashtags.length > 0) {
+        caption = caption + '\n\n' + hashtags.map((h) => '#' + h).join(' ');
+      }
 
-      const saved = await saveCarousel(user.id, hook.id, style, slides, caption);
-      await consumeCarousel(user);
+      const saved = await saveCarousel(user.id, hook.id, style, slides, caption, gate.watermark);
+      await consumeCarousel(user, gate.source);
 
-      return res.status(200).json({ carouselId: saved.id, style, slides, caption });
+      return res.status(200).json({
+        carouselId: saved.id, style, slides, caption,
+        watermark: !!gate.watermark, source: gate.source,
+      });
     }
 
     // ===== SLIDE: render one image =====
@@ -129,7 +141,14 @@ export default async function handler(req, res) {
         // one automatic retry — image gen fails transiently
         b64 = await callGeminiImage(prompt);
       }
-      return res.status(200).json({ index: idx, image: `data:image/png;base64,${b64}` });
+      // Free-tier watermark is drawn client-side on the last slide (canvas
+      // overlay) — image models can't render small text reliably.
+      const isLast = idx === slides.length - 1;
+      return res.status(200).json({
+        index: idx,
+        image: `data:image/png;base64,${b64}`,
+        watermark: !!carousel.watermark && isLast,
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action.' });
