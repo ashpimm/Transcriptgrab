@@ -112,6 +112,27 @@ h1, h2, h3 { text-wrap: balance; }
 .pastebar input::placeholder { color: var(--muted); }
 .pastebar .btn { flex-shrink: 0; }
 
+@media (max-width: 560px) {
+  .hero .pastebar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    border-radius: 28px;
+    padding: 12px;
+  }
+
+  .hero .pastebar input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  .hero .pastebar .btn {
+    width: 100%;
+    min-height: 50px;
+  }
+}
+
 /* ============ CARDS ============ */
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
