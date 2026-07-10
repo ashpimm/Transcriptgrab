@@ -60,7 +60,7 @@ async function fetchHtml(url) {
       redirect: 'follow',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; HooklabBot/1.0; +https://hooklab.vercel.app)',
+        'User-Agent': 'Mozilla/5.0 (compatible; HooklabBot/1.0; +https://transcriptgrab.vercel.app)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-US,en;q=0.9',
       },
