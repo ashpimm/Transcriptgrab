@@ -12,7 +12,7 @@ import {
   getExistingHookUrls, refreshHookStats, upsertHook,
 } from './_db.js';
 import {
-  computeOutlierScore, isOutlier,
+  computeOutlierScore, isOutlier, isMostlyLatin,
   searchShorts, channelRecentShorts, getVideoStats, getChannelStats,
 } from './_youtube.js';
 import { fetchTranscript } from './_transcript.js';
@@ -121,6 +121,12 @@ export default async function handler(req, res) {
     for (const ex of extracted) {
       const src = fresh[ex.i];
       if (!src || !ex.hook_template) continue;
+      // English-titled video can still have non-English audio — the title
+      // filter in searchShorts can't catch that, so gate the extracted text too.
+      if (!isMostlyLatin(ex.hook_template) || !isMostlyLatin(ex.hook_verbatim) || !isMostlyLatin(ex.topic)) {
+        errors.push(`skipped non-Latin hook: ${src.url}`);
+        continue;
+      }
       rows.push({
         hookTemplate: String(ex.hook_template).substring(0, 500),
         hookVerbatim: String(ex.hook_verbatim || '').substring(0, 500),
