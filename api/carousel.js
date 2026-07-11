@@ -17,17 +17,36 @@ export const maxDuration = 60;
 
 const SLIDE_COUNT = 6;
 
+// The accent is always the USER'S brand color — Hooklab orange must never
+// leak into customer output. No color known -> neutral that fits the style.
+const NEUTRAL_ACCENT = { bold: '#F5F5F6', mono: '#141414', notebook: '#20232B', stat: '#F5F5F6' };
+
+function validHex(c) {
+  return /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
+}
+
+function resolveAccent(style, profile, override) {
+  return validHex(override) || validHex(profile?.color) || NEUTRAL_ACCENT[style] || NEUTRAL_ACCENT.bold;
+}
+
+function cleanMotifs(motifs) {
+  return (Array.isArray(motifs) ? motifs : [])
+    .map((m) => String(m).replace(/[^\w\s',-]/g, '').trim().substring(0, 60))
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
 // Style descriptors keep slide-to-slide consistency: same descriptor + slide
 // number is the whole prompt, so a set reads as one designed carousel.
 const STYLES = {
-  bold: 'Bold typographic social media slide: massive high-contrast sans-serif text on a deep charcoal (#101418) background with one safety-orange (#FF4D00) accent element per slide. Swiss poster energy. Flat, no photos, no gradients busier than two stops.',
+  bold: 'Bold typographic social media slide: massive high-contrast sans-serif text on a deep charcoal (#101418) background with one ACCENT accent element per slide. Swiss poster energy. Flat, no photos, no gradients busier than two stops.',
   mono: 'Minimal black-and-white editorial slide: off-white (#FAFAF7) paper background, large tight black grotesque type, one thin underline accent. Lots of whitespace. No images, no color.',
-  notebook: 'Hand-drawn notebook style slide: cream paper texture, handwritten-style marker lettering in dark ink, small doodle underlines and arrows, one red-orange circled highlight. Feels like smart lecture notes.',
-  stat: 'Dark data-card slide: near-black background, big monospace-style numerals and labels, thin grid lines, one glowing orange stat highlight. Feels like a terminal dashboard turned into a poster.',
+  notebook: 'Hand-drawn notebook style slide: cream paper texture, handwritten-style marker lettering in dark ink, small doodle underlines and arrows, one ACCENT circled highlight. Feels like smart lecture notes.',
+  stat: 'Dark data-card slide: near-black background, big monospace-style numerals and labels, thin grid lines, one glowing ACCENT stat highlight. Feels like a terminal dashboard turned into a poster.',
 };
 
-function slidePrompt(style, slide, slideCount) {
-  const base = STYLES[style] || STYLES.bold;
+function slidePrompt(style, slide, slideCount, profile) {
+  const base = (STYLES[style] || STYLES.bold).split('ACCENT').join(resolveAccent(style, profile));
   const body = slide.body ? ` Below it, smaller supporting text reading EXACTLY: "${slide.body}"` : '';
   return `${base}
 Portrait 4:5 social media carousel slide, slide ${slide.index + 1} of ${slideCount}.
@@ -44,13 +63,16 @@ const BG_STYLES = {
   stat: 'Near-black terminal dashboard aesthetic: thin grid lines, faint glowing ACCENT data traces and chart fragments near the edges.',
 };
 
-function backgroundPrompt(style, profile) {
-  const accent = /^#[0-9a-fA-F]{6}$/.test(profile?.color || '') ? profile.color : '#FF4D00';
+function backgroundPrompt(style, profile, motifs, accentOverride) {
+  const accent = resolveAccent(style, profile, accentOverride);
   const base = (BG_STYLES[style] || BG_STYLES.bold).split('ACCENT').join(accent);
-  const about = [profile?.what, profile?.who].filter(Boolean).join(' — ').substring(0, 300);
+  const about = [profile?.name, profile?.what].filter(Boolean).join(': ').substring(0, 300);
+  const motifLine = motifs && motifs.length
+    ? `Weave in stylized illustrated motifs of: ${motifs.join(', ')} — abstract and decorative, near the edges, never literal screenshots or UI.`
+    : `Weave in subtle abstract visual motifs related to the app's subject matter (never literal screenshots or UI).`;
   return `Textless background art for a social media carousel promoting an app. The app: ${about || 'a software product'}.
 ${base}
-Weave in subtle abstract visual motifs related to the app's subject matter (never literal screenshots or UI), and keep the middle of the canvas quiet and empty for a text overlay.
+${motifLine} Keep the middle of the canvas quiet and empty for a text overlay.
 Portrait 4:5. ABSOLUTELY NO text, no letters, no numbers, no words, no logos.`;
 }
 
@@ -144,12 +166,16 @@ export default async function handler(req, res) {
       if (hashtags.length > 0) {
         caption = caption + '\n\n' + hashtags.map((h) => '#' + h).join(' ');
       }
+      // Motifs + accent ride along to the client, which echoes them back on
+      // the background call — the carousels table stays migration-free.
+      const motifs = cleanMotifs(out.motifs);
+      const accent = validHex(profile.color);
 
       const saved = await saveCarousel(user.id, hook.id, style, slides, caption, gate.watermark);
       await consumeCarousel(user, gate.source);
 
       return res.status(200).json({
-        carouselId: saved.id, style, slides, caption,
+        carouselId: saved.id, style, slides, caption, motifs, accent,
         watermark: !!gate.watermark, source: gate.source,
       });
     }
@@ -160,7 +186,7 @@ export default async function handler(req, res) {
       if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
       const profile = await getProfile(user.id).catch(() => null);
 
-      const prompt = backgroundPrompt(carousel.style, profile);
+      const prompt = backgroundPrompt(carousel.style, profile, cleanMotifs(body.motifs), body.accent);
       let b64;
       try {
         b64 = await callGeminiImage(prompt);
@@ -184,7 +210,8 @@ export default async function handler(req, res) {
       const slide = Array.isArray(slides) ? slides.find((s) => s.index === idx) : null;
       if (!slide) return res.status(400).json({ error: 'Slide not found.' });
 
-      const prompt = slidePrompt(carousel.style, slide, slides.length);
+      const legacyProfile = await getProfile(user.id).catch(() => null);
+      const prompt = slidePrompt(carousel.style, slide, slides.length, legacyProfile);
       let b64;
       try {
         b64 = await callGeminiImage(prompt);

@@ -65,7 +65,8 @@ Return ONLY this JSON object:
     { "index": 1, "heading": "short punchy heading", "body": "1-2 sentences of concrete value, max 30 words" }
   ],
   "caption": "2-3 sentences that make the reader want the app, ending with where to get it (use the app name, not a URL)",
-  "hashtags": ["5-8 lowercase hashtags without the # symbol, mixing niche and reach tags"]
+  "hashtags": ["5-8 lowercase hashtags without the # symbol, mixing niche and reach tags"],
+  "motifs": ["3-5 concrete drawable objects that visually represent this app's subject"]
 }
 
 Rules:
@@ -75,4 +76,12 @@ Rules:
 - Headings max 12 words, bodies max 30 words. Text must fit on an image.
 - Match app.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
 - Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no double hyphens, no emoji in slides.
+- motifs: short noun phrases for physical objects an illustrator could draw about THIS app's subject (e.g. a workout app: "dumbbell", "progress ring", "calendar streak"). Never words like "app", "screen", "phone", "logo", "text", or abstract concepts.
 - Output raw JSON only. No markdown fences.`;
+
+// ============================================
+// BRAND COLOR (fallback when profile save has none)
+// ============================================
+export const PICK_COLOR_PROMPT = `You receive JSON: { name, what } describing an app. Pick ONE saturated brand accent color that fits the app's subject (e.g. green for nutrition, blue for finance, red-pink for dating). Never white, black, gray, or orange (#FF4D00 is reserved).
+
+Return ONLY: {"color": "#RRGGBB"}`;

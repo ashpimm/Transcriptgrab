@@ -37,6 +37,8 @@
 
 /* profile form fields grow with their content */
 .profile-form textarea { resize: none; overflow: hidden; min-height: 52px; }
+.profile-form input[type="color"] { width: 72px; height: 42px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass); cursor: pointer; }
+.ps-meta .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 
 /* generate zone — done-for-you by default */
 .gen-zone { margin-bottom: 34px; }
@@ -131,6 +133,7 @@
               <option value="authority">Authority — the confident expert</option>
             </select>
           </div>
+          <div class="field"><label for="f-color">Brand color</label><div class="hint">The accent on every slide. We read it from your site — fix it if we got it wrong.</div><input type="color" id="f-color" value="#4F8BFF"></div>
           <button class="btn btn-primary" id="save-profile">Save profile</button>
         </div>
 
@@ -192,7 +195,9 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false };
+var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '' };
+
+function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
 
 // textareas grow with their content (imported profiles arrive pre-filled)
 function autoGrow(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
@@ -261,7 +266,8 @@ function renderProfileSummary() {
   el('profile-summary').style.display = 'flex';
   el('ps-name').textContent = p.name || 'Your app';
   el('ps-what').textContent = p.what || '';
-  el('ps-meta').textContent = [p.who, p.tone ? 'tone: ' + p.tone : ''].filter(Boolean).join(' · ');
+  var meta = [p.who, p.tone ? 'tone: ' + p.tone : ''].filter(Boolean).join(' · ');
+  el('ps-meta').innerHTML = (isHex(p.color) ? '<span class="swatch" style="background:' + p.color + '"></span>' : '') + esc(meta);
 }
 
 function fillForm(p) {
@@ -270,8 +276,12 @@ function fillForm(p) {
   el('f-who').value = p.who || '';
   el('f-benefit').value = p.benefit || '';
   if (p.tone) el('f-tone').value = p.tone;
+  if (isHex(p.color)) { ST.formColor = p.color; el('f-color').value = p.color; }
   growAll();
 }
+
+// the picker always shows SOME value — only user- or import-set colors count
+el('f-color').addEventListener('input', function () { ST.formColor = this.value; });
 
 el('manual-toggle').addEventListener('click', function () {
   el('profile-form').classList.add('show');
@@ -325,7 +335,8 @@ el('save-profile').addEventListener('click', function () {
     what: el('f-what').value,
     who: el('f-who').value,
     benefit: el('f-benefit').value,
-    tone: el('f-tone').value
+    tone: el('f-tone').value,
+    color: ST.formColor || (ST.profile && ST.profile.color) || ''
   };
   var btn = el('save-profile');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -491,9 +502,11 @@ var SLIDE_THEMES = {
   stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true  },
 };
 
-function accentColor() {
-  var c = (ST.profile && ST.profile.color) || '';
-  return /^#[0-9a-fA-F]{6}$/.test(c) ? c : '#FF4D00';
+// Accent = the USER'S brand color, snapshotted on the carousel at plan time.
+// No color known -> the theme's ink (neutral) — never Hooklab orange.
+function accentColor(theme) {
+  var c = (ST.carousel && ST.carousel.accent) || (ST.profile && ST.profile.color) || '';
+  return isHex(c) ? c : theme.ink;
 }
 
 function wrapText(x, text, maxWidth) {
@@ -547,7 +560,7 @@ function drawSlide(bg, slide, count, style) {
   var top = Math.max(pad + 120, (SLIDE_H - blockH) / 2);
 
   // accent bar above the heading
-  x.fillStyle = accentColor();
+  x.fillStyle = accentColor(theme);
   x.fillRect(pad, top - 56, 88, 12);
 
   x.textBaseline = 'top';
@@ -580,7 +593,10 @@ function generateSlides() {
   fetch('/api/carousel', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'background', carouselId: ST.carousel.carouselId })
+    body: JSON.stringify({
+      action: 'background', carouselId: ST.carousel.carouselId,
+      motifs: ST.carousel.motifs || [], accent: ST.carousel.accent || ''
+    })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
       if (res.s !== 200 || !res.j.image) {

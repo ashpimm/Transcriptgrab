@@ -7,7 +7,7 @@
 
 import { getSession, getProfile, saveProfile } from './_db.js';
 import { callGemini } from './_shared.js';
-import { APP_PROFILE_PROMPT } from './_prompts.js';
+import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT } from './_prompts.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
@@ -305,6 +305,16 @@ export default async function handler(req, res) {
     const cleaned = cleanProfile(body.profile);
     if (!cleaned || !cleaned.what) {
       return res.status(400).json({ error: 'Tell us what your app does \u2014 that field is required.' });
+    }
+    // Every profile gets a brand color: it is the accent on every slide, and
+    // without one the renderer would have nothing but neutral grays.
+    if (!cleaned.color) {
+      try {
+        const picked = await callGemini(PICK_COLOR_PROMPT, JSON.stringify({ name: cleaned.name, what: cleaned.what }), 0.3);
+        if (/^#[0-9a-fA-F]{6}$/.test(picked?.color || '')) cleaned.color = picked.color.toUpperCase();
+      } catch (e) {
+        console.error('color pick failed:', e.message);
+      }
     }
     try {
       await saveProfile(user.id, cleaned);
