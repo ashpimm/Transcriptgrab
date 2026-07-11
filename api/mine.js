@@ -104,10 +104,13 @@ export default async function handler(req, res) {
     // 6. Gemini extraction (one batched call)
     let extracted = [];
     if (fresh.length > 0) {
-      const payload = fresh.map((o, i) => ({
-        i, title: o.title, views: o.views, followers: o.followers,
-        ...(o.transcript ? { transcript: o.transcript } : {}),
-      }));
+      const payload = {
+        niche: niche.name,
+        videos: fresh.map((o, i) => ({
+          i, title: o.title, views: o.views, followers: o.followers,
+          ...(o.transcript ? { transcript: o.transcript } : {}),
+        })),
+      };
       try {
         const result = await callGemini(HOOK_EXTRACTION_PROMPT, JSON.stringify(payload), 0.3);
         if (Array.isArray(result)) extracted = result;
@@ -121,6 +124,13 @@ export default async function handler(req, res) {
     for (const ex of extracted) {
       const src = fresh[ex.i];
       if (!src || !ex.hook_template) continue;
+      // Keyword search is noisy — Gemini judges whether the video is actually
+      // niche-relevant (Minecraft "builds", toy hauls etc. score high on views
+      // but are useless patterns for the audience).
+      if (ex.relevant === false) {
+        errors.push(`skipped off-niche: ${src.url}`);
+        continue;
+      }
       // English-titled video can still have non-English audio — the title
       // filter in searchShorts can't catch that, so gate the extracted text too.
       if (!isMostlyLatin(ex.hook_template) || !isMostlyLatin(ex.hook_verbatim) || !isMostlyLatin(ex.topic)) {

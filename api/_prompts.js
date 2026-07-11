@@ -4,13 +4,14 @@
 // ============================================
 // HOOK EXTRACTION (mining pipeline)
 // ============================================
-export const HOOK_EXTRACTION_PROMPT = `You are a short-form content researcher. You receive a JSON array of viral YouTube Shorts, each with: i (index), title, views, followers, and sometimes transcript (the spoken words).
+export const HOOK_EXTRACTION_PROMPT = `You are a short-form content researcher. You receive a JSON object: { niche: "<the creator audience being researched>", videos: [...] }. Each video has: i (index), title, views, followers, and sometimes transcript (the spoken words).
 
 For EACH video, extract its hook and metadata. The hook is the attention-grabbing opening line: use the first sentence of the transcript if available, otherwise infer from the title.
 
 Return ONLY a JSON array, one object per input video:
 [{
   "i": 0,
+  "relevant": true,
   "hook_verbatim": "the actual opening line or title-derived hook",
   "hook_template": "the same hook with specifics replaced by ___ slots",
   "topic": "3-8 word topic summary",
@@ -18,7 +19,10 @@ Return ONLY a JSON array, one object per input video:
 }]
 
 Rules:
-- hook_template: replace names, numbers, niches, and product-specifics with ___ so anyone can reuse it. Example: "How I took my client from 150 to 130 lbs in 8 weeks" becomes "How I took my client from ___ to ___ in ___". Keep the sentence structure and emotional punch intact.
+- relevant: true ONLY if a creator in the given niche could credibly post content in this video's pattern about their own work. Keyword search is noisy — a niche of "App Developers & SaaS" will surface Minecraft builds, toy hauls, city-government clips, random vlogs. Those are relevant: false. When unsure, false.
+- If relevant is false, you may leave the other fields as empty strings.
+- hook_verbatim must be a complete, self-contained line someone would say to camera. Fragments like "Ah." or half-sentences are not hooks — mark those videos relevant: false.
+- hook_template: replace names, numbers, niches, and product-specifics with ___ slots. Example: "How I took my client from 150 to 130 lbs in 8 weeks" becomes "How I took my client from ___ to ___ in ___". Keep the sentence structure and emotional punch intact.
 - Keep templates under 20 words.
 - format must be one of: talking_head, whiteboard, audio_broll, skit, other. Without visual evidence default to talking_head.
 - topic is plain lowercase, no hashtags.
