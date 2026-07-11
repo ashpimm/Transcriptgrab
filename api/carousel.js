@@ -35,6 +35,25 @@ The slide's main text must read EXACTLY, with correct spelling: "${slide.heading
 Text must be large, perfectly legible, and the visual focus. No watermarks, no extra words beyond the given text, no borders.`;
 }
 
+// One TEXTLESS background per carousel — the client draws razor-sharp text
+// over it on canvas. Image models mangle small text; canvas never does.
+const BG_STYLES = {
+  bold: 'Deep charcoal (#101418) abstract composition, one large ACCENT geometric shape, subtle grain, Swiss poster energy. Flat and minimal.',
+  mono: 'Off-white (#FAFAF7) paper texture, faint black editorial geometry near the edges, huge whitespace, no color.',
+  notebook: 'Cream lined notebook paper, faint hand-drawn ink doodles, arrows and underlines around the edges, one ACCENT circled scribble.',
+  stat: 'Near-black terminal dashboard aesthetic: thin grid lines, faint glowing ACCENT data traces and chart fragments near the edges.',
+};
+
+function backgroundPrompt(style, profile) {
+  const accent = /^#[0-9a-fA-F]{6}$/.test(profile?.color || '') ? profile.color : '#FF4D00';
+  const base = (BG_STYLES[style] || BG_STYLES.bold).split('ACCENT').join(accent);
+  const about = [profile?.what, profile?.who].filter(Boolean).join(' — ').substring(0, 300);
+  return `Textless background art for a social media carousel promoting an app. The app: ${about || 'a software product'}.
+${base}
+Weave in subtle abstract visual motifs related to the app's subject matter (never literal screenshots or UI), and keep the middle of the canvas quiet and empty for a text overlay.
+Portrait 4:5. ABSOLUTELY NO text, no letters, no numbers, no words, no logos.`;
+}
+
 function cors(req, res) {
   const origin = req.headers.origin || '';
   const host = req.headers.host || '';
@@ -135,7 +154,28 @@ export default async function handler(req, res) {
       });
     }
 
-    // ===== SLIDE: render one image =====
+    // ===== BACKGROUND: one textless image per carousel; client draws the text =====
+    if (action === 'background') {
+      const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
+      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      const profile = await getProfile(user.id).catch(() => null);
+
+      const prompt = backgroundPrompt(carousel.style, profile);
+      let b64;
+      try {
+        b64 = await callGeminiImage(prompt);
+      } catch (e) {
+        // one automatic retry — image gen fails transiently
+        b64 = await callGeminiImage(prompt);
+      }
+      return res.status(200).json({
+        image: `data:image/png;base64,${b64}`,
+        style: carousel.style,
+        watermark: !!carousel.watermark,
+      });
+    }
+
+    // ===== SLIDE: render one image (legacy path for cached clients) =====
     if (action === 'slide') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });

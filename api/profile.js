@@ -274,6 +274,7 @@ function cleanProfile(p) {
     who: clipText(p.who, 600),
     benefit: clipText(p.benefit, 300),
     tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
+    color: /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color.toUpperCase() : '',
   };
 }
 
@@ -335,6 +336,7 @@ export default async function handler(req, res) {
         who: structured.who,
         benefit: structured.benefit,
         tone: structured.tone,
+        color: structured.color,
       });
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {

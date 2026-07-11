@@ -468,55 +468,158 @@ function renderCarousel() {
     '<div class="dl-row">' +
       '<button class="btn btn-primary" id="dl-all" disabled>Download slides (.zip)</button>' +
       '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
+      '<button class="mini-btn" id="redo-bg">New background</button>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
     navigator.clipboard.writeText(c.caption);
     this.textContent = 'Copied'; var b = this; setTimeout(function () { b.textContent = 'Copy caption'; }, 1500);
   });
   el('dl-all').addEventListener('click', downloadZip);
+  el('redo-bg').addEventListener('click', function () { generateSlides(); });
 }
 
+// ============ SLIDE RENDERING ============
+// One AI background per carousel (textless), then canvas draws the text —
+// razor-sharp type, zero typo risk, one image bill instead of six.
 var SLIDE_IMAGES = {};
+var SLIDE_W = 1080, SLIDE_H = 1350;
+
+var SLIDE_THEMES = {
+  bold:     { overlay: 'rgba(13,16,20,0.62)',    ink: '#FFFFFF', sub: 'rgba(255,255,255,0.85)', mono: false },
+  mono:     { overlay: 'rgba(250,250,247,0.88)', ink: '#141414', sub: 'rgba(20,20,20,0.72)',    mono: false },
+  notebook: { overlay: 'rgba(247,242,230,0.82)', ink: '#20232B', sub: 'rgba(32,35,43,0.75)',    mono: false },
+  stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true  },
+};
+
+function accentColor() {
+  var c = (ST.profile && ST.profile.color) || '';
+  return /^#[0-9a-fA-F]{6}$/.test(c) ? c : '#FF4D00';
+}
+
+function wrapText(x, text, maxWidth) {
+  var words = String(text || '').split(/\s+/).filter(Boolean);
+  var lines = [], line = '';
+  words.forEach(function (w) {
+    var probe = line ? line + ' ' + w : w;
+    if (x.measureText(probe).width > maxWidth && line) { lines.push(line); line = w; }
+    else line = probe;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawSlide(bg, slide, count, style) {
+  var theme = SLIDE_THEMES[style] || SLIDE_THEMES.bold;
+  var family = theme.mono ? '"Geist Mono", monospace' : 'Geist, sans-serif';
+  var c = document.createElement('canvas');
+  c.width = SLIDE_W; c.height = SLIDE_H;
+  var x = c.getContext('2d');
+
+  // cover-fit the background
+  var scale = Math.max(SLIDE_W / bg.naturalWidth, SLIDE_H / bg.naturalHeight);
+  var bw = bg.naturalWidth * scale, bh = bg.naturalHeight * scale;
+  x.drawImage(bg, (SLIDE_W - bw) / 2, (SLIDE_H - bh) / 2, bw, bh);
+
+  // legibility overlay
+  x.fillStyle = theme.overlay;
+  x.fillRect(0, 0, SLIDE_W, SLIDE_H);
+
+  var pad = 100, maxW = SLIDE_W - pad * 2;
+
+  // heading — shrink until it fits 6 lines
+  var hSize = 92, hLines;
+  do {
+    x.font = '800 ' + hSize + 'px ' + family;
+    hLines = wrapText(x, slide.heading, maxW);
+    if (hLines.length <= 6) break;
+    hSize -= 8;
+  } while (hSize > 48);
+  var hLH = Math.round(hSize * 1.12);
+
+  var bSize = 40, bLH = Math.round(bSize * 1.42), bLines = [];
+  if (slide.body) {
+    x.font = '500 ' + bSize + 'px ' + family;
+    bLines = wrapText(x, slide.body, maxW);
+  }
+
+  var gap = slide.body ? 44 : 0;
+  var blockH = hLines.length * hLH + gap + bLines.length * bLH;
+  var top = Math.max(pad + 120, (SLIDE_H - blockH) / 2);
+
+  // accent bar above the heading
+  x.fillStyle = accentColor();
+  x.fillRect(pad, top - 56, 88, 12);
+
+  x.textBaseline = 'top';
+  x.fillStyle = theme.ink;
+  x.font = '800 ' + hSize + 'px ' + family;
+  hLines.forEach(function (ln, i) { x.fillText(ln, pad, top + i * hLH); });
+
+  if (bLines.length) {
+    x.fillStyle = theme.sub;
+    x.font = '500 ' + bSize + 'px ' + family;
+    var bTop = top + hLines.length * hLH + gap;
+    bLines.forEach(function (ln, i) { x.fillText(ln, pad, bTop + i * bLH); });
+  }
+
+  // slide index chip, bottom left
+  x.fillStyle = theme.sub;
+  x.font = '500 30px "Geist Mono", monospace';
+  x.fillText((slide.index + 1) + ' / ' + count, pad, SLIDE_H - pad + 20);
+
+  return c.toDataURL('image/png');
+}
+
 function generateSlides() {
   SLIDE_IMAGES = {};
   var slides = ST.carousel.slides;
-  var i = 0;
-  function next() {
-    if (i >= slides.length) { el('dl-all').disabled = false; return; }
-    var s = slides[i];
-    renderSlideStatus(s.index, 'rendering ' + (i + 1) + ' / ' + slides.length + '…');
-    requestSlide(s.index, function () { i++; next(); });
-  }
-  next();
+  var style = ST.carousel.style || 'bold';
+  slides.forEach(function (s) { renderSlideStatus(s.index, 'designing background…'); });
+  var dl = el('dl-all'); if (dl) dl.disabled = true;
+
+  fetch('/api/carousel', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'background', carouselId: ST.carousel.carouselId })
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (res) {
+      if (res.s !== 200 || !res.j.image) {
+        slides.forEach(function (s) { renderSlideStatus(s.index, res.j.error || 'background failed — hit “New background” to retry'); });
+        var d2 = el('dl-all'); if (d2) d2.disabled = false;
+        return;
+      }
+      var bg = new Image();
+      bg.onload = function () {
+        var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        ready.then(function () {
+          var pending = slides.length;
+          slides.forEach(function (s) {
+            var dataUrl = drawSlide(bg, s, slides.length, style);
+            var isLast = s.index === slides.length - 1;
+            var finish = function (u) {
+              SLIDE_IMAGES[s.index] = u;
+              var box = el('slide-' + s.index);
+              if (box) box.innerHTML = '<img src="' + u + '" alt="Slide ' + (s.index + 1) + '">';
+              if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
+            };
+            if (res.j.watermark && isLast) applyWatermark(dataUrl, finish);
+            else finish(dataUrl);
+          });
+        });
+      };
+      bg.onerror = function () {
+        slides.forEach(function (s) { renderSlideStatus(s.index, 'background failed — hit “New background” to retry'); });
+      };
+      bg.src = res.j.image;
+    })
+    .catch(function () {
+      slides.forEach(function (s) { renderSlideStatus(s.index, 'network error — hit “New background” to retry'); });
+    });
 }
 
 function renderSlideStatus(index, msg) {
   var box = el('slide-' + index);
   if (box) box.innerHTML = '<div class="status">' + esc(msg) + '</div>';
-}
-
-function requestSlide(index, done) {
-  fetch('/api/carousel', {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'slide', carouselId: ST.carousel.carouselId, index: index })
-  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
-    .then(function (res) {
-      var box = el('slide-' + index);
-      if (res.s === 200 && res.j.image) {
-        var finish = function (dataUrl) {
-          SLIDE_IMAGES[index] = dataUrl;
-          box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (index + 1) + '"><button class="redo" data-slide="' + index + '">redo</button>';
-          done();
-        };
-        if (res.j.watermark) applyWatermark(res.j.image, finish);
-        else finish(res.j.image);
-      } else {
-        box.innerHTML = '<div class="status">failed</div><button class="redo" data-slide="' + index + '">retry</button>';
-        done();
-      }
-    })
-    .catch(function () { renderSlideStatus(index, 'failed — retry below'); done(); });
 }
 
 // free-tier watermark: drawn client-side on the last slide
@@ -545,15 +648,6 @@ function applyWatermark(dataUrl, cb) {
   img.onerror = function () { cb(dataUrl); };
   img.src = dataUrl;
 }
-
-el('caro-out').addEventListener('click', function (e) {
-  var redo = e.target.closest('[data-slide]');
-  if (redo) {
-    var idx = parseInt(redo.getAttribute('data-slide'), 10);
-    renderSlideStatus(idx, 'rendering…');
-    requestSlide(idx, function () {});
-  }
-});
 
 // ============ ZIP DOWNLOAD (store-only zip, no dependencies) ============
 var CRC_TABLE = (function () {
@@ -641,7 +735,7 @@ el('hist-list').addEventListener('click', function (e) {
   var row = e.target.closest('[data-c]'); if (!row) return;
   var c = (ST.history || []).find(function (x) { return x.id === parseInt(row.getAttribute('data-c'), 10); });
   if (!c) return;
-  ST.carousel = { carouselId: c.id, slides: c.slides, caption: c.caption, watermark: c.watermark };
+  ST.carousel = { carouselId: c.id, slides: c.slides, caption: c.caption, watermark: c.watermark, style: c.style };
   ST.watermark = !!c.watermark;
   renderCarousel();
   generateSlides(); // re-renders slides (images aren't stored)

@@ -39,13 +39,15 @@ Return ONLY this JSON object:
   "what": "1-2 sentences: what the app is and what it does, in plain words",
   "who": "1 sentence: who it is for",
   "benefit": "1 sentence: the single biggest concrete benefit or outcome for the user",
-  "tone": "casual"
+  "tone": "casual",
+  "color": "#RRGGBB"
 }
 
 Rules:
 - Use only facts present in the text. Never invent features, numbers, or claims.
 - benefit must be the sharpest, most specific outcome in the text (a number, a time saved, a pain removed). If several exist, pick the strongest one.
 - tone must be one of: casual, professional, funny, authority — infer from the writing style of the source.
+- color: the app's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits the app's subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
