@@ -88,8 +88,9 @@ h1, h2, h3 { text-wrap: balance; }
 /* primary — white pill on black (the opus CTA) */
 .btn-primary { background: var(--ink); color: #000; }
 .btn-primary:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 12px 32px -12px rgba(255,255,255,.35); }
-/* generate — the one saturated action */
-.btn-signal { background: var(--signal); color: #fff; }
+/* generate — the one saturated action. Black type on signal orange:
+   white fails AA (3.3:1) at this size, black passes (6.3:1). */
+.btn-signal { background: var(--signal); color: #000; }
 .btn-signal:hover { background: var(--signal-hi); transform: translateY(-1px); box-shadow: 0 14px 34px -12px rgba(255,77,0,.6); }
 .btn-signal:disabled, .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
 /* quiet glass */
@@ -159,11 +160,12 @@ h1, h2, h3 { text-wrap: balance; }
 .hook-card .hook-verbatim { font-size: 13px; color: var(--muted); line-height: 1.5; }
 .hook-card .hook-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
 
-/* receipts */
+/* receipts — on hook cards they're the proof, so they read louder than chrome */
 .stat { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.hook-card .stat { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
 .score-chip {
   font-family: var(--mono); font-size: 12px; font-weight: 700;
-  background: var(--signal); color: #fff;
+  background: var(--signal); color: #000;
   padding: 4px 10px; border-radius: 999px; white-space: nowrap;
 }
 .tag {
@@ -213,6 +215,11 @@ select.chip { appearance: none; }
    Without JS nothing is hidden; content is always visible by default. */
 .rv { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s cubic-bezier(.22,1,.36,1); }
 .rv-in { opacity: 1; transform: none; }
+
+/* entrance rise — animations (not class-gated transitions) so content
+   always ends visible; reduced-motion override truncates them globally */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.hook-card { animation: rise .55s cubic-bezier(.22,1,.36,1) backwards; }
 
 /* focus */
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {

@@ -81,10 +81,12 @@
     '.suite-nav-gopro{font-size:13px;font-weight:700;color:#000;background:#F5F5F6;text-decoration:none;padding:8px 18px;border-radius:999px;transition:all 0.2s;white-space:nowrap;}' +
     '.suite-nav-gopro:hover{background:#fff;transform:translateY(-1px);}' +
     '.suite-nav-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;cursor:pointer;}' +
-    '.suite-nav-user{display:flex;align-items:center;gap:8px;position:relative;cursor:pointer;}' +
+    '.suite-nav-user{display:flex;align-items:center;gap:8px;position:relative;}' +
+    '.suite-nav-userbtn{display:flex;align-items:center;gap:8px;background:none;border:none;padding:2px;border-radius:999px;cursor:pointer;font-family:"Geist",-apple-system,sans-serif;}' +
+    '@keyframes nvdrop{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:none;}}' +
     '.suite-nav-username{font-size:13px;font-weight:500;color:#9C9FA6;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
     '.suite-nav-dropdown{position:absolute;top:100%;right:0;margin-top:10px;background:rgba(16,17,20,0.95);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,0.7);min-width:200px;padding:8px;z-index:1001;display:none;}' +
-    '.suite-nav-dropdown.show{display:block;}' +
+    '.suite-nav-dropdown.show{display:block;animation:nvdrop .18s cubic-bezier(.22,1,.36,1);}' +
     '.suite-nav-drop-item{display:block;width:100%;padding:10px 14px;font-family:"Geist",sans-serif;font-size:13px;font-weight:500;color:#C9CCD1;border:none;background:none;cursor:pointer;text-align:left;border-radius:10px;transition:all 0.15s;text-decoration:none;}' +
     '.suite-nav-drop-item:hover{background:rgba(255,255,255,0.06);color:#F5F5F6;}' +
     '.suite-nav-drop-muted{color:#9C9FA6;cursor:default;font-size:12px;font-family:"Geist Mono",monospace;}' +
@@ -127,9 +129,11 @@
 
       rightHtml =
         '<div class="suite-nav-user" id="nav-user-area">' +
-          avatarHtml +
-          '<span class="suite-nav-username">' + escapeHtml(_user.name || _user.email || '') + '</span>' +
           goProHtml +
+          '<button class="suite-nav-userbtn" id="nav-user-btn" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">' +
+            avatarHtml +
+            '<span class="suite-nav-username">' + escapeHtml(_user.name || _user.email || '') + '</span>' +
+          '</button>' +
           '<div class="suite-nav-dropdown" id="nav-dropdown">' +
             '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(_user.email || '') + '</div>' +
             '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(usageLine(_user)) + '</div>' +
@@ -159,15 +163,14 @@
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
 
-    var userArea = document.getElementById('nav-user-area');
+    var userBtn = document.getElementById('nav-user-btn');
     var dropdown = document.getElementById('nav-dropdown');
-    if (userArea && dropdown) {
-      userArea.addEventListener('click', function(e) {
+    if (userBtn && dropdown) {
+      userBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        dropdown.classList.toggle('show');
-      });
-      document.addEventListener('click', function() {
-        dropdown.classList.remove('show');
+        var open = !dropdown.classList.contains('show');
+        dropdown.classList.toggle('show', open);
+        userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
     }
 
@@ -188,6 +191,18 @@
       });
     }
   }
+
+  // close user dropdown on outside click / Escape — registered once,
+  // resolves ids at event time because renderNav rebuilds the DOM
+  function closeUserMenu(refocus) {
+    var dd = document.getElementById('nav-dropdown');
+    if (!dd || !dd.classList.contains('show')) return;
+    dd.classList.remove('show');
+    var btn = document.getElementById('nav-user-btn');
+    if (btn) { btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus(); }
+  }
+  document.addEventListener('click', function() { closeUserMenu(false); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeUserMenu(true); });
 
   function escapeHtml(s) {
     var d = document.createElement('div');

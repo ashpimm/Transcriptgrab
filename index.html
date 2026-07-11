@@ -11,6 +11,7 @@
 <meta property="og:url" content="https://transcriptgrab.vercel.app/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://transcriptgrab.vercel.app/og-image.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>H</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FF4D00'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -28,6 +29,14 @@
 .hero .sub { color: var(--muted); font-size: clamp(15px, 2vw, 18px); max-width: 52ch; margin: 22px auto 0; }
 .hero .pastebar { margin: 36px auto 0; }
 .hero .fine { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 14px; }
+/* staggered entrance — one-shot on load, marketing surface only */
+.hero .kicker, .hero h1, .hero .sub, .hero .pastebar, .hero .fine {
+  animation: rise .7s cubic-bezier(.22,1,.36,1) backwards;
+}
+.hero h1 { animation-delay: .06s; }
+.hero .sub { animation-delay: .14s; }
+.hero .pastebar { animation-delay: .22s; }
+.hero .fine { animation-delay: .3s; }
 
 /* ---------- demo slide strip ---------- */
 .demo { padding: clamp(30px, 5vw, 60px) 0 0; }
@@ -43,12 +52,20 @@
   border: 1px solid var(--line);
 }
 .mini-slide small { font-weight: 500; font-size: .72em; opacity: .65; margin-top: 8px; line-height: 1.4; }
+.mini-slide { transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s; }
 .ms-1 { background: #17181C; color: #fff; }
 .ms-2 { background: #F0EFEA; color: #101114; }
 .ms-3 { background: #17181C; color: #fff; }
 .ms-4 { background: #F0EFEA; color: #101114; }
-.ms-5 { background: var(--signal); color: #fff; }
-.slide-strip .mini-slide:nth-child(odd) { transform: translateY(10px); }
+.ms-5 { background: var(--signal); color: #fff; box-shadow: 0 14px 44px -14px rgba(255,77,0,.5); }
+/* loose deck of physical cards, not a row of tiles */
+.slide-strip .mini-slide:nth-child(1) { transform: translateY(10px) rotate(-1.6deg); }
+.slide-strip .mini-slide:nth-child(2) { transform: rotate(.9deg); }
+.slide-strip .mini-slide:nth-child(3) { transform: translateY(10px) rotate(-.8deg); }
+.slide-strip .mini-slide:nth-child(4) { transform: rotate(1.4deg); }
+.slide-strip .mini-slide:nth-child(5) { transform: translateY(10px) rotate(-1.2deg); }
+.slide-strip .mini-slide:nth-child(n):hover { transform: translateY(-6px) rotate(0deg); box-shadow: 0 20px 50px -18px rgba(0,0,0,.8); }
+.slide-strip .mini-slide.ms-5:hover { box-shadow: 0 20px 54px -14px rgba(255,77,0,.6); }
 @media (max-width: 760px) { .slide-strip { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 10px; scrollbar-width: none; } .slide-strip::-webkit-scrollbar { display: none; } }
 .demo-caption { margin-top: 22px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-align: center; }
 .demo-caption b { color: var(--ink-2); font-weight: 500; }
@@ -57,9 +74,9 @@
 .feedgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .feed-cta { text-align: center; margin-top: 36px; }
 
-/* ---------- steps ---------- */
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; counter-reset: step; }
-.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 26px; }
+/* ---------- steps — connected flow, not three more cards ---------- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px 32px; counter-reset: step; }
+.step { position: relative; }
 .step::before {
   counter-increment: step; content: counter(step);
   display: inline-flex; align-items: center; justify-content: center;
@@ -67,8 +84,17 @@
   font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
   margin-bottom: 18px;
 }
+/* hairline joining the number chips */
+.step:not(:last-child)::after {
+  content: ''; position: absolute; top: 17px; left: 48px; right: -18px;
+  height: 1px; background: var(--line);
+}
 .step h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 8px; }
-.step p { color: var(--muted); font-size: 14.5px; }
+.step p { color: var(--muted); font-size: 14.5px; max-width: 34ch; }
+@media (max-width: 760px) {
+  .steps { grid-template-columns: 1fr; gap: 30px; }
+  .step::after { display: none; }
+}
 
 /* ---------- pricing ---------- */
 .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: stretch; max-width: 980px; margin: 0 auto; }
@@ -93,6 +119,7 @@
 .faq summary::after { content: '+'; font-weight: 400; font-size: 22px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq .a { padding: 0 4px 22px; color: var(--muted); font-size: 14.5px; max-width: 62ch; }
+.faq details[open] .a { animation: rise .35s cubic-bezier(.22,1,.36,1) backwards; }
 
 /* ---------- final cta ---------- */
 .final { text-align: center; padding: clamp(88px, 12vw, 150px) 0; }
@@ -109,7 +136,7 @@
   <p class="sub">Paste your app’s link. Get a faceless carousel built on a hook that already did 5× numbers — slides, caption, hashtags. Post it today. No camera, no followers.</p>
   <form class="pastebar" id="hero-paste">
     <input type="url" id="hero-url" placeholder="Drop your app’s link" aria-label="Your app's URL">
-    <button class="btn btn-primary" type="submit">Get my free carousel</button>
+    <button class="btn btn-signal" type="submit">Get my free carousel</button>
   </form>
   <div class="fine">first carousel free · no card required</div>
 </header>
@@ -289,12 +316,12 @@ fetch('/api/hooks?niche=appdev')
       grid.innerHTML = '<div class="empty" style="grid-column:1/-1">The feed restocks daily — check back shortly.</div>';
       return;
     }
-    grid.innerHTML = hooks.map(function (h) {
+    grid.innerHTML = hooks.map(function (h, i) {
       var vid = ytId(h.video_url);
       var thumb = vid
         ? '<div class="hook-thumb"><img src="https://img.youtube.com/vi/' + vid + '/hqdefault.jpg" alt="" loading="lazy"><span class="score-chip">' + Number(h.outlier_score).toFixed(1) + '×</span></div>'
         : '';
-      return '<a class="hook-card" href="/feed" style="text-decoration:none">' +
+      return '<a class="hook-card" href="/feed" style="text-decoration:none;animation-delay:' + (i * 60) + 'ms">' +
         thumb +
         '<div class="hook-text">' + esc(h.hook_template) + '</div>' +
         '<div class="hook-meta"><span class="stat">' + fmt(h.views) + ' views · ' + fmt(h.followers) + ' followers</span></div>' +
