@@ -6,7 +6,7 @@
 // GET  /api/carousel                                      -> { carousels } (history, copy only)
 
 import {
-  getSession, getHooksByIds, getProfile,
+  getSession, getHooksByIds, getProfile, getAutoHookPool,
   saveCarousel, getCarousels, getCarousel,
   canGenerateCarousel, consumeCarousel,
 } from './_db.js';
@@ -80,11 +80,22 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Set up your app profile first.', needsProfile: true });
       }
 
-      const hooks = await getHooksByIds([parseInt(body.hookId, 10)]);
-      if (hooks.length === 0) return res.status(400).json({ error: 'Pick a hook first.' });
-      const hook = hooks[0];
+      // hookId is optional — the done-for-you default picks a random hook
+      // from the niche's top performers (curated patterns + best receipts).
+      let hook = null;
+      const hookId = parseInt(body.hookId, 10);
+      if (Number.isInteger(hookId) && hookId > 0) {
+        hook = (await getHooksByIds([hookId]))[0] || null;
+      }
+      if (!hook) {
+        const pool = await getAutoHookPool('appdev', 10);
+        if (pool.length === 0) return res.status(503).json({ error: 'No hooks available yet — try again shortly.' });
+        hook = pool[Math.floor(Math.random() * pool.length)];
+      }
 
-      const style = STYLES[body.style] ? body.style : 'bold';
+      // style optional too — no pick means we choose for you
+      const styleKeys = Object.keys(STYLES);
+      const style = STYLES[body.style] ? body.style : styleKeys[Math.floor(Math.random() * styleKeys.length)];
       const payload = {
         app: {
           name: profile.name || '',

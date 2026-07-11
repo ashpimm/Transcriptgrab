@@ -229,11 +229,14 @@ export async function markNicheMined(nicheId) {
   await sql`UPDATE niches SET last_mined_at = NOW() WHERE id = ${nicheId}`;
 }
 
-export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0 }) {
+export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0, includeCurated = false }) {
   const sql = getSQL();
   // Feed is fully public. Rows with curated:// placeholder URLs have no real
-  // source video (no receipts), so they never ship to the client.
+  // source video (no receipts), so they never ship to the feed — but the
+  // create-page picker asks for them (includeCurated) since they're the
+  // hand-written high-quality patterns.
   const cappedLimit = Math.min(limit, 100);
+  const curatedOk = !!includeCurated;
   const rows = await sql`
     SELECT h.id, h.hook_template, h.hook_verbatim, h.topic, h.format, h.platform,
            h.video_url, h.video_title, h.views, h.followers, h.outlier_score,
@@ -241,23 +244,37 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
-      AND h.video_url NOT LIKE 'curated://%'
+      AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
-    ORDER BY h.outlier_score DESC, h.last_verified DESC
+    ORDER BY h.curated DESC, h.outlier_score DESC, h.last_verified DESC
     LIMIT ${cappedLimit} OFFSET ${offset}
   `;
   const countRows = await sql`
     SELECT COUNT(*)::int AS total
     FROM hooks h JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
-      AND h.video_url NOT LIKE 'curated://%'
+      AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
   `;
   return { hooks: rows, total: countRows[0].total };
+}
+
+// Auto-pick for the done-for-you flow: a random hook from the niche's top
+// performers (mined receipts first, curated patterns as the fallback pool).
+export async function getAutoHookPool(nicheSlug, poolSize = 10) {
+  const sql = getSQL();
+  return sql`
+    SELECT h.*, n.slug AS niche_slug
+    FROM hooks h
+    JOIN niches n ON n.id = h.niche_id
+    WHERE n.active = TRUE AND n.slug = ${nicheSlug}
+    ORDER BY h.curated DESC, h.outlier_score DESC, h.last_verified DESC
+    LIMIT ${poolSize}
+  `;
 }
 
 export async function getHooksByIds(ids) {

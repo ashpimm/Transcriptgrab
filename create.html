@@ -35,24 +35,35 @@
 .profile-summary .ps-what { color: var(--ink-2); font-size: 14px; margin-top: 4px; max-width: 68ch; }
 .profile-summary .ps-meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 
-/* build grid */
-.build-grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
-.picker { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; position: sticky; top: 84px; max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
-.picker h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.picker .hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-.pick-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 120px; }
+/* profile form fields grow with their content */
+.profile-form textarea { resize: none; overflow: hidden; min-height: 52px; }
+
+/* generate zone — done-for-you by default */
+.gen-zone { margin-bottom: 34px; }
+.gen-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+.gen-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.gen-card .hint-line { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; max-width: 62ch; }
+.gen-card .btn { width: 100%; max-width: 420px; }
+.gen-note { font-size: 12px; color: var(--muted); margin-top: 10px; font-family: var(--mono); }
+.customize-toggle { background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 13px; cursor: pointer; margin-top: 16px; text-decoration: underline; text-underline-offset: 3px; display: block; }
+.customize-toggle:hover { color: var(--ink); }
+
+/* customize panel (collapsed by default) */
+.customize { display: none; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 20px; grid-template-columns: 1fr 1fr; gap: 24px; }
+.customize.show { display: grid; }
+.customize h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.customize .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+.pick-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 340px; }
 .pick-item { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 12px 14px; cursor: pointer; font-size: 13.5px; font-weight: 500; line-height: 1.4; transition: all .12s; }
 .pick-item:hover { border-color: var(--line-2); }
 .pick-item.sel { border-color: var(--ink); background: var(--glass-2); }
 .pick-item .st { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; font-weight: 400; }
-.gen-bar { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
-.style-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.style-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .style-tile { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 13px 10px; text-align: center; cursor: pointer; font-weight: 600; font-size: 13px; transition: all .12s; }
 .style-tile:hover { border-color: var(--line-2); }
 .style-tile.sel { border-color: var(--ink); background: var(--glass-2); }
 .style-tile small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10px; color: var(--muted); margin-top: 4px; }
-.gen-bar .btn { width: 100%; }
-.gen-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; font-family: var(--mono); }
+@media (max-width: 720px) { .customize { grid-template-columns: 1fr; } }
 
 /* output */
 .slide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
@@ -76,7 +87,6 @@
 .hist-row:hover { border-color: var(--line-2); }
 .hist-row .t { font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-@media (max-width: 920px) { .build-grid { grid-template-columns: 1fr; } .picker { position: static; max-height: 420px; } }
 </style>
 </head>
 <body>
@@ -135,30 +145,41 @@
       </div>
     </section>
 
-    <!-- ============ BUILD ============ -->
-    <section class="build-grid">
-      <aside class="picker">
-        <h2>Hook + style</h2>
-        <p class="hint">Saved hooks first, then the feed’s top performers. One hook per carousel.</p>
-        <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
-        <div class="gen-bar">
-          <div class="style-row">
-            <div class="style-tile sel" data-style="bold">Bold<small>high-contrast type</small></div>
-            <div class="style-tile" data-style="mono">Mono<small>black &amp; white</small></div>
-            <div class="style-tile" data-style="notebook">Notebook<small>hand-drawn paper</small></div>
-            <div class="style-tile" data-style="stat">Stat<small>dark data card</small></div>
+    <!-- ============ GENERATE (done-for-you) ============ -->
+    <section class="gen-zone">
+      <div class="gen-card">
+        <h2>We take it from here.</h2>
+        <div class="hint-line">We pick a hook that already pulled outlier views, rewrite it around your app, and design the slides. You get the whole post — slides, caption, hashtags.</div>
+        <button class="btn btn-signal" id="gen-btn">Generate my carousel</button>
+        <div class="gen-note" id="gen-note"></div>
+        <button class="customize-toggle" id="customize-toggle" type="button">Want control? Choose the hook + style yourself</button>
+        <div class="customize" id="customize">
+          <div>
+            <h3>Hook</h3>
+            <p class="hint">Real openers with receipts — views earned vs followers. We rewrite your pick around your app. No pick = we grab a proven one for you.</p>
+            <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
           </div>
-          <button class="btn btn-signal" id="gen-btn">Generate carousel</button>
-          <div class="gen-note" id="gen-note"></div>
+          <div>
+            <h3>Style</h3>
+            <p class="hint">No pick = we choose one that fits.</p>
+            <div class="style-row">
+              <div class="style-tile" data-style="bold">Bold<small>high-contrast type</small></div>
+              <div class="style-tile" data-style="mono">Mono<small>black &amp; white</small></div>
+              <div class="style-tile" data-style="notebook">Notebook<small>hand-drawn paper</small></div>
+              <div class="style-tile" data-style="stat">Stat<small>dark data card</small></div>
+            </div>
+          </div>
         </div>
-      </aside>
-      <div>
-        <div id="caro-out"><div class="empty-state">
-          <h3>Your next post starts here.</h3>
-          <p>Pick a hook on the left. You’ll get slides, a caption, and hashtags — the whole post.</p>
-        </div></div>
-        <div class="history" id="history" style="display:none"><h2>Past carousels</h2><div id="hist-list"></div></div>
       </div>
+    </section>
+
+    <!-- ============ OUTPUT ============ -->
+    <section>
+      <div id="caro-out"><div class="empty-state">
+        <h3>Your next post starts here.</h3>
+        <p>Set your app profile above, hit generate — slides, caption, and hashtags come out ready to post.</p>
+      </div></div>
+      <div class="history" id="history" style="display:none"><h2>Past carousels</h2><div id="hist-list"></div></div>
     </section>
   </div>
 </main>
@@ -171,7 +192,16 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-var ST = { profile: null, hooks: [], hook: null, style: 'bold', carousel: null, watermark: false };
+var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false };
+
+// textareas grow with their content (imported profiles arrive pre-filled)
+function autoGrow(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
+document.querySelectorAll('.profile-form textarea').forEach(function (t) {
+  t.addEventListener('input', function () { autoGrow(t); });
+});
+function growAll() {
+  document.querySelectorAll('.profile-form textarea').forEach(autoGrow);
+}
 
 // ============ AUTH GATE ============
 window.addEventListener('load', function () {
@@ -240,6 +270,7 @@ function fillForm(p) {
   el('f-who').value = p.who || '';
   el('f-benefit').value = p.benefit || '';
   if (p.tone) el('f-tone').value = p.tone;
+  growAll();
 }
 
 el('manual-toggle').addEventListener('click', function () {
@@ -305,8 +336,21 @@ el('save-profile').addEventListener('click', function () {
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
       btn.disabled = false; btn.textContent = 'Save profile';
-      if (res.s === 200) { ST.profile = res.j.profile; renderProfileSummary(); }
-      else showMsg(res.j.error || 'Could not save.', false);
+      if (res.s === 200) {
+        ST.profile = res.j.profile;
+        renderProfileSummary();
+        el('gen-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (res.s === 401) {
+        window.location.href = '/api/auth/google';
+      } else {
+        showMsg(res.j.error || 'Could not save.', false);
+        el('p-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    })
+    .catch(function () {
+      btn.disabled = false; btn.textContent = 'Save profile';
+      showMsg('Network error — check your connection and try again.', false);
+      el('p-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 });
 
@@ -314,7 +358,7 @@ el('save-profile').addEventListener('click', function () {
 function loadHooks() {
   Promise.all([
     fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
-    fetch('/api/hooks?niche=appdev', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
+    fetch('/api/hooks?niche=appdev&curated=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
   ]).then(function (both) {
     var swipe = both[0].hooks || [];
     var lib = (both[1].hooks || []).filter(function (h) { return !swipe.some(function (s) { return s.id === h.id; }); });
@@ -326,24 +370,41 @@ function loadHooks() {
 function renderPicker() {
   el('pick-list').innerHTML = ST.hooks.map(function (h) {
     var sel = ST.hook === h.id;
-    return '<div class="pick-item' + (sel ? ' sel' : '') + '" data-id="' + h.id + '">' + esc(h.hook_template) +
-      '<span class="st">' + (h.fromSwipe ? '★ saved · ' : '') + (h.views > 0 ? fmt(h.views) + ' views · ' + Number(h.outlier_score).toFixed(1) + '×' : '') + '</span></div>';
+    // show the line that actually went viral, never the ___ template skeleton
+    var line = h.hook_verbatim || h.hook_template;
+    var st = h.fromSwipe ? '★ saved · ' : '';
+    if (h.views > 0) st += fmt(h.views) + ' views · ' + Number(h.outlier_score).toFixed(1) + '× their followers';
+    else if (h.curated) st += 'hand-picked pattern';
+    return '<div class="pick-item' + (sel ? ' sel' : '') + '" data-id="' + h.id + '">' + esc(line) +
+      '<span class="st">' + st + '</span></div>';
   }).join('') || '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">No hooks yet — browse the <a href="/feed" style="color:var(--ink)">feed</a>.</div>';
 }
 
 el('pick-list').addEventListener('click', function (e) {
   var it = e.target.closest('.pick-item'); if (!it) return;
-  ST.hook = parseInt(it.getAttribute('data-id'), 10);
+  var id = parseInt(it.getAttribute('data-id'), 10);
+  ST.hook = (ST.hook === id) ? null : id; // tap again to go back to auto
   renderPicker();
 });
 
 document.querySelectorAll('.style-tile').forEach(function (t) {
   t.addEventListener('click', function () {
+    var was = t.classList.contains('sel');
     document.querySelectorAll('.style-tile').forEach(function (x) { x.classList.remove('sel'); });
+    if (was) { ST.style = null; return; } // tap again to go back to auto
     t.classList.add('sel');
     ST.style = t.getAttribute('data-style');
   });
 });
+
+el('customize-toggle').addEventListener('click', function () {
+  var c = el('customize');
+  c.classList.toggle('show');
+  this.textContent = c.classList.contains('show')
+    ? 'Hide — let Hooklab pick for me'
+    : 'Want control? Choose the hook + style yourself';
+});
+if (location.hash === '#customize') el('customize-toggle').click();
 
 // ============ GENERATE ============
 el('gen-btn').addEventListener('click', function () {
@@ -351,35 +412,50 @@ el('gen-btn').addEventListener('click', function () {
     el('profile-zone').scrollIntoView({ behavior: 'smooth' });
     showMsg('Set up your app profile first — it takes one paste.', false);
     el('profile-form').classList.add('show');
+    el('gen-note').textContent = 'finish your app profile above first';
     return;
-  }
-  if (!ST.hook) {
-    // default to the top hook rather than blocking
-    if (ST.hooks.length) { ST.hook = ST.hooks[0].id; renderPicker(); }
-    else { el('gen-note').textContent = 'pick a hook first'; return; }
   }
   var btn = el('gen-btn');
   btn.disabled = true; btn.textContent = 'Planning slides…';
+  el('gen-note').textContent = 'writing your slides — about 15 seconds';
   fetch('/api/carousel', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'plan', hookId: ST.hook, style: ST.style })
+    // hookId / style omitted = server picks from proven top performers
+    body: JSON.stringify({ action: 'plan', hookId: ST.hook || undefined, style: ST.style || undefined })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
-      btn.disabled = false; btn.textContent = 'Generate carousel';
+      btn.disabled = false; btn.textContent = 'Generate my carousel';
       if (res.s === 200) {
         ST.carousel = res.j;
         ST.watermark = !!res.j.watermark;
+        updateGenNote();
         renderCarousel();
         generateSlides();
+        el('caro-out').scrollIntoView({ behavior: 'smooth' });
         if (window.TGUser) TGUser.refresh().then(updateGenNote);
       }
       else if (res.s === 401) window.location.href = '/api/auth/google';
-      else if (res.s === 400 && res.j.needsProfile) { el('profile-zone').scrollIntoView({ behavior: 'smooth' }); el('profile-form').classList.add('show'); }
-      else if (res.s === 402) window.TGPro && TGPro.showUpgradeModal({ variant: res.j.reason === 'monthly_limit' ? 'limit' : '' });
-      else alert(res.j.error || 'Failed. Try again.');
+      else if (res.s === 400 && res.j.needsProfile) {
+        el('profile-zone').scrollIntoView({ behavior: 'smooth' });
+        el('profile-form').classList.add('show');
+        el('gen-note').textContent = 'finish your app profile above first';
+      }
+      else if (res.s === 402) {
+        el('gen-note').textContent = res.j.error || 'Plan limit reached.';
+        if (window.TGPro) TGPro.showUpgradeModal({ variant: res.j.reason === 'monthly_limit' ? 'limit' : '' });
+        else alert(res.j.error || 'Plan limit reached.');
+      }
+      else {
+        el('gen-note').textContent = res.j.error || 'Something went wrong — try again.';
+        alert(res.j.error || 'Failed. Try again.');
+      }
     })
-    .catch(function () { btn.disabled = false; btn.textContent = 'Generate carousel'; alert('Network error. Try again.'); });
+    .catch(function () {
+      btn.disabled = false; btn.textContent = 'Generate my carousel';
+      el('gen-note').textContent = 'network error — try again';
+      alert('Network error. Try again.');
+    });
 });
 
 function renderCarousel() {

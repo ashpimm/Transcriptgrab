@@ -48,6 +48,9 @@ export default async function handler(req, res) {
           platform: req.query.platform || null,
           limit: 50,
           offset,
+          // create-page picker wants the hand-curated patterns too; the
+          // public feed (no flag) keeps its receipts-only promise
+          includeCurated: req.query.curated === '1',
         }),
         getNiches(),
       ]);
