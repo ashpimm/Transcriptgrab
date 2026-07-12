@@ -83,9 +83,9 @@ export default async function handler(req, res) {
     // Create session
     const token = await createSession(user.id);
 
-    // Check if user came from a checkout flow (plan=pro|credits)
+    // Check if user came from a checkout flow (plan=pro|credits|autopilot)
     const checkoutPlan = cookies.tg_checkout_plan;
-    const redirectTo = (checkoutPlan === 'pro' || checkoutPlan === 'credits')
+    const redirectTo = ['pro', 'credits', 'autopilot'].includes(checkoutPlan)
       ? `/api/checkout?plan=${checkoutPlan}`
       : '/create';
 

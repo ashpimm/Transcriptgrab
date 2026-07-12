@@ -27,6 +27,16 @@
 .plan-badge { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; }
 .plan-badge.pro { background: var(--ink); color: #000; }
 .plan-badge.free { background: var(--glass-2); color: var(--ink-2); }
+.queue-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.queue-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-s); font-size: 13.5px; }
+.queue-item .qi-main { min-width: 0; }
+.queue-item .qi-date { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.queue-item .qi-heading { font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-item .qi-error { font-size: 12px; color: var(--signal); margin-top: 2px; }
+.status-pill { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; flex-shrink: 0; }
+.status-pill.queued { background: var(--glass-2); color: var(--ink-2); }
+.status-pill.posted { background: var(--ink); color: #000; }
+.status-pill.failed { background: rgba(255,77,0,.16); color: var(--signal); }
 </style>
 </head>
 <body>
@@ -45,10 +55,14 @@
   <div class="acct-card">
     <h2>Need more?</h2>
     <div class="actions">
-      <button class="btn btn-primary" id="go-pro" style="display:none">Go Pro — $9/mo</button>
-      <button class="btn btn-ghost" id="buy-credits">Buy 8 credits — $5</button>
+      <button class="btn btn-primary" id="go-pro" style="display:none">Go Autopilot — $19/mo</button>
       <a class="btn btn-ghost" id="manage-sub" href="/api/checkout" style="display:none">Manage subscription</a>
     </div>
+  </div>
+
+  <div class="acct-card" id="autopilot-card" style="display:none">
+    <h2>Autopilot</h2>
+    <div id="autopilot-body"><span class="stat">Loading…</span></div>
   </div>
 
   <div class="acct-card">
@@ -71,22 +85,25 @@ window.addEventListener('load', function () {
   ready.then(function (u) {
     if (!u) { window.location.href = '/api/auth/google'; return; }
     render(u);
+    loadSocial();
   });
 });
 
 function render(u) {
   el('who').innerHTML =
     (u.picture ? '<img src="' + esc(u.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
-    '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Pro' : 'Free') + '</span></div>' +
+    '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Autopilot' : 'Free') + '</span></div>' +
     '<div class="e">' + esc(u.email || '') + '</div></div>';
 
   var body = '';
   if (u.tier === 'pro') {
-    var used = u.carouselsUsed || 0, lim = u.carouselsLimit || 20;
-    body += '<div class="row"><span>Carousels this month</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
+    var used = u.carouselsUsed || 0, lim = u.carouselsLimit || 30;
+    body += '<div class="row"><span>Autopilot $19/mo</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
       '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, used / lim * 100) + '%"></div></div>';
   } else {
-    body += '<div class="row"><span>Free carousel</span><span class="v">' + (u.freeCarouselUsed ? 'used' : 'available') + '</span></div>';
+    var fUsed = u.freeCarouselsUsed || 0, fLim = u.freeCarouselsLimit || 3;
+    body += '<div class="row"><span>Free carousels used</span><span class="v">' + fUsed + ' / ' + fLim + '</span></div>' +
+      '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, fUsed / fLim * 100) + '%"></div></div>';
   }
   body += '<div class="row"><span>Credits</span><span class="v">' + (u.credits || 0) + '</span></div>';
   el('plan-body').innerHTML = body;
@@ -98,8 +115,76 @@ function render(u) {
   }
 }
 
-el('go-pro').addEventListener('click', function () { TGPro._checkout('pro'); });
-el('buy-credits').addEventListener('click', function () { TGPro._checkout('credits'); });
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch (e) { return iso; }
+}
+
+function loadSocial() {
+  el('autopilot-card').style.display = 'block';
+  fetch('/api/social', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(renderSocial)
+    .catch(function () { el('autopilot-body').innerHTML = '<span class="stat">Couldn’t load autopilot status.</span>'; });
+}
+
+function renderSocial(d) {
+  if (!d.connected) {
+    el('autopilot-body').innerHTML =
+      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram to let Autopilot post your daily carousel automatically.</p>' +
+      '<button class="btn btn-primary" id="connect-social">Connect TikTok + Instagram</button>' +
+      '<div id="connect-err" style="color:var(--signal);font-size:13px;margin-top:12px;display:none;"></div>';
+    el('connect-social').addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true; btn.textContent = 'Connecting…';
+      fetch('/api/social', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'link' })
+      }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+        .then(function (res) {
+          btn.disabled = false; btn.textContent = 'Connect TikTok + Instagram';
+          if (res.s === 200 && res.j.url) {
+            window.open(res.j.url, '_blank');
+          } else {
+            var e = el('connect-err');
+            e.textContent = (res.j && res.j.error) || 'Something went wrong. Please try again.';
+            e.style.display = 'block';
+          }
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = 'Connect TikTok + Instagram';
+          var e = el('connect-err');
+          e.textContent = 'Connection error. Please try again.';
+          e.style.display = 'block';
+        });
+    });
+    return;
+  }
+
+  var posts = d.posts || [];
+  var queueHtml = posts.length
+    ? '<div class="queue-list">' + posts.map(function (p) {
+        var heading = (p.slides && p.slides[0] && (p.slides[0].heading || p.slides[0].text)) || '';
+        var status = p.status || 'queued';
+        return '<div class="queue-item">' +
+          '<div class="qi-main">' +
+            '<div class="qi-date">' + esc(fmtDate(p.scheduled_at)) + ' · ' + esc(p.kind || '') + '</div>' +
+            '<div class="qi-heading">' + esc(heading) + '</div>' +
+            (status === 'failed' && p.error ? '<div class="qi-error">' + esc(p.error) + '</div>' : '') +
+          '</div>' +
+          '<span class="status-pill ' + esc(status) + '">' + esc(status) + '</span>' +
+        '</div>';
+      }).join('') + '</div>'
+    : '<p style="color:var(--muted);font-size:13.5px;">No posts queued yet — the next one drafts within 24 hours.</p>';
+
+  el('autopilot-body').innerHTML =
+    '<div class="row"><span>Status</span><span class="v">Connected ✓ ' + esc(d.username || '') + '</span></div>' +
+    '<div style="margin-top:16px;">' + queueHtml + '</div>';
+}
+
+el('go-pro').addEventListener('click', function () { TGPro._checkout('autopilot'); });
 el('signout').addEventListener('click', function () {
   fetch('/api/auth/me', { method: 'POST', credentials: 'same-origin' }).then(function () {
     try { localStorage.removeItem('tg_user_cache'); } catch (e) {}

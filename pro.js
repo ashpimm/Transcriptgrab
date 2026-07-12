@@ -21,10 +21,10 @@
       var isSignedIn = window.TGUser && TGUser.isSignedIn();
 
       var title = 'Keep shipping content.';
-      var subtitle = 'Pro gets you 20 carousels a month, watermark-free. Or grab a one-off credit pack — no subscription.';
+      var subtitle = 'Autopilot gets you 30 carousels a month, watermark-free, posted for you daily to TikTok + Instagram.';
       if (variant === 'limit') {
-        title = 'You hit this month’s 20.';
-        subtitle = 'Your Pro quota resets on your billing date. Need more right now? A credit pack keeps you posting.';
+        title = 'You hit this month’s 30.';
+        subtitle = 'Your Autopilot quota resets on your billing date.';
       } else if (!isSignedIn) {
         title = 'Your first carousel is free.';
         subtitle = 'Sign in, paste your app’s link, and post today. No card required.';
@@ -34,13 +34,9 @@
         '<div class="tg-modal-plans">' +
           (variant === 'limit' ? '' :
           '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
-            '<span class="tg-plan-price">$9<small>/mo</small></span>' +
-            '<span class="tg-plan-desc">Pro — 20 carousels a month, no watermark</span>' +
+            '<span class="tg-plan-price">$19<small>/mo</small></span>' +
+            '<span class="tg-plan-desc">Autopilot — 30 carousels a month, posted for you daily</span>' +
           '</button>') +
-          '<button class="tg-modal-plan-btn" id="tg-buy-credits">' +
-            '<span class="tg-plan-price">$5</span>' +
-            '<span class="tg-plan-desc">8 carousels, no subscription, never expire</span>' +
-          '</button>' +
         '</div>';
 
       var signinHtml = isSignedIn ? '' :
@@ -77,8 +73,7 @@
           }
         });
       }
-      bindPlan('tg-buy-pro', 'pro');
-      bindPlan('tg-buy-credits', 'credits');
+      bindPlan('tg-buy-pro', 'autopilot');
     },
 
     hideUpgradeModal: function(){

@@ -14,7 +14,9 @@ function sessionParams(user, baseUrl, plan) {
     customer_email: user.email,
     mode: isCredits ? 'payment' : 'subscription',
     line_items: [{
-      price: isCredits ? process.env.STRIPE_CREDITS_PRICE_ID : process.env.STRIPE_PRO_PRICE_ID,
+      price: isCredits
+        ? process.env.STRIPE_CREDITS_PRICE_ID
+        : (process.env.STRIPE_AUTOPILOT_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID),
       quantity: 1,
     }],
     success_url: `${baseUrl}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
@@ -46,13 +48,13 @@ export default async function handler(req, res) {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const baseUrl = `${protocol}://${req.headers.host}`;
 
-      // ?plan=pro|credits: send straight into checkout (used by landing/feed CTAs)
+      // ?plan=pro|credits|autopilot: send straight into checkout (used by landing/feed CTAs)
       const plan = req.query.plan;
-      if (plan === 'pro' || plan === 'credits') {
+      if (plan === 'pro' || plan === 'credits' || plan === 'autopilot') {
         if (!user) {
           return res.writeHead(302, { Location: `/api/auth/google?plan=${plan}` }).end();
         }
-        if (plan === 'pro' && user.tier === 'pro') {
+        if ((plan === 'pro' || plan === 'autopilot') && user.tier === 'pro') {
           return res.writeHead(302, { Location: '/create' }).end();
         }
         const session = await stripe.checkout.sessions.create(sessionParams(user, baseUrl, plan));
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
 
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-    const plan = body && body.plan === 'credits' ? 'credits' : 'pro';
+    const plan = body && body.plan === 'credits' ? 'credits' : (body && body.plan === 'autopilot' ? 'autopilot' : 'pro');
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const protocol = req.headers['x-forwarded-proto'] || 'https';

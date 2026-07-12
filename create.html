@@ -241,10 +241,10 @@ function updateGenNote(u) {
     if (u.credits > 0) note += ' · ' + u.credits + ' credits';
   } else if (u.credits > 0) {
     note = u.credits + ' credit' + (u.credits === 1 ? '' : 's') + ' left';
-  } else if (!u.freeCarouselUsed) {
-    note = 'your free carousel is ready · watermark on last slide';
+  } else if ((u.freeCarouselsUsed || 0) < (u.freeCarouselsLimit || 3)) {
+    note = 'free carousel ' + ((u.freeCarouselsUsed || 0) + 1) + ' of ' + (u.freeCarouselsLimit || 3) + ' · subtle watermark on last slide';
   } else {
-    note = 'free carousel used · go Pro or grab credits';
+    note = 'free carousels used · $19/mo Autopilot — posted for you daily';
   }
   el('gen-note').textContent = note;
 }
