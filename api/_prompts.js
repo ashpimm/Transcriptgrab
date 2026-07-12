@@ -73,10 +73,12 @@ Rules:
 // ============================================
 // CAROUSEL (app profile + hook -> slides + caption + hashtags)
 // ============================================
-export const CAROUSEL_COPY_PROMPT = `You write faceless carousel posts (Instagram/TikTok image slides) that market an app. You receive JSON with:
+export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for an app. You receive JSON:
 - app: { name, what, who, benefit, tone }
-- hook: { template, verbatim, topic }
-- slideCount: total slides (including hook slide and CTA slide)
+- audienceNiche: the content niche of the app's TARGET USERS (write for THEM, in their language — never for app developers)
+- hook: { template, verbatim, topic } — a proven hook PATTERN
+- kind: "value" or "showcase"
+- slideCount: total slides including hook slide and final slide
 
 Return ONLY this JSON object:
 {
@@ -84,19 +86,25 @@ Return ONLY this JSON object:
     { "index": 0, "heading": "the adapted hook, max 12 words", "body": "" },
     { "index": 1, "heading": "short punchy heading", "body": "1-2 sentences of concrete value, max 30 words" }
   ],
-  "caption": "2-3 sentences that make the reader want the app, ending with where to get it (use the app name, not a URL)",
-  "hashtags": ["5-8 lowercase hashtags without the # symbol, mixing niche and reach tags"],
-  "motifs": ["3-5 concrete drawable objects that visually represent this app's subject"]
+  "caption": "2-3 sentences continuing the post's idea, ending with where to get the app (app name, not a URL)",
+  "hashtags": ["5-8 lowercase hashtags without #, audienceNiche tags + reach tags"],
+  "motifs": ["3-5 concrete drawable objects representing the app's subject"]
 }
 
+THE ONE RULE THAT MATTERS — a single narrative arc:
+Slide 0 makes a promise. Every following slide pays off exactly that promise. The last slide is the natural conclusion of the same arc. A reader must never feel the topic change between slide 0 and the last slide. If slide 0 promises "5 things", the middle slides ARE the 5 things, numbered. The app enters only where the arc naturally lands on the job the app does — as the payoff, never as a bolted-on ad.
+
+kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mistakes, mini-plan, myths). Real substance the reader can use without the app. The final slide's insight naturally involves the app's job-to-be-done, then names the app once + "link in bio" phrasing in the caption, not on the slide.
+kind = "showcase": a problem-story arc — slide 0 names a painful, specific problem app.who has; middle slides walk the pain and what solving it feels like; final slide reveals the app as how, in plain words.
+
 Rules:
-- Slide 0 is the hook slide: heading only, body empty. Fill the hook template's ___ slots with this app's specifics. It must create curiosity or name a pain app.who actually has.
-- Middle slides each carry ONE concrete idea: the problem, how the app kills it, what app.benefit means day-to-day, proof or a vivid before/after. Pull only from app.what / app.who / app.benefit — never invent numbers, users, or results.
-- Last slide is the CTA slide: heading tells the reader the single next step in plain words (e.g. "Try ${'{'}app name{'}'} free"), body empty.
-- Headings max 12 words, bodies max 30 words. Text must fit on an image.
+- Adapt hook.template's ___ slots with audienceNiche specifics. NEVER paste hook.verbatim; it is another creator's line about a different subject.
+- Middle slides each carry ONE concrete idea. Pull facts only from app.what / app.who / app.benefit — never invent numbers, users, or results.
+- Headings max 12 words. Bodies max 30 words. Text must fit on an image.
 - Match app.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
-- Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no double hyphens, no emoji in slides.
-- motifs: short noun phrases for physical objects an illustrator could draw about THIS app's subject (e.g. a workout app: "dumbbell", "progress ring", "calendar streak"). Never words like "app", "screen", "phone", "logo", "text", or abstract concepts.
+- Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
+- motifs: physical objects an illustrator could draw for THIS app's subject. Never "app", "screen", "phone", "logo", "text", or abstractions.
+- Before answering, verify: does the last slide follow directly from slide 0's promise? Is every middle slide substantive? If not, rewrite, then output.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
