@@ -450,6 +450,23 @@ export async function getCarousel(userId, id) {
 }
 
 // ============================================
+// AUTOPILOT: POSTS + SOCIAL LINK
+// ============================================
+export async function setUploadPostUsername(userId, username) {
+  const sql = getSQL();
+  await sql`UPDATE users SET upload_post_username = ${username}, updated_at = NOW() WHERE id = ${userId}`;
+}
+
+export async function getPostsForUser(userId, limit = 30) {
+  const sql = getSQL();
+  return sql`
+    SELECT id, scheduled_at, status, kind, style, slides, caption, platforms, error, created_at
+    FROM posts WHERE user_id = ${userId}
+    ORDER BY scheduled_at DESC LIMIT ${limit}
+  `;
+}
+
+// ============================================
 // HOOKLAB: GATING
 // ============================================
 export const CAROUSELS_PER_MONTH = 30;
