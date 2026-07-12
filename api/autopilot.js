@@ -41,6 +41,7 @@ export default async function handler(req, res) {
         const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n);
         let total = await countAllPosts(user.id);
         for (const slot of slots) {
+          if (!canGenerateCarousel(user).allowed) break; // re-check: loop mutates carousels_used
           const plan = await generateCarouselPlan({ profile: user.profile, kind: postKind(total) });
           await createPost({
             userId: user.id, scheduledAt: slot.toISOString(), kind: postKind(total),
