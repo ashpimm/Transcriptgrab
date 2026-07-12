@@ -5,9 +5,15 @@
 // POST /api/profile {action:'import', url}   -> scrape URL, return AI-prefilled
 //                                               profile fields (NOT saved)
 
-import { getSession, getProfile, saveProfile, slugifyNiche, ensureNiche } from './_db.js';
+import {
+  getSession, getProfile, saveProfile, slugifyNiche, ensureNiche,
+  getAutoHookPool, getNicheBySlug,
+} from './_db.js';
 import { callGemini } from './_shared.js';
 import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
+import { mineNiche } from './_miner.js';
+
+export const maxDuration = 60;
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
@@ -361,6 +367,23 @@ export default async function handler(req, res) {
         }
       }
       await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: kw }).catch(() => {});
+    }
+    // Fresh niches have zero mined hooks — kick a light mine inline so the
+    // user's first generation isn't stuck on curated fallbacks. Best effort.
+    if (cleaned.audience_niche && process.env.YOUTUBE_API_KEY) {
+      try {
+        const pool = await getAutoHookPool(cleaned.audience_niche.slug, 5);
+        if (pool.length < 5) {
+          const nicheRow = await getNicheBySlug(cleaned.audience_niche.slug);
+          if (nicheRow) {
+            await mineNiche(nicheRow, process.env.YOUTUBE_API_KEY, {
+              maxKeywords: 2, maxSeedChannels: 0, maxExtractions: 6, maxTranscripts: 0,
+            });
+          }
+        }
+      } catch (e) {
+        console.error('light mine on save failed:', e.message);
+      }
     }
     try {
       await saveProfile(user.id, cleaned);

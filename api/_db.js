@@ -213,12 +213,19 @@ export async function getNicheBySlug(slug) {
 
 export async function getStalestNiche() {
   const sql = getSQL();
-  // appdev is the launch audience's niche — jump the queue whenever it hasn't
-  // been mined in 48h, otherwise plain stalest-first rotation.
+  // Niches that belong to a paying subscriber's audience jump the queue when
+  // they haven't been mined in 24h; otherwise plain stalest-first rotation.
   const rows = await sql`
-    SELECT * FROM niches WHERE active = TRUE
-    ORDER BY (slug = 'appdev' AND (last_mined_at IS NULL OR last_mined_at < NOW() - INTERVAL '48 hours')) DESC,
-             last_mined_at ASC NULLS FIRST
+    SELECT n.* FROM niches n
+    WHERE n.active = TRUE
+    ORDER BY (
+      (n.last_mined_at IS NULL OR n.last_mined_at < NOW() - INTERVAL '24 hours')
+      AND EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.tier = 'pro' AND u.profile->'audience_niche'->>'slug' = n.slug
+      )
+    ) DESC,
+    n.last_mined_at ASC NULLS FIRST
     LIMIT 1
   `;
   return rows[0] || null;
