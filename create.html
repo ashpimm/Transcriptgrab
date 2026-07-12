@@ -196,6 +196,10 @@
 
 <script src="/nav.js" defer></script>
 <script src="/pro.js" defer></script>
+<script type="module">
+  import * as SlideRender from '/slide-render.mjs';
+  window.SlideRender = SlideRender;
+</script>
 <script>
 function el(id) { return document.getElementById(id); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -500,93 +504,14 @@ function renderCarousel() {
 // One AI background per carousel (textless), then canvas draws the text —
 // razor-sharp type, zero typo risk, one image bill instead of six.
 var SLIDE_IMAGES = {};
-var SLIDE_W = 1080, SLIDE_H = 1350;
 
-var SLIDE_THEMES = {
-  bold:     { overlay: 'rgba(13,16,20,0.62)',    ink: '#FFFFFF', sub: 'rgba(255,255,255,0.85)', mono: false },
-  mono:     { overlay: 'rgba(250,250,247,0.88)', ink: '#141414', sub: 'rgba(20,20,20,0.72)',    mono: false },
-  notebook: { overlay: 'rgba(247,242,230,0.82)', ink: '#20232B', sub: 'rgba(32,35,43,0.75)',    mono: false },
-  stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true  },
-};
-
-// Accent = the USER'S brand color, snapshotted on the carousel at plan time.
-// No color known -> the theme's ink (neutral) — never Hooklab orange.
-function accentColor(theme) {
-  var c = (ST.carousel && ST.carousel.accent) || (ST.profile && ST.profile.color) || '';
-  return isHex(c) ? c : theme.ink;
-}
-
-function wrapText(x, text, maxWidth) {
-  var words = String(text || '').split(/\s+/).filter(Boolean);
-  var lines = [], line = '';
-  words.forEach(function (w) {
-    var probe = line ? line + ' ' + w : w;
-    if (x.measureText(probe).width > maxWidth && line) { lines.push(line); line = w; }
-    else line = probe;
-  });
-  if (line) lines.push(line);
-  return lines;
-}
-
-function drawSlide(bg, slide, count, style) {
-  var theme = SLIDE_THEMES[style] || SLIDE_THEMES.bold;
-  var family = theme.mono ? '"Geist Mono", monospace' : 'Geist, sans-serif';
+function drawSlide(bg, slide, count, style, isLast) {
+  var R = window.SlideRender;
+  if (!R) throw new Error('renderer not loaded');
   var c = document.createElement('canvas');
-  c.width = SLIDE_W; c.height = SLIDE_H;
-  var x = c.getContext('2d');
-
-  // cover-fit the background
-  var scale = Math.max(SLIDE_W / bg.naturalWidth, SLIDE_H / bg.naturalHeight);
-  var bw = bg.naturalWidth * scale, bh = bg.naturalHeight * scale;
-  x.drawImage(bg, (SLIDE_W - bw) / 2, (SLIDE_H - bh) / 2, bw, bh);
-
-  // legibility overlay
-  x.fillStyle = theme.overlay;
-  x.fillRect(0, 0, SLIDE_W, SLIDE_H);
-
-  var pad = 100, maxW = SLIDE_W - pad * 2;
-
-  // heading — shrink until it fits 6 lines
-  var hSize = 92, hLines;
-  do {
-    x.font = '800 ' + hSize + 'px ' + family;
-    hLines = wrapText(x, slide.heading, maxW);
-    if (hLines.length <= 6) break;
-    hSize -= 8;
-  } while (hSize > 48);
-  var hLH = Math.round(hSize * 1.12);
-
-  var bSize = 40, bLH = Math.round(bSize * 1.42), bLines = [];
-  if (slide.body) {
-    x.font = '500 ' + bSize + 'px ' + family;
-    bLines = wrapText(x, slide.body, maxW);
-  }
-
-  var gap = slide.body ? 44 : 0;
-  var blockH = hLines.length * hLH + gap + bLines.length * bLH;
-  var top = Math.max(pad + 120, (SLIDE_H - blockH) / 2);
-
-  // accent bar above the heading
-  x.fillStyle = accentColor(theme);
-  x.fillRect(pad, top - 56, 88, 12);
-
-  x.textBaseline = 'top';
-  x.fillStyle = theme.ink;
-  x.font = '800 ' + hSize + 'px ' + family;
-  hLines.forEach(function (ln, i) { x.fillText(ln, pad, top + i * hLH); });
-
-  if (bLines.length) {
-    x.fillStyle = theme.sub;
-    x.font = '500 ' + bSize + 'px ' + family;
-    var bTop = top + hLines.length * hLH + gap;
-    bLines.forEach(function (ln, i) { x.fillText(ln, pad, bTop + i * bLH); });
-  }
-
-  // slide index chip, bottom left
-  x.fillStyle = theme.sub;
-  x.font = '500 30px "Geist Mono", monospace';
-  x.fillText((slide.index + 1) + ' / ' + count, pad, SLIDE_H - pad + 20);
-
+  c.width = R.SLIDE_W; c.height = R.SLIDE_H;
+  var accent = (ST.carousel && ST.carousel.accent) || (ST.profile && ST.profile.color) || '';
+  R.drawSlideOn(c, bg, slide, count, style, accent, { watermark: !!(ST.watermark && isLast) });
   return c.toDataURL('image/png');
 }
 
@@ -616,17 +541,14 @@ function generateSlides() {
         var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
         ready.then(function () {
           var pending = slides.length;
+          ST.watermark = !!res.j.watermark;
           slides.forEach(function (s) {
-            var dataUrl = drawSlide(bg, s, slides.length, style);
             var isLast = s.index === slides.length - 1;
-            var finish = function (u) {
-              SLIDE_IMAGES[s.index] = u;
-              var box = el('slide-' + s.index);
-              if (box) box.innerHTML = '<img src="' + u + '" alt="Slide ' + (s.index + 1) + '">';
-              if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
-            };
-            if (res.j.watermark && isLast) applyWatermark(dataUrl, finish);
-            else finish(dataUrl);
+            var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
+            SLIDE_IMAGES[s.index] = dataUrl;
+            var box = el('slide-' + s.index);
+            if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
+            if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
           });
         });
       };
@@ -643,33 +565,6 @@ function generateSlides() {
 function renderSlideStatus(index, msg) {
   var box = el('slide-' + index);
   if (box) box.innerHTML = '<div class="status">' + esc(msg) + '</div>';
-}
-
-// free-tier watermark: drawn client-side on the last slide
-function applyWatermark(dataUrl, cb) {
-  var img = new Image();
-  img.onload = function () {
-    var c = document.createElement('canvas');
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    var x = c.getContext('2d');
-    x.drawImage(img, 0, 0);
-    var fs = Math.round(c.width * 0.028);
-    var pad = Math.round(fs * 0.9);
-    var text = 'made with Hooklab';
-    x.font = '600 ' + fs + 'px Geist, sans-serif';
-    var tw = x.measureText(text).width;
-    var bx = (c.width - tw) / 2 - pad, by = c.height - fs * 3, bw = tw + pad * 2, bh = fs * 2;
-    x.fillStyle = 'rgba(0,0,0,0.65)';
-    x.beginPath();
-    x.roundRect(bx, by, bw, bh, bh / 2);
-    x.fill();
-    x.fillStyle = '#fff';
-    x.textBaseline = 'middle';
-    x.fillText(text, bx + pad, by + bh / 2);
-    cb(c.toDataURL('image/png'));
-  };
-  img.onerror = function () { cb(dataUrl); };
-  img.src = dataUrl;
 }
 
 // ============ ZIP DOWNLOAD (store-only zip, no dependencies) ============
