@@ -5,9 +5,9 @@
 // POST /api/profile {action:'import', url}   -> scrape URL, return AI-prefilled
 //                                               profile fields (NOT saved)
 
-import { getSession, getProfile, saveProfile } from './_db.js';
+import { getSession, getProfile, saveProfile, slugifyNiche, ensureNiche } from './_db.js';
 import { callGemini } from './_shared.js';
-import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT } from './_prompts.js';
+import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
 
 const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
@@ -275,6 +275,9 @@ function cleanProfile(p) {
     benefit: clipText(p.benefit, 300),
     tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
     color: /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color.toUpperCase() : '',
+    audience_niche: (p.audience_niche && typeof p.audience_niche === 'object' && p.audience_niche.slug && p.audience_niche.name)
+      ? { slug: clipText(String(p.audience_niche.slug), 50), name: clipText(String(p.audience_niche.name), 100) }
+      : null,
   };
 }
 
@@ -316,6 +319,27 @@ export default async function handler(req, res) {
         console.error('color pick failed:', e.message);
       }
     }
+    // Every profile gets an audience niche: it decides which niche gets mined
+    // and which hook pool feeds generation. Derived once, user-visible later.
+    if (!cleaned.audience_niche) {
+      try {
+        const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
+          name: cleaned.name, what: cleaned.what, who: cleaned.who, benefit: cleaned.benefit,
+        }), 0.3);
+        const slug = slugifyNiche(derived?.name);
+        if (slug) {
+          const keywords = (Array.isArray(derived.keywords) ? derived.keywords : [])
+            .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
+          await ensureNiche({ slug, name: clipText(derived.name, 100), keywords });
+          cleaned.audience_niche = { slug, name: clipText(derived.name, 100) };
+        }
+      } catch (e) {
+        console.error('audience niche derivation failed:', e.message);
+      }
+    } else {
+      // User-confirmed niche may be brand new — make sure the row exists.
+      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: [] }).catch(() => {});
+    }
     try {
       await saveProfile(user.id, cleaned);
       return res.status(200).json({ ok: true, profile: cleaned });
@@ -347,6 +371,9 @@ export default async function handler(req, res) {
         benefit: structured.benefit,
         tone: structured.tone,
         color: structured.color,
+        audience_niche: structured.audience_niche && structured.audience_niche.name
+          ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name }
+          : null,
       });
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {

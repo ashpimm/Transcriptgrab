@@ -229,6 +229,41 @@ export async function markNicheMined(nicheId) {
   await sql`UPDATE niches SET last_mined_at = NOW() WHERE id = ${nicheId}`;
 }
 
+export function slugifyNiche(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50)
+    .replace(/-+$/, '');
+}
+
+// Insert-or-fetch a niche row. DO UPDATE (no-op) instead of DO NOTHING so the
+// RETURNING row always comes back on conflict.
+export async function ensureNiche({ slug, name, keywords }) {
+  const sql = getSQL();
+  const rows = await sql`
+    INSERT INTO niches (slug, name, keywords)
+    VALUES (${slug}, ${name}, ${keywords || []})
+    ON CONFLICT (slug) DO UPDATE SET name = niches.name
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+// Cross-niche curated patterns — cold-start pool for freshly created niches
+// that haven't been mined yet. Curated rows are portable format patterns.
+export async function getCuratedHookPool(poolSize = 12) {
+  const sql = getSQL();
+  return sql`
+    SELECT h.*, n.slug AS niche_slug
+    FROM hooks h JOIN niches n ON n.id = h.niche_id
+    WHERE h.curated = TRUE
+    ORDER BY random()
+    LIMIT ${poolSize}
+  `;
+}
+
 export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0, includeCurated = false }) {
   const sql = getSQL();
   // Feed is fully public. Rows with curated:// placeholder URLs have no real

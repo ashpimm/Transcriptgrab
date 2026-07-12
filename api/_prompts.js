@@ -40,7 +40,8 @@ Return ONLY this JSON object:
   "who": "1 sentence: who it is for",
   "benefit": "1 sentence: the single biggest concrete benefit or outcome for the user",
   "tone": "casual",
-  "color": "#RRGGBB"
+  "color": "#RRGGBB",
+  "audience_niche": { "name": "Fitness & Weight Loss", "keywords": ["4-6 YouTube Shorts search phrases the app's TARGET USERS watch"] }
 }
 
 Rules:
@@ -48,6 +49,25 @@ Rules:
 - benefit must be the sharpest, most specific outcome in the text (a number, a time saved, a pain removed). If several exist, pick the strongest one.
 - tone must be one of: casual, professional, funny, authority — infer from the writing style of the source.
 - color: the app's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits the app's subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
+- audience_niche: the content niche of the app's TARGET USERS (the people who would use it), never "app development" unless the users are developers. keywords are lowercase search phrases in the audience's own language.
+- Output raw JSON only. No markdown fences.`;
+
+// ============================================
+// AUDIENCE NICHE (app profile -> its BUYERS' content niche)
+// ============================================
+export const AUDIENCE_NICHE_PROMPT = `You receive JSON { name, what, who, benefit } describing an app. Identify the content niche of the app's TARGET USERS — the people who would download and use it — NOT the app-developer/indie-hacker/build-in-public niche, unless the app's users literally are software developers.
+
+Example: an AI calorie-counting app -> its users are people trying to lose weight or eat better -> niche is "Fitness & Weight Loss", NOT "App Development".
+
+Return ONLY this JSON object:
+{
+  "name": "Fitness & Weight Loss",
+  "keywords": ["calorie deficit tips", "how to lose weight fast", "what I eat in a day", "macro tracking for beginners", "weight loss mistakes"]
+}
+
+Rules:
+- name: 2-4 words, Title Case, the audience's content niche.
+- keywords: 4-6 YouTube Shorts search phrases this audience actually types or watches — their language, not marketing jargon. Lowercase.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
