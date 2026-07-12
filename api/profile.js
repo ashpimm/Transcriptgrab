@@ -275,9 +275,12 @@ function cleanProfile(p) {
     benefit: clipText(p.benefit, 300),
     tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
     color: /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color.toUpperCase() : '',
-    audience_niche: (p.audience_niche && typeof p.audience_niche === 'object' && p.audience_niche.slug && p.audience_niche.name)
-      ? { slug: clipText(String(p.audience_niche.slug), 50), name: clipText(String(p.audience_niche.name), 100) }
-      : null,
+    audience_niche: (function () {
+      if (!p.audience_niche || typeof p.audience_niche !== 'object') return null;
+      const slug = slugifyNiche(String(p.audience_niche.slug || p.audience_niche.name || ''));
+      const name = clipText(String(p.audience_niche.name || ''), 100);
+      return (slug && name) ? { slug, name } : null;
+    })(),
   };
 }
 
@@ -309,6 +312,11 @@ export default async function handler(req, res) {
     if (!cleaned || !cleaned.what) {
       return res.status(400).json({ error: 'Tell us what your app does \u2014 that field is required.' });
     }
+    // Keywords never live on the stored profile (cleanProfile strips them),
+    // but the client may echo back what import derived \u2014 carry them through
+    // to the niche row so the miner isn't starved.
+    const rawKw = (Array.isArray(body.profile?.audience_niche?.keywords) ? body.profile.audience_niche.keywords : [])
+      .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
     // Every profile gets a brand color: it is the accent on every slide, and
     // without one the renderer would have nothing but neutral grays.
     if (!cleaned.color) {
@@ -338,7 +346,21 @@ export default async function handler(req, res) {
       }
     } else {
       // User-confirmed niche may be brand new — make sure the row exists.
-      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: [] }).catch(() => {});
+      // Prefer keywords echoed back by the client (from import); if none,
+      // best-effort derive some so a new niche row never starts empty.
+      let kw = rawKw;
+      if (kw.length === 0) {
+        try {
+          const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
+            name: cleaned.name, what: cleaned.what, who: cleaned.who, benefit: cleaned.benefit,
+          }), 0.3);
+          kw = (Array.isArray(derived?.keywords) ? derived.keywords : [])
+            .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
+        } catch (e) {
+          console.error('audience niche keyword derivation (confirmed niche) failed:', e.message);
+        }
+      }
+      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: kw }).catch(() => {});
     }
     try {
       await saveProfile(user.id, cleaned);
@@ -363,6 +385,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please fill the form manually.' });
       }
       const structured = await callGemini(APP_PROFILE_PROMPT, parsed.text, 0.3);
+      const structuredKw = Array.isArray(structured.audience_niche?.keywords) ? structured.audience_niche.keywords : [];
       const prefill = cleanProfile({
         app_url: normalized,
         name: structured.name,
@@ -372,9 +395,16 @@ export default async function handler(req, res) {
         tone: structured.tone,
         color: structured.color,
         audience_niche: structured.audience_niche && structured.audience_niche.name
-          ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name }
+          ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name, keywords: structuredKw }
           : null,
       });
+      // cleanProfile only keeps {slug, name} on the audience_niche it stores;
+      // re-attach keywords onto the prefill so the client can echo them back
+      // on save without them ever living on the persisted profile itself.
+      if (prefill.audience_niche && structuredKw.length) {
+        prefill.audience_niche.keywords = structuredKw
+          .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
+      }
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {
       console.error('profile import error:', e.message);
