@@ -37,6 +37,7 @@
 .status-pill.queued { background: var(--glass-2); color: var(--ink-2); }
 .status-pill.posted { background: var(--ink); color: #000; }
 .status-pill.failed { background: rgba(255,77,0,.16); color: var(--signal); }
+.status-pill.skipped { background: var(--glass); color: var(--muted); }
 </style>
 </head>
 <body>
@@ -168,13 +169,14 @@ function renderSocial(d) {
     ? '<div class="queue-list">' + posts.map(function (p) {
         var heading = (p.slides && p.slides[0] && (p.slides[0].heading || p.slides[0].text)) || '';
         var status = p.status || 'queued';
+        var st = ['queued', 'posted', 'failed', 'skipped'].indexOf(status) >= 0 ? status : 'queued';
         return '<div class="queue-item">' +
           '<div class="qi-main">' +
             '<div class="qi-date">' + esc(fmtDate(p.scheduled_at)) + ' · ' + esc(p.kind || '') + '</div>' +
             '<div class="qi-heading">' + esc(heading) + '</div>' +
             (status === 'failed' && p.error ? '<div class="qi-error">' + esc(p.error) + '</div>' : '') +
           '</div>' +
-          '<span class="status-pill ' + esc(status) + '">' + esc(status) + '</span>' +
+          '<span class="status-pill ' + st + '">' + esc(status) + '</span>' +
         '</div>';
       }).join('') + '</div>'
     : '<p style="color:var(--muted);font-size:13.5px;">No posts queued yet — the next one drafts within 24 hours.</p>';
