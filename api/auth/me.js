@@ -58,8 +58,11 @@ export default async function handler(req, res) {
         tier: user.tier,
         credits: user.credits || 0,
         carouselsUsed: user.carousels_used || 0,
-        carouselsLimit: user.tier === 'pro' ? 20 : 0,
-        freeCarouselUsed: !!user.free_carousel_used,
+        carouselsLimit: user.tier === 'pro' ? 30 : 0,
+        freeCarouselsUsed: user.free_carousels_used || 0,
+        freeCarouselsLimit: 3,
+        freeCarouselUsed: !!user.free_carousel_used, // legacy, kept for cached clients
+        socialConnected: !!user.upload_post_username,
         profileComplete: !!(user.profile && user.profile.what),
       },
     });

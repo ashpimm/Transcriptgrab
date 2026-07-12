@@ -410,10 +410,11 @@ export async function getCarousel(userId, id) {
 // ============================================
 // HOOKLAB: GATING
 // ============================================
-export const CAROUSELS_PER_MONTH = 20;
+export const CAROUSELS_PER_MONTH = 30;
+export const FREE_CAROUSELS = 3;
 
-// Consumption order: Pro monthly quota -> purchased credits -> the one free
-// watermarked carousel. Returns which bucket pays for this generation.
+// Consumption order: Autopilot monthly quota -> legacy purchased credits ->
+// the 3 free watermarked carousels. Returns which bucket pays.
 export function canGenerateCarousel(user) {
   if (!user) return { allowed: false, reason: 'auth_required' };
   if (user.tier === 'pro' && (user.carousels_used || 0) < CAROUSELS_PER_MONTH) {
@@ -425,7 +426,7 @@ export function canGenerateCarousel(user) {
   if (user.tier === 'pro') {
     return { allowed: false, reason: 'monthly_limit' };
   }
-  if (!user.free_carousel_used) {
+  if ((user.free_carousels_used || 0) < FREE_CAROUSELS) {
     return { allowed: true, source: 'free', watermark: true };
   }
   return { allowed: false, reason: 'upgrade' };
@@ -436,7 +437,7 @@ export async function consumeCarousel(user, source) {
   if (source === 'credit') {
     await sql`UPDATE users SET credits = GREATEST(COALESCE(credits, 0) - 1, 0), updated_at = NOW() WHERE id = ${user.id}`;
   } else if (source === 'free') {
-    await sql`UPDATE users SET free_carousel_used = TRUE, updated_at = NOW() WHERE id = ${user.id}`;
+    await sql`UPDATE users SET free_carousels_used = COALESCE(free_carousels_used, 0) + 1, free_carousel_used = TRUE, updated_at = NOW() WHERE id = ${user.id}`;
   } else {
     await sql`UPDATE users SET carousels_used = carousels_used + 1, updated_at = NOW() WHERE id = ${user.id}`;
   }
