@@ -63,6 +63,28 @@ export function postKind(n) {
   return n % 4 === 3 ? 'showcase' : 'value';
 }
 
+// Daily posting slots at 15:00 UTC (peak US morning/noon). Window is the
+// next `days` consecutive calendar days starting today (or tomorrow if
+// today's 15:00 slot has already passed); days already taken in `existing`
+// are dropped rather than backfilled from beyond the window.
+export function nextSlots(nowIso, existing, days) {
+  const now = new Date(nowIso);
+  const takenDays = new Set(existing.map((d) => new Date(d).toISOString().substring(0, 10)));
+
+  const start = new Date(now);
+  start.setUTCHours(15, 0, 0, 0);
+  if (start <= now) start.setUTCDate(start.getUTCDate() + 1);
+
+  const out = [];
+  for (let i = 0; i < days; i++) {
+    const slot = new Date(start);
+    slot.setUTCDate(slot.getUTCDate() + i);
+    if (takenDays.has(slot.toISOString().substring(0, 10))) continue;
+    out.push(slot);
+  }
+  return out;
+}
+
 export function buildPlanPayload({ profile, hook, kind, slideCount }) {
   return {
     app: {

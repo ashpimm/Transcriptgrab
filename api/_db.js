@@ -466,6 +466,68 @@ export async function getPostsForUser(userId, limit = 30) {
   `;
 }
 
+// Autopilot subscribers: pro tier, connected to upload-post, and have a
+// completed profile (profile->>'what' is the required field).
+export async function getAutopilotUsers() {
+  const sql = getSQL();
+  return sql`
+    SELECT * FROM users
+    WHERE tier = 'pro'
+      AND upload_post_username IS NOT NULL
+      AND profile->>'what' IS NOT NULL
+  `;
+}
+
+export async function countFuturePosts(userId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT COUNT(*)::int AS n, COALESCE(array_agg(scheduled_at), '{}') AS at
+    FROM posts WHERE user_id = ${userId} AND status = 'queued' AND scheduled_at > NOW()
+  `;
+  return { n: rows[0].n, scheduledAts: rows[0].at || [] };
+}
+
+export async function countAllPosts(userId) {
+  const sql = getSQL();
+  const rows = await sql`SELECT COUNT(*)::int AS n FROM posts WHERE user_id = ${userId}`;
+  return rows[0].n;
+}
+
+export async function createPost({ userId, scheduledAt, kind, style, slides, caption, accent, motifs, platforms }) {
+  const sql = getSQL();
+  const rows = await sql`
+    INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, platforms)
+    VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
+            ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])}, ${platforms || ['tiktok', 'instagram']})
+    RETURNING id
+  `;
+  return rows[0];
+}
+
+// Joins users only for the two columns rendering/publishing need
+// (upload_post_username, profile) plus tier for a defensive re-check.
+// Neither name collides with a posts column, so no shadowing risk.
+export async function getDuePosts(limit = 5) {
+  const sql = getSQL();
+  return sql`
+    SELECT p.*, u.upload_post_username, u.profile, u.tier
+    FROM posts p JOIN users u ON u.id = p.user_id
+    WHERE p.status = 'queued' AND p.scheduled_at <= NOW()
+    ORDER BY p.scheduled_at ASC
+    LIMIT ${limit}
+  `;
+}
+
+export async function setPostStatus(id, status, { error = '', externalIds = null, retries } = {}) {
+  const sql = getSQL();
+  await sql`
+    UPDATE posts SET status = ${status}, error = ${error},
+      external_ids = ${externalIds ? JSON.stringify(externalIds) : null},
+      retries = COALESCE(${retries ?? null}, retries)
+    WHERE id = ${id}
+  `;
+}
+
 // ============================================
 // HOOKLAB: GATING
 // ============================================
