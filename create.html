@@ -434,7 +434,7 @@ el('customize-toggle').addEventListener('click', function () {
 if (location.hash === '#customize') el('customize-toggle').click();
 
 // ============ GENERATE ============
-el('gen-btn').addEventListener('click', function () {
+function runGenerate() {
   if (!ST.profile || !ST.profile.what) {
     el('profile-zone').scrollIntoView({ behavior: 'smooth' });
     showMsg('Set up your app profile first — it takes one paste.', false);
@@ -483,7 +483,8 @@ el('gen-btn').addEventListener('click', function () {
       el('gen-note').textContent = 'network error — try again';
       alert('Network error. Try again.');
     });
-});
+}
+el('gen-btn').addEventListener('click', runGenerate);
 
 function renderCarousel() {
   var c = ST.carousel;
@@ -496,6 +497,7 @@ function renderCarousel() {
       '<button class="btn btn-primary" id="dl-all" disabled>Download slides (.zip)</button>' +
       '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
       '<button class="mini-btn" id="redo-bg">New background</button>' +
+      '<button class="mini-btn" id="regen-all">Regenerate post</button>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
     navigator.clipboard.writeText(c.caption);
@@ -503,6 +505,7 @@ function renderCarousel() {
   });
   el('dl-all').addEventListener('click', downloadZip);
   el('redo-bg').addEventListener('click', function () { generateSlides(true); });
+  el('regen-all').addEventListener('click', runGenerate);
 }
 
 // ============ SLIDE RENDERING ============
