@@ -6,7 +6,7 @@
 // GET  /api/carousel                                      -> { carousels } (history, copy only)
 
 import {
-  getSession, getProfile, saveCarousel, getCarousels, getCarousel,
+  getSession, getProfile, saveCarousel, getCarousels, getCarousel, saveCarouselBg,
   canGenerateCarousel, consumeCarousel,
 } from './_db.js';
 import { callGeminiImage } from './_shared.js';
@@ -99,6 +99,17 @@ export default async function handler(req, res) {
     if (action === 'background') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+
+      // Backgrounds are cached on the carousel — revisiting history is free.
+      // Only body.fresh (the "New background" button) buys a new image.
+      if (carousel.bg && !body.fresh) {
+        return res.status(200).json({
+          image: `data:image/png;base64,${carousel.bg}`,
+          style: carousel.style,
+          watermark: !!carousel.watermark,
+        });
+      }
+
       const profile = await getProfile(user.id).catch(() => null);
 
       const prompt = backgroundPrompt(carousel.style, profile, cleanMotifs(body.motifs), body.accent);
@@ -109,6 +120,7 @@ export default async function handler(req, res) {
         // one automatic retry — image gen fails transiently
         b64 = await callGeminiImage(prompt);
       }
+      await saveCarouselBg(user.id, carousel.id, b64).catch((e) => console.error('bg cache failed:', e.message));
       return res.status(200).json({
         image: `data:image/png;base64,${b64}`,
         style: carousel.style,

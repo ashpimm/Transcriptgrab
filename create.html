@@ -502,7 +502,7 @@ function renderCarousel() {
     this.textContent = 'Copied'; var b = this; setTimeout(function () { b.textContent = 'Copy caption'; }, 1500);
   });
   el('dl-all').addEventListener('click', downloadZip);
-  el('redo-bg').addEventListener('click', function () { generateSlides(); });
+  el('redo-bg').addEventListener('click', function () { generateSlides(true); });
 }
 
 // ============ SLIDE RENDERING ============
@@ -520,7 +520,7 @@ function drawSlide(bg, slide, count, style, isLast) {
   return c.toDataURL('image/png');
 }
 
-function generateSlides() {
+function generateSlides(freshBg) {
   SLIDE_IMAGES = {};
   var slides = ST.carousel.slides;
   var style = ST.carousel.style || 'bold';
@@ -531,7 +531,7 @@ function generateSlides() {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action: 'background', carouselId: ST.carousel.carouselId,
+      action: 'background', carouselId: ST.carousel.carouselId, fresh: freshBg ? 1 : 0,
       motifs: ST.carousel.motifs || [], accent: ST.carousel.accent || ''
     })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })

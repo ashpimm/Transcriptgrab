@@ -433,6 +433,14 @@ export async function saveCarousel(userId, hookId, style, slides, caption, water
   return rows[0];
 }
 
+export async function saveCarouselBg(userId, id, b64) {
+  const sql = getSQL();
+  await sql`
+    UPDATE carousels SET bg = ${b64}
+    WHERE user_id = ${userId} AND id = ${id}
+  `;
+}
+
 export async function getCarousels(userId) {
   const sql = getSQL();
   return sql`
