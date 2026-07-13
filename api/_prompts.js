@@ -88,7 +88,8 @@ Return ONLY this JSON object:
   ],
   "caption": "2-3 sentences continuing the post's idea, ending with where to get the app (app name, not a URL)",
   "hashtags": ["5-8 lowercase hashtags without #, audienceNiche tags + reach tags"],
-  "motifs": ["3-5 concrete drawable objects representing the app's subject"]
+  "motifs": ["3-5 concrete drawable objects representing the app's subject"],
+  "heroScene": "one real photographable moment that shows slide 0's claim, max 20 words"
 }
 
 THE ONE RULE THAT MATTERS — a single narrative arc:
@@ -104,7 +105,11 @@ Rules:
 - Match app.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
 - Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
 - motifs: physical objects an illustrator could draw for THIS app's subject. Never "app", "screen", "phone", "logo", "text", or abstractions.
-- Before answering, verify: does the last slide follow directly from slide 0's promise? Is every middle slide substantive? If not, rewrite, then output.
+- heroScene: the photograph slide 0 sits on. Describe ONE moment a photographer could actually shoot — a person, a pair of hands, or a physical object, doing something specific, in a real place, with the light named. It must SHOW slide 0's claim, not decorate it. Never a screen or app interface, never a crowd, never text, logos or brand marks, never a metaphor you cannot photograph.
+  hook about quitting doomscrolling -> "a hand dropping a phone into a kitchen drawer, hard morning light"
+  hook about tracking workouts -> "a runner stopped on an empty road at dawn, glancing at her wrist"
+  hook about overspending -> "a torn receipt curling on a cafe table beside cold coffee"
+- Before answering, verify: does the last slide follow directly from slide 0's promise? Is every middle slide substantive? Could a photographer shoot heroScene tomorrow? If not, rewrite, then output.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================

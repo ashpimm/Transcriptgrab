@@ -496,7 +496,7 @@ function renderCarousel() {
     '<div class="dl-row">' +
       '<button class="btn btn-primary" id="dl-all" disabled>Download slides (.zip)</button>' +
       '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
-      '<button class="mini-btn" id="redo-bg">New background</button>' +
+      '<button class="mini-btn" id="redo-bg">New visuals</button>' +
       '<button class="mini-btn" id="regen-all">Regenerate post</button>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
@@ -509,22 +509,47 @@ function renderCarousel() {
 }
 
 // ============ SLIDE RENDERING ============
-// One AI background per carousel (textless), then canvas draws the text —
-// razor-sharp type, zero typo risk, one image bill instead of six.
+// Two AI images per carousel: a photographic HERO for the hook slide (a real
+// scene of what the hook is about) and one textless background for the rest.
+// Canvas draws every word — razor-sharp type, zero typo risk.
 var SLIDE_IMAGES = {};
-// carouselId -> background data URL, so reopening a carousel this session is instant
+// carouselId -> {bg, hero}, so reopening a carousel this session is instant
 var BG_CACHE = {};
 
-function drawSlide(bg, slide, count, style, isLast) {
+function drawSlide(img, slide, count, style, isLast, isHero) {
   var R = window.SlideRender;
   if (!R) throw new Error('renderer not loaded');
   var c = document.createElement('canvas');
   c.width = R.SLIDE_W; c.height = R.SLIDE_H;
   var accent = (ST.carousel && ST.carousel.accent) || (ST.profile && ST.profile.color) || '';
-  R.drawSlideOn(c, bg, slide, count, style, accent, { watermark: !!(ST.watermark && isLast) });
+  R.drawSlideOn(c, img, slide, count, style, accent, {
+    hero: !!isHero,
+    watermark: !!(ST.watermark && isLast),
+  });
   return c.toDataURL('image/png');
 }
 
+function loadImg(src) {
+  return new Promise(function (resolve, reject) {
+    var i = new Image();
+    i.onload = function () { resolve(i); };
+    i.onerror = function () { reject(new Error('decode failed')); };
+    i.src = src;
+  });
+}
+
+function apiPost(payload) {
+  return fetch('/api/carousel', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); });
+}
+
+// The background and the cover photo are fetched SEPARATELY, in parallel. The
+// slides paint as soon as the background lands; slide 0 is then upgraded when
+// the photo arrives. A cover that fails or was never possible (older carousels
+// have no scene) just leaves slide 0 on the background — no error, no wait.
 function generateSlides(freshBg) {
   SLIDE_IMAGES = {};
   var slides = ST.carousel.slides;
@@ -532,66 +557,74 @@ function generateSlides(freshBg) {
   var cid = ST.carousel.carouselId;
   var dl = el('dl-all'); if (dl) dl.disabled = true;
 
-  // Already fetched this carousel's background this session? Draw it now —
-  // no round trip, no waiting.
   if (!freshBg && BG_CACHE[cid]) {
     paintSlides(BG_CACHE[cid], slides, style, ST.watermark);
     return;
   }
 
   slides.forEach(function (s) {
-    renderSlideStatus(s.index, freshBg || !ST.carousel.hasBg ? 'designing background…' : 'loading…');
+    renderSlideStatus(s.index, freshBg || !ST.carousel.hasBg ? 'designing…' : 'loading…');
   });
 
-  fetch('/api/carousel', {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'background', carouselId: cid, fresh: freshBg ? 1 : 0,
-      motifs: ST.carousel.motifs || [], accent: ST.carousel.accent || ''
-    })
-  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+  var req = { carouselId: cid, fresh: freshBg ? 1 : 0, accent: ST.carousel.accent || '' };
+
+  var bgJob = apiPost({ action: 'background', motifs: ST.carousel.motifs || [], carouselId: req.carouselId, fresh: req.fresh, accent: req.accent })
     .then(function (res) {
-      if (res.s !== 200 || !res.j.image) {
-        slides.forEach(function (s) { renderSlideStatus(s.index, res.j.error || 'background failed — hit “New background” to retry'); });
-        var d2 = el('dl-all'); if (d2) d2.disabled = false;
-        return;
-      }
-      BG_CACHE[cid] = res.j.image;
-      ST.carousel.hasBg = true;
-      paintSlides(res.j.image, slides, style, !!res.j.watermark);
-    })
-    .catch(function () {
-      slides.forEach(function (s) { renderSlideStatus(s.index, 'network error — hit “New background” to retry'); });
+      if (res.s !== 200 || !res.j.image) throw new Error(res.j.error || 'background failed');
+      return res;
     });
+
+  // Never rejects — the cover is optional by design.
+  var heroJob = apiPost({ action: 'hero', carouselId: req.carouselId, fresh: req.fresh, accent: req.accent })
+    .then(function (res) { return (res.s === 200 && res.j.hero) ? res.j.hero : null; })
+    .catch(function () { return null; });
+
+  bgJob.then(function (res) {
+    BG_CACHE[cid] = { bg: res.j.image, hero: null };
+    ST.carousel.hasBg = true;
+    paintSlides(BG_CACHE[cid], slides, style, !!res.j.watermark);
+
+    heroJob.then(function (hero) {
+      if (!hero) return;
+      BG_CACHE[cid].hero = hero;
+      paintSlides(BG_CACHE[cid], slides, style, ST.watermark);
+    });
+  }).catch(function (e) {
+    slides.forEach(function (s) { renderSlideStatus(s.index, e.message || 'network error — hit “New visuals” to retry'); });
+    var d2 = el('dl-all'); if (d2) d2.disabled = false;
+  });
 }
 
-// Draw the slides from a background image (fresh or cached — same path).
-function paintSlides(imageSrc, slides, style, watermark) {
-  var bg = new Image();
-  bg.onload = function () {
-    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-    ready.then(function () {
-      var pending = slides.length;
+// Draw the slides from whatever images we have (fresh or cached — same path).
+// A hero that won't decode is not fatal: slide 0 falls back to the background.
+function paintSlides(images, slides, style, watermark) {
+  var jobs = [
+    loadImg(images.bg),
+    images.hero ? loadImg(images.hero).catch(function () { return null; }) : Promise.resolve(null),
+  ];
+  var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+
+  Promise.all(jobs).then(function (imgs) {
+    var bg = imgs[0], hero = imgs[1];
+    return fonts.then(function () {
       ST.watermark = !!watermark;
       slides.forEach(function (s) {
         var isLast = s.index === slides.length - 1;
+        var isHero = !!hero && s.index === 0;
         try {
-          var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
+          var dataUrl = drawSlide(isHero ? hero : bg, s, slides.length, style, isLast, isHero);
           SLIDE_IMAGES[s.index] = dataUrl;
           var box = el('slide-' + s.index);
           if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
         } catch (e) {
           renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
         }
-        if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
       });
+      var d = el('dl-all'); if (d) d.disabled = false;
     });
-  };
-  bg.onerror = function () {
-    slides.forEach(function (s) { renderSlideStatus(s.index, 'background failed — hit “New background” to retry'); });
-  };
-  bg.src = imageSrc;
+  }).catch(function () {
+    slides.forEach(function (s) { renderSlideStatus(s.index, 'images failed — hit “New visuals” to retry'); });
+  });
 }
 
 function renderSlideStatus(index, msg) {

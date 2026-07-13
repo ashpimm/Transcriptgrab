@@ -21,14 +21,22 @@ function registerFonts() {
   fontsReady = true;
 }
 
-export async function renderSlidePngs({ slides, style, accent, bgBase64, watermark }) {
+export async function renderSlidePngs({ slides, style, accent, bgBase64, heroBase64, watermark }) {
   registerFonts();
   const bg = await loadImage(Buffer.from(bgBase64, 'base64'));
+  // Slide 0 rides a real photograph when we have one. A hero that fails to
+  // decode falls back to the background — a post still goes out.
+  const hero = heroBase64
+    ? await loadImage(Buffer.from(heroBase64, 'base64')).catch(() => null)
+    : null;
+
   const out = [];
   for (const slide of slides) {
     const canvas = createCanvas(SLIDE_W, SLIDE_H);
     const isLast = slide.index === slides.length - 1;
-    drawSlideOn(canvas, bg, slide, slides.length, style, accent, {
+    const isHero = !!hero && slide.index === 0;
+    drawSlideOn(canvas, isHero ? hero : bg, slide, slides.length, style, accent, {
+      hero: isHero,
       watermark: !!watermark && isLast,
       fontSans: 'Geist',
       fontMono: '"Geist Mono"',

@@ -423,22 +423,51 @@ export async function saveProfile(userId, profileObj) {
 // ============================================
 // HOOKLAB: CAROUSELS
 // ============================================
-export async function saveCarousel(userId, hookId, style, slides, caption, watermark) {
-  const sql = getSQL();
-  const rows = await sql`
-    INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark)
-    VALUES (${userId}, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''}, ${!!watermark})
-    RETURNING id, created_at
-  `;
-  return rows[0];
+// A deploy can land before its migration does (a push auto-deploys; the SQL is
+// run by hand). Rather than 500 every generation until the migration catches
+// up, the hero columns degrade: we write without them and log loudly.
+function missingColumn(e, col) {
+  const m = String(e?.message || '');
+  return /does not exist/i.test(m) && m.includes(col);
 }
 
-export async function saveCarouselBg(userId, id, b64) {
+export async function saveCarousel(userId, hookId, style, slides, caption, watermark, heroScene) {
   const sql = getSQL();
-  await sql`
-    UPDATE carousels SET bg = ${b64}
-    WHERE user_id = ${userId} AND id = ${id}
-  `;
+  try {
+    const rows = await sql`
+      INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark, hero_scene)
+      VALUES (${userId}, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''}, ${!!watermark}, ${heroScene || ''})
+      RETURNING id, created_at
+    `;
+    return rows[0];
+  } catch (e) {
+    if (!missingColumn(e, 'hero_scene')) throw e;
+    console.error('carousels.hero_scene missing — RUN scripts/migrate-hero.sql. Carousels ship without cover photos until then.');
+    const rows = await sql`
+      INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark)
+      VALUES (${userId}, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''}, ${!!watermark})
+      RETURNING id, created_at
+    `;
+    return rows[0];
+  }
+}
+
+// The two images are saved INDEPENDENTLY and never in one statement. A hero
+// that fails must not be able to null out a background that succeeded, or vice
+// versa — each is a separately-bought asset.
+export async function saveCarouselBg(userId, id, bg) {
+  const sql = getSQL();
+  await sql`UPDATE carousels SET bg = ${bg} WHERE user_id = ${userId} AND id = ${id}`;
+}
+
+export async function saveCarouselHero(userId, id, hero) {
+  const sql = getSQL();
+  try {
+    await sql`UPDATE carousels SET hero = ${hero} WHERE user_id = ${userId} AND id = ${id}`;
+  } catch (e) {
+    if (!missingColumn(e, 'hero')) throw e;
+    console.error('carousels.hero missing — RUN scripts/migrate-hero.sql. Cover photos will not be cached until then.');
+  }
 }
 
 export async function getCarousels(userId) {
@@ -503,15 +532,29 @@ export async function countAllPosts(userId) {
   return rows[0].n;
 }
 
-export async function createPost({ userId, scheduledAt, kind, style, slides, caption, accent, motifs, platforms }) {
+export async function createPost({ userId, scheduledAt, kind, style, slides, caption, accent, motifs, heroScene, platforms }) {
   const sql = getSQL();
-  const rows = await sql`
-    INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, platforms)
-    VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
-            ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])}, ${platforms || ['tiktok', 'instagram']})
-    RETURNING id
-  `;
-  return rows[0];
+  try {
+    const rows = await sql`
+      INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, hero_scene, platforms)
+      VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
+              ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])}, ${heroScene || ''},
+              ${platforms || ['tiktok', 'instagram']})
+      RETURNING id
+    `;
+    return rows[0];
+  } catch (e) {
+    if (!missingColumn(e, 'hero_scene')) throw e;
+    console.error('posts.hero_scene missing — RUN scripts/migrate-hero.sql. Scheduled posts ship without cover photos until then.');
+    const rows = await sql`
+      INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, platforms)
+      VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
+              ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])},
+              ${platforms || ['tiktok', 'instagram']})
+      RETURNING id
+    `;
+    return rows[0];
+  }
 }
 
 // Joins users only for the two columns rendering/publishing need

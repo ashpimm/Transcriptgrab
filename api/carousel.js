@@ -1,16 +1,25 @@
 // api/carousel.js — Faceless carousel generation.
 //
-// POST /api/carousel {action:'plan', hookId, style}       -> slide copy plan + caption + hashtags
-//                                                            (consumes: pro quota | credit | the one free)
-// POST /api/carousel {action:'slide', carouselId, index}  -> ONE rendered slide as data URL
-// GET  /api/carousel                                      -> { carousels } (history, copy only)
+// POST /api/carousel {action:'plan', hookId, style}          -> slide copy plan + caption + hashtags
+//                                                               (consumes: pro quota | credit | the one free)
+// POST /api/carousel {action:'background', carouselId}       -> the textless bg the text slides sit on
+// POST /api/carousel {action:'hero', carouselId}             -> the hook slide's photograph (may be null)
+// POST /api/carousel {action:'slide', carouselId, index}     -> ONE rendered slide as data URL (legacy)
+// GET  /api/carousel                                         -> { carousels } (history, copy only)
+//
+// The two images are fetched SEPARATELY and cached separately. They used to
+// share one request, which meant a failed hero could null a good background,
+// a hero that failed once was never retried, and both PNGs rode in one JSON
+// body — near Vercel's response cap once the hero is a photograph.
 
 import {
-  getSession, getProfile, saveCarousel, getCarousels, getCarousel, saveCarouselBg,
-  canGenerateCarousel, consumeCarousel,
+  getSession, getProfile, saveCarousel, getCarousels, getCarousel,
+  saveCarouselBg, saveCarouselHero, canGenerateCarousel, consumeCarousel,
 } from './_db.js';
-import { callGeminiImage } from './_shared.js';
-import { generateCarouselPlan, backgroundPrompt, cleanMotifs, STYLES, resolveAccent } from './_generate.js';
+import { callGeminiImageRetry } from './_shared.js';
+import {
+  generateCarouselPlan, backgroundPrompt, heroPrompt, cleanMotifs, STYLES, resolveAccent,
+} from './_generate.js';
 
 export const maxDuration = 60;
 
@@ -85,7 +94,9 @@ export default async function handler(req, res) {
         throw e;
       }
 
-      const saved = await saveCarousel(user.id, plan.hook.id, plan.style, plan.slides, plan.caption, gate.watermark);
+      const saved = await saveCarousel(
+        user.id, plan.hook.id, plan.style, plan.slides, plan.caption, gate.watermark, plan.heroScene,
+      );
       await consumeCarousel(user, gate.source);
 
       return res.status(200).json({
@@ -95,13 +106,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // ===== BACKGROUND: one textless image per carousel; client draws the text =====
+    // ===== BACKGROUND: the textless art every TEXT slide sits on =====
     if (action === 'background') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
 
-      // Backgrounds are cached on the carousel — revisiting history is free.
-      // Only body.fresh (the "New background" button) buys a new image.
+      // Cached on the carousel — revisiting history is free. Only body.fresh
+      // (the "New visuals" button) buys a new one.
       if (carousel.bg && !body.fresh) {
         return res.status(200).json({
           image: `data:image/png;base64,${carousel.bg}`,
@@ -111,21 +122,48 @@ export default async function handler(req, res) {
       }
 
       const profile = await getProfile(user.id).catch(() => null);
+      const b64 = await callGeminiImageRetry(
+        backgroundPrompt(carousel.style, profile, cleanMotifs(body.motifs), body.accent),
+      );
+      await saveCarouselBg(user.id, carousel.id, b64)
+        .catch((e) => console.error('bg cache failed:', e.message));
 
-      const prompt = backgroundPrompt(carousel.style, profile, cleanMotifs(body.motifs), body.accent);
-      let b64;
-      try {
-        b64 = await callGeminiImage(prompt);
-      } catch (e) {
-        // one automatic retry — image gen fails transiently
-        b64 = await callGeminiImage(prompt);
-      }
-      await saveCarouselBg(user.id, carousel.id, b64).catch((e) => console.error('bg cache failed:', e.message));
       return res.status(200).json({
         image: `data:image/png;base64,${b64}`,
         style: carousel.style,
         watermark: !!carousel.watermark,
       });
+    }
+
+    // ===== HERO: the hook slide's photograph. Best-effort by design — a null
+    // hero means slide 0 falls back to the background, which is what every
+    // carousel looked like before this existed. Never a 500. =====
+    if (action === 'hero') {
+      const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
+      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+
+      if (carousel.hero && !body.fresh) {
+        return res.status(200).json({ hero: `data:image/png;base64,${carousel.hero}` });
+      }
+
+      // The scene is read from the row, NEVER from the client — it lands inside
+      // an image prompt. Carousels made before this shipped have no scene, and
+      // heroPrompt returns '' for them: no call, no spend, no cover photo.
+      const profile = await getProfile(user.id).catch(() => null);
+      const prompt = heroPrompt(carousel.hero_scene, profile, body.accent);
+      if (!prompt) return res.status(200).json({ hero: null, reason: 'no_scene' });
+
+      let b64;
+      try {
+        b64 = await callGeminiImageRetry(prompt);
+      } catch (e) {
+        console.error('hero image failed:', e.message);
+        return res.status(200).json({ hero: null, reason: 'failed' });
+      }
+      await saveCarouselHero(user.id, carousel.id, b64)
+        .catch((e) => console.error('hero cache failed:', e.message));
+
+      return res.status(200).json({ hero: `data:image/png;base64,${b64}` });
     }
 
     // ===== SLIDE: render one image (legacy path for cached clients) =====
@@ -138,14 +176,7 @@ export default async function handler(req, res) {
       if (!slide) return res.status(400).json({ error: 'Slide not found.' });
 
       const legacyProfile = await getProfile(user.id).catch(() => null);
-      const prompt = slidePrompt(carousel.style, slide, slides.length, legacyProfile);
-      let b64;
-      try {
-        b64 = await callGeminiImage(prompt);
-      } catch (e) {
-        // one automatic retry — image gen fails transiently
-        b64 = await callGeminiImage(prompt);
-      }
+      const b64 = await callGeminiImageRetry(slidePrompt(carousel.style, slide, slides.length, legacyProfile));
       // Free-tier watermark is drawn client-side on the last slide (canvas
       // overlay) — image models can't render small text reliably.
       const isLast = idx === slides.length - 1;

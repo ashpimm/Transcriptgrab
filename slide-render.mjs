@@ -12,7 +12,47 @@ export const SLIDE_THEMES = {
   stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true  },
 };
 
+// The hook slide is a PHOTOGRAPH, not a background. Every theme's flat wash
+// would ruin it — the dark ones muddy the image, the paper ones erase it. So
+// the hero gets a top-down scrim instead: opaque where the type sits, gone by
+// the time it reaches the subject, with a little weight back at the bottom so
+// the feed's crop fold never blows out. Ink is white regardless of style,
+// because the photo is always dark. The accent bar is what carries the brand
+// through to the text slides.
+export const HERO_THEME = { ink: '#FFFFFF', sub: 'rgba(255,255,255,0.88)' };
+
+// Sized from the type that was actually laid out, not from an assumed heading
+// length: it holds full strength to just past the last line, then falls away
+// fast so the photograph is seen. A guessed cutoff put long headings in white
+// on bare photo. A little weight returns at the bottom to seat the subject.
+function heroScrim(x, textBottom) {
+  var end = Math.min(Math.max((textBottom + 40) / SLIDE_H, 0.34), 0.74);
+  var fade = Math.min(end + 0.16, 0.94);
+  var clear = Math.min(fade + 0.12, 0.98);
+  var g = x.createLinearGradient(0, 0, 0, SLIDE_H);
+  g.addColorStop(0.00, 'rgba(8,9,11,0.92)');
+  g.addColorStop(end * 0.72, 'rgba(8,9,11,0.86)');
+  g.addColorStop(end, 'rgba(8,9,11,0.72)');
+  g.addColorStop(fade, 'rgba(8,9,11,0.16)');
+  g.addColorStop(clear, 'rgba(8,9,11,0.02)');
+  g.addColorStop(1.00, 'rgba(8,9,11,0.24)');
+  return g;
+}
+
 function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
+
+// A dark brand color (navy, charcoal) on the hero's near-black scrim is an
+// invisible accent bar — and the bar is the only brand mark the cover carries.
+// Lift it toward white while keeping it recognisably their color.
+function heroAccent(hex, ink) {
+  if (!isHex(hex)) return ink;
+  var r = parseInt(hex.substr(1, 2), 16) / 255;
+  var g = parseInt(hex.substr(3, 2), 16) / 255;
+  var b = parseInt(hex.substr(5, 2), 16) / 255;
+  if (0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.35) return hex;
+  var lift = function (c) { return Math.round((c + (1 - c) * 0.55) * 255); };
+  return 'rgb(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ')';
+}
 
 function wrapText(x, text, maxWidth) {
   var words = String(text || '').split(/\s+/).filter(Boolean);
@@ -28,7 +68,10 @@ function wrapText(x, text, maxWidth) {
 
 export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   opts = opts || {};
+  var hero = !!opts.hero;
   var theme = SLIDE_THEMES[style] || SLIDE_THEMES.bold;
+  var ink = hero ? HERO_THEME.ink : theme.ink;
+  var sub = hero ? HERO_THEME.sub : theme.sub;
   var fontSans = opts.fontSans || 'Geist, sans-serif';
   var fontMono = opts.fontMono || '"Geist Mono", monospace';
   var family = theme.mono ? fontMono : fontSans;
@@ -39,18 +82,18 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   var scale = Math.max(SLIDE_W / iw, SLIDE_H / ih);
   x.drawImage(bg, (SLIDE_W - iw * scale) / 2, (SLIDE_H - ih * scale) / 2, iw * scale, ih * scale);
 
-  // legibility overlay
-  x.fillStyle = theme.overlay;
-  x.fillRect(0, 0, SLIDE_W, SLIDE_H);
-
   var pad = 100, maxW = SLIDE_W - pad * 2;
 
-  // heading — shrink until it fits 6 lines
+  // Lay the type out BEFORE the overlay — the hero scrim is sized from where
+  // the text actually ends. Measuring touches no pixels, so the text slides
+  // render exactly as they always did.
+  // The hero holds to 4 lines: a 6-line heading would bury the photograph.
+  var maxLines = hero ? 4 : 6;
   var hSize = 92, hLines;
   do {
     x.font = '800 ' + hSize + 'px ' + family;
     hLines = wrapText(x, slide.heading, maxW);
-    if (hLines.length <= 6) break;
+    if (hLines.length <= maxLines) break;
     hSize -= 8;
   } while (hSize > 48);
   var hLH = Math.round(hSize * 1.12);
@@ -63,19 +106,25 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
 
   var gap = slide.body ? 44 : 0;
   var blockH = hLines.length * hLH + gap + bLines.length * bLH;
-  var top = Math.max(pad + 120, (SLIDE_H - blockH) / 2);
+  // Hero: pin the type to the top so the photo's subject owns the lower frame.
+  // Text slides: centre the block as before.
+  var top = hero ? pad + 56 : Math.max(pad + 120, (SLIDE_H - blockH) / 2);
+
+  // legibility overlay
+  x.fillStyle = hero ? heroScrim(x, top + blockH) : theme.overlay;
+  x.fillRect(0, 0, SLIDE_W, SLIDE_H);
 
   // accent bar above the heading — the USER'S brand color, never Hooklab orange
-  x.fillStyle = isHex(accent) ? accent : theme.ink;
+  x.fillStyle = hero ? heroAccent(accent, ink) : (isHex(accent) ? accent : ink);
   x.fillRect(pad, top - 56, 88, 12);
 
   x.textBaseline = 'top';
-  x.fillStyle = theme.ink;
+  x.fillStyle = ink;
   x.font = '800 ' + hSize + 'px ' + family;
   hLines.forEach(function (ln, i) { x.fillText(ln, pad, top + i * hLH); });
 
   if (bLines.length) {
-    x.fillStyle = theme.sub;
+    x.fillStyle = sub;
     x.font = '500 ' + bSize + 'px ' + family;
     var bTop = top + hLines.length * hLH + gap;
     bLines.forEach(function (ln, i) { x.fillText(ln, pad, bTop + i * bLH); });
@@ -87,7 +136,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   if (opts.watermark) {
     var wm = 'made with hooklab';
     x.globalAlpha = 0.35;
-    x.fillStyle = theme.ink;
+    x.fillStyle = ink;
     x.font = '500 26px ' + fontMono;
     x.textBaseline = 'alphabetic';
     x.fillText(wm, SLIDE_W - pad - x.measureText(wm).width, SLIDE_H - 52);

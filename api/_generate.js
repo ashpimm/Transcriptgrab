@@ -27,6 +27,27 @@ export function cleanMotifs(motifs) {
     .slice(0, 5);
 }
 
+// A scene asking for rendered words, a URL or a brand mark is either a bad
+// generation or profile text steering the image model (profile fields are free
+// text, and a scraped URL can carry anything). The hero prompt's negatives
+// aren't a guarantee, so a suspect scene is dropped: no photo beats a photo
+// with someone else's billboard in it, especially on the autopilot path where
+// the image posts to a real account unreviewed.
+const SCENE_BANNED = /\b(ignore|instruction|prompt|disregard|override|http|www|\.com|text|word|letter|caption|sign|billboard|poster|banner|label|logo|brand|watermark|screenshot|ui|interface)\b/i;
+
+// The scene is model-written and lands verbatim inside an image prompt, so it
+// is also scrubbed to plain prose — no newlines, quotes or braces to break out
+// with.
+export function cleanScene(scene) {
+  const s = String(scene || '')
+    .replace(/[^\w\s',.-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 180);
+  if (SCENE_BANNED.test(s)) return '';
+  return s;
+}
+
 // Style descriptors keep slide-to-slide consistency: same descriptor + slide
 // number is the whole prompt, so a set reads as one designed carousel.
 export const STYLES = {
@@ -56,6 +77,27 @@ export function backgroundPrompt(style, profile, motifs, accentOverride) {
 ${base}
 ${motifLine} Keep the middle of the canvas quiet and empty for a text overlay.
 Portrait 4:5. ABSOLUTELY NO text, no letters, no numbers, no words, no logos.`;
+}
+
+// The hook slide gets a real PHOTOGRAPH of what the hook is about — a hand
+// dropping a phone in a drawer, not a decorative squiggle. One cinematic recipe
+// for every style: the photo is always dark, so the canvas lays a top-down scrim
+// and white type over it (see slide-render.mjs, opts.hero).
+//
+// Returns '' when there is no scene (legacy carousels predating hero_scene).
+// The caller then skips the hero image entirely and slide 0 falls back to the
+// abstract background — degraded, never broken.
+export function heroPrompt(scene, profile, accentOverride) {
+  const subject = cleanScene(scene);
+  if (!subject) return '';
+  const accent = validHex(accentOverride) || validHex(profile?.color);
+  const accentLine = accent
+    ? `\nOne natural object in the scene carries the color ${accent}. Nothing else is that color.`
+    : '';
+  return `Cinematic editorial photograph, portrait 4:5: ${subject}.
+Photorealistic, shot on a 50mm lens: one clear subject, shallow depth of field, natural directional light, muted filmic color grade, dark understated surroundings. Documentary and candid, never staged stock photography, no eye contact with the camera.
+Compose the subject in the lower two thirds of the frame. The top third stays dark, simple and uncluttered.${accentLine}
+No illustration, no 3D render, no collage, no split screen. ABSOLUTELY NO text, letters, numbers, words, logos, watermarks, phone screens or user interfaces.`;
 }
 
 // 75% value listicles, 25% direct app showcase, deterministic by post count.
@@ -136,6 +178,7 @@ export async function generateCarouselPlan({ profile, kind = 'value', hookId = n
   return {
     hook, style, slides, caption,
     motifs: cleanMotifs(out.motifs),
+    heroScene: cleanScene(out.heroScene),
     accent: validHex(profile.color),
   };
 }

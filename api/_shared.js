@@ -24,6 +24,16 @@ export function handleCors(req, res) {
  * Generate one image with gemini-2.5-flash-image.
  * Returns a base64 PNG string (no data: prefix). Throws on failure.
  */
+// Image gen fails transiently often enough to be worth one blind retry.
+// Every caller wants this — the create page and the autopilot cron alike.
+export async function callGeminiImageRetry(prompt) {
+  try {
+    return await callGeminiImage(prompt);
+  } catch {
+    return await callGeminiImage(prompt);
+  }
+}
+
 export async function callGeminiImage(prompt) {
   if (!GEMINI_KEY) throw new Error('AI service is not available.');
 

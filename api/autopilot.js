@@ -9,10 +9,12 @@ import {
   getAutopilotUsers, countFuturePosts, countAllPosts, createPost,
   getDuePosts, setPostStatus, consumeCarousel, canGenerateCarousel, refreshUsage,
 } from './_db.js';
-import { generateCarouselPlan, postKind, backgroundPrompt, nextSlots, cleanMotifs } from './_generate.js';
+import {
+  generateCarouselPlan, postKind, backgroundPrompt, heroPrompt, nextSlots, cleanMotifs,
+} from './_generate.js';
 import { renderSlidePngs } from './_render.js';
 import { uploadPostEnabled, uploadPhotos } from './_uploadpost.js';
-import { callGeminiImage } from './_shared.js';
+import { callGeminiImageRetry } from './_shared.js';
 
 export const maxDuration = 60;
 
@@ -39,12 +41,24 @@ export default async function handler(req, res) {
           await setPostStatus(post.id, 'skipped', { error: 'subscription inactive or account disconnected' });
           continue;
         }
-        const bgB64 = await callGeminiImage(
-          backgroundPrompt(post.style, post.profile, cleanMotifs(post.motifs), post.accent)
-        );
+        // Hook slide gets a photograph of its subject; the rest share the
+        // abstract background. Both retry — this subscriber never sees the post
+        // before it goes live and cannot re-roll it. A hero that still fails
+        // degrades to the background rather than costing them the day's post.
+        const heroP = heroPrompt(post.hero_scene, post.profile, post.accent);
+        const [bgB64, heroB64] = await Promise.all([
+          callGeminiImageRetry(backgroundPrompt(post.style, post.profile, cleanMotifs(post.motifs), post.accent)),
+          heroP
+            ? callGeminiImageRetry(heroP).catch((err) => {
+                console.error(`hero image failed (post ${post.id}):`, err.message);
+                return null;
+              })
+            : Promise.resolve(null),
+        ]);
         const pngs = await renderSlidePngs({
           slides: post.slides, style: post.style, accent: post.accent,
-          bgBase64: bgB64, watermark: false, // autopilot = paid = never watermarked
+          bgBase64: bgB64, heroBase64: heroB64,
+          watermark: false, // autopilot = paid = never watermarked
         });
         const result = await uploadPhotos({
           username: post.upload_post_username, photos: pngs,
@@ -84,7 +98,7 @@ export default async function handler(req, res) {
           await createPost({
             userId: user.id, scheduledAt: slot.toISOString(), kind: postKind(total),
             style: plan.style, slides: plan.slides, caption: plan.caption,
-            accent: plan.accent, motifs: plan.motifs,
+            accent: plan.accent, motifs: plan.motifs, heroScene: plan.heroScene,
           });
           await consumeCarousel(user, slotGate.source);
           if (slotGate.source === 'credit') user.credits = (user.credits || 0) - 1;
