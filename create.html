@@ -110,36 +110,28 @@
   <div id="app" style="display:none">
     <div class="page-head">
       <h1 class="display">Create a post.</h1>
-      <p class="sub">Your app + a proven hook = a carousel ready to publish.</p>
+      <p class="sub">Your product + a proven hook = a carousel ready to publish.</p>
     </div>
 
-    <!-- ============ APP PROFILE ============ -->
+    <!-- ============ PRODUCT PROFILE ============ -->
     <section class="profile-zone" id="profile-zone">
       <div class="profile-card" id="profile-card">
         <div id="profile-setup">
-          <h2>Tell us about your app — once.</h2>
-          <div class="hint-line">Paste your app’s link (site, Play Store, or App Store). We’ll read it and draft the profile for you.</div>
+          <h2>Tell us about your product — once.</h2>
+          <div class="hint-line">Paste its link — a site, a SaaS landing page, Play Store, or App Store. We’ll read it and draft the profile for you.</div>
           <form class="pastebar" id="import-form">
-            <input type="url" id="import-url" placeholder="https://your-app.com">
-            <button class="btn btn-primary" type="submit" id="import-btn">Read my app</button>
+            <input type="url" id="import-url" placeholder="https://yourproduct.com">
+            <button class="btn btn-primary" type="submit" id="import-btn">Read my page</button>
           </form>
           <button class="manual-toggle" id="manual-toggle" type="button">or fill it in manually</button>
         </div>
 
         <div class="profile-form" id="profile-form">
           <div class="msg" id="p-msg" role="status"></div>
-          <div class="field"><label for="f-name">App name</label><input type="text" id="f-name" placeholder="GainLock"></div>
+          <div class="field"><label for="f-name">Product name</label><input type="text" id="f-name" placeholder="GainLock"></div>
           <div class="field"><label for="f-what">What does it do?</label><div class="hint">Plain words. This is the substance of every slide.</div><textarea id="f-what" rows="2" placeholder="Locks your phone until you finish your workout."></textarea></div>
           <div class="field"><label for="f-who">Who is it for?</label><textarea id="f-who" rows="1" placeholder="Gym-goers who lose consistency after the first month."></textarea></div>
           <div class="field"><label for="f-benefit">The one benefit that matters</label><input type="text" id="f-benefit" placeholder="Never skip a workout again."></div>
-          <div class="field"><label for="f-tone">Tone</label>
-            <select id="f-tone">
-              <option value="casual">Casual — like texting a friend</option>
-              <option value="professional">Professional — polished and direct</option>
-              <option value="funny">Funny — jokes welcome</option>
-              <option value="authority">Authority — the confident expert</option>
-            </select>
-          </div>
           <div class="field"><label for="f-color">Brand color</label><div class="hint">The accent on every slide. We read it from your site — fix it if we got it wrong.</div><input type="color" id="f-color" value="#4F8BFF"></div>
           <button class="btn btn-primary" id="save-profile">Save profile</button>
         </div>
@@ -159,14 +151,14 @@
     <section class="gen-zone">
       <div class="gen-card">
         <h2>We take it from here.</h2>
-        <div class="hint-line">We pick a hook that already pulled outlier views, rewrite it around your app, and design the slides. You get the whole post — slides, caption, hashtags.</div>
+        <div class="hint-line">We pick a hook that already pulled outlier views, rewrite it around your product, and design the slides. You get the whole post — slides, caption, hashtags.</div>
         <button class="btn btn-signal" id="gen-btn">Generate my carousel</button>
         <div class="gen-note" id="gen-note"></div>
         <button class="customize-toggle" id="customize-toggle" type="button">Want control? Choose the hook + style yourself</button>
         <div class="customize" id="customize">
           <div>
             <h3>Hook</h3>
-            <p class="hint">Real openers with receipts — views earned vs followers. We rewrite your pick around your app. No pick = we grab a proven one for you.</p>
+            <p class="hint">Real openers with receipts — views earned vs followers. We rewrite your pick around your product. No pick = we grab a proven one for you.</p>
             <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
           </div>
           <div>
@@ -187,7 +179,7 @@
     <section>
       <div id="caro-out"><div class="empty-state">
         <h3>Your next post starts here.</h3>
-        <p>Set your app profile above, hit generate — slides, caption, and hashtags come out ready to post.</p>
+        <p>Set your product profile above, hit generate — slides, caption, and hashtags come out ready to post.</p>
       </div></div>
       <div class="history" id="history" style="display:none"><h2>Past carousels</h2><div id="hist-list"></div></div>
     </section>
@@ -275,10 +267,10 @@ function renderProfileSummary() {
   el('profile-setup').style.display = 'none';
   el('profile-form').classList.remove('show');
   el('profile-summary').style.display = 'flex';
-  el('ps-name').textContent = p.name || 'Your app';
+  el('ps-name').textContent = p.name || 'Your product';
   el('ps-what').textContent = p.what || '';
-  var meta = [p.who, p.tone ? 'tone: ' + p.tone : ''].filter(Boolean).join(' · ');
-  meta += (p.audience_niche && p.audience_niche.name) ? ' · ' + p.audience_niche.name : '';
+  var meta = p.who || '';
+  meta += (p.audience_niche && p.audience_niche.name) ? (meta ? ' · ' : '') + p.audience_niche.name : '';
   el('ps-meta').innerHTML = (isHex(p.color) ? '<span class="swatch" style="background:' + p.color + '"></span>' : '') + esc(meta);
 }
 
@@ -287,7 +279,6 @@ function fillForm(p) {
   el('f-what').value = p.what || '';
   el('f-who').value = p.who || '';
   el('f-benefit').value = p.benefit || '';
-  if (p.tone) el('f-tone').value = p.tone;
   if (isHex(p.color)) { ST.formColor = p.color; el('f-color').value = p.color; }
   growAll();
 }
@@ -322,7 +313,7 @@ function runImport(url) {
     body: JSON.stringify({ action: 'import', url: url })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
-      btn.disabled = false; btn.textContent = 'Read my app';
+      btn.disabled = false; btn.textContent = 'Read my page';
       el('profile-form').classList.add('show');
       if (res.s === 200 && res.j.prefill) {
         fillForm(res.j.prefill);
@@ -335,7 +326,7 @@ function runImport(url) {
       }
     })
     .catch(function () {
-      btn.disabled = false; btn.textContent = 'Read my app';
+      btn.disabled = false; btn.textContent = 'Read my page';
       el('profile-form').classList.add('show');
       showMsg('Couldn’t read that page — fill the form in and save.', false);
     });
@@ -348,7 +339,6 @@ el('save-profile').addEventListener('click', function () {
     what: el('f-what').value,
     who: el('f-who').value,
     benefit: el('f-benefit').value,
-    tone: el('f-tone').value,
     color: ST.formColor || (ST.profile && ST.profile.color) || '',
     audience_niche: ST.prefillNiche || (ST.profile && ST.profile.audience_niche) || null
   };
@@ -437,9 +427,9 @@ if (location.hash === '#customize') el('customize-toggle').click();
 function runGenerate() {
   if (!ST.profile || !ST.profile.what) {
     el('profile-zone').scrollIntoView({ behavior: 'smooth' });
-    showMsg('Set up your app profile first — it takes one paste.', false);
+    showMsg('Set up your product profile first — it takes one paste.', false);
     el('profile-form').classList.add('show');
-    el('gen-note').textContent = 'finish your app profile above first';
+    el('gen-note').textContent = 'finish your product profile above first';
     return;
   }
   var btn = el('gen-btn');
@@ -466,7 +456,7 @@ function runGenerate() {
       else if (res.s === 400 && res.j.needsProfile) {
         el('profile-zone').scrollIntoView({ behavior: 'smooth' });
         el('profile-form').classList.add('show');
-        el('gen-note').textContent = 'finish your app profile above first';
+        el('gen-note').textContent = 'finish your product profile above first';
       }
       else if (res.s === 402) {
         el('gen-note').textContent = res.j.error || 'Plan limit reached.';

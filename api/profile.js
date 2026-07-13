@@ -269,8 +269,10 @@ function parseScrapedContent(html, url) {
   return { text: '', source: 'empty' };
 }
 
-const VALID_TONES = ['casual', 'professional', 'funny', 'authority'];
-
+// No tone here on purpose: it is picked fresh on every generation (pickTone in
+// _generate.js). A tone pinned once on the profile made 30 autopilot posts a
+// month speak in one voice. Old profiles may still carry the key; it is dropped
+// on the next save and never read.
 function cleanProfile(p) {
   if (!p || typeof p !== 'object') return null;
   return {
@@ -279,7 +281,6 @@ function cleanProfile(p) {
     what: clipText(p.what, 1000),
     who: clipText(p.who, 600),
     benefit: clipText(p.benefit, 300),
-    tone: VALID_TONES.includes(p.tone) ? p.tone : 'casual',
     color: /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color.toUpperCase() : '',
     audience_niche: (function () {
       if (!p.audience_niche || typeof p.audience_niche !== 'object') return null;
@@ -418,7 +419,6 @@ export default async function handler(req, res) {
         what: structured.what,
         who: structured.who,
         benefit: structured.benefit,
-        tone: structured.tone,
         color: structured.color,
         audience_niche: structured.audience_niche && structured.audience_niche.name
           ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name, keywords: structuredKw }

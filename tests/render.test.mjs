@@ -92,6 +92,64 @@ test('a long hook heading stays inside the hero scrim', async () => {
   );
 });
 
+// The CTA is the whole point of the post: the last slide asks for the install.
+// It rides on the slide object (slides[last].cta) so it needs no DB column and
+// old carousels simply render without it.
+test('the CTA is drawn on the slide that carries it, and only there', async () => {
+  const withCta = await renderSlidePngs({
+    slides: [SLIDES[0], { ...SLIDES[1], cta: 'Get CalSnap. Link in bio.' }],
+    style: 'bold', accent: '#22C55E', bgBase64: PX, watermark: false,
+  });
+  const without = await renderSlidePngs({
+    slides: SLIDES, style: 'bold', accent: '#22C55E', bgBase64: PX, watermark: false,
+  });
+  assert.ok(!withCta[1].equals(without[1]), 'last slide should show the CTA');
+  assert.ok(withCta[0].equals(without[0]), 'the CTA must not leak onto other slides');
+});
+
+test('a carousel with no CTA renders exactly as it did before', async () => {
+  const [a] = await renderSlidePngs({
+    slides: [{ index: 0, heading: 'Eat protein first', body: 'Keeps you full.', cta: '' }],
+    style: 'bold', accent: '#22C55E', bgBase64: PX, watermark: false,
+  });
+  const [b] = await renderSlidePngs({
+    slides: [{ index: 0, heading: 'Eat protein first', body: 'Keeps you full.' }],
+    style: 'bold', accent: '#22C55E', bgBase64: PX, watermark: false,
+  });
+  assert.ok(a.equals(b));
+});
+
+// Free tier stamps the watermark in the bottom-right of the same last slide the
+// CTA lands on. A long CTA must give way, not run under the mark.
+test('a long CTA never collides with the free-tier watermark', async () => {
+  const [png] = await renderSlidePngs({
+    slides: [{
+      index: 0,
+      heading: 'Stop guessing your calories',
+      body: 'One photo, full macros, no weighing scale.',
+      cta: 'Start counting properly with CalSnap today, link in bio',
+    }],
+    style: 'bold', accent: '#22C55E', bgBase64: PX, watermark: true,
+  });
+
+  const img = await loadImage(png);
+  const c = createCanvas(SLIDE_W, SLIDE_H);
+  c.getContext('2d').drawImage(img, 0, 0);
+  const px = c.getContext('2d').getImageData(0, 0, SLIDE_W, SLIDE_H).data;
+
+  // The accent is a saturated green; the watermark is grey-white on charcoal.
+  // No accent-green pixel may appear inside the watermark's corner box.
+  const isAccent = (x, y) => {
+    const i = (y * SLIDE_W + x) * 4;
+    return px[i + 1] > 110 && px[i + 1] > px[i] + 40 && px[i + 1] > px[i + 2] + 40;
+  };
+  let hits = 0;
+  for (let y = SLIDE_H - 110; y < SLIDE_H - 20; y++) {
+    for (let x = SLIDE_W - 380; x < SLIDE_W; x++) if (isAccent(x, y)) hits++;
+  }
+  assert.equal(hits, 0, `${hits} accent pixels landed in the watermark's corner`);
+});
+
 test('an undecodable hero degrades to the background instead of throwing', async () => {
   const bufs = await renderSlidePngs({
     slides: SLIDES, style: 'bold', accent: '#22C55E',

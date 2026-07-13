@@ -100,9 +100,28 @@ Compose the subject in the lower two thirds of the frame. The top third stays da
 No illustration, no 3D render, no collage, no split screen. ABSOLUTELY NO text, letters, numbers, words, logos, watermarks, phone screens or user interfaces.`;
 }
 
-// 75% value listicles, 25% direct app showcase, deterministic by post count.
+// 75% value listicles, 25% direct product showcase, deterministic by post count.
 export function postKind(n) {
   return n % 4 === 3 ? 'showcase' : 'value';
+}
+
+// Tone is picked per generation, not pinned on the profile. Autopilot ships 30
+// posts a month from one account: a single locked voice reads like a bot, and
+// nobody ever went back to change a select they set once.
+export const TONES = ['casual', 'professional', 'funny', 'authority'];
+
+export function pickTone() {
+  return TONES[Math.floor(Math.random() * TONES.length)];
+}
+
+// The closing ask, written by the model and painted on the last slide. A slide
+// is an image, so a URL in it is unclickable noise — and profile text is free
+// text a scrape could have steered. Strip URLs, keep it to one short line.
+export function cleanCta(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (/https?:\/\/|www\.|\.[a-z]{2,}(\/|\b)/i.test(s)) return '';
+  return s.substring(0, 60);
 }
 
 // Daily posting slots at 15:00 UTC (peak US morning/noon). Returns up to
@@ -123,14 +142,15 @@ export function nextSlots(nowIso, existing, days) {
   return out;
 }
 
-export function buildPlanPayload({ profile, hook, kind, slideCount }) {
+export function buildPlanPayload({ profile, hook, kind, slideCount, tone }) {
   return {
-    app: {
+    product: {
       name: profile.name || '',
       what: profile.what,
       who: profile.who || '',
       benefit: profile.benefit || '',
-      tone: profile.tone || 'casual',
+      url: profile.app_url || '',
+      tone: TONES.includes(tone) ? tone : 'casual',
     },
     audienceNiche: profile.audience_niche?.name || 'General',
     hook: { template: hook.hook_template, verbatim: hook.hook_verbatim || '', topic: hook.topic || '' },
@@ -158,7 +178,8 @@ export async function generateCarouselPlan({ profile, kind = 'value', hookId = n
   const styleKeys = Object.keys(STYLES);
   const style = STYLES[styleOverride] ? styleOverride : styleKeys[Math.floor(Math.random() * styleKeys.length)];
 
-  const payload = buildPlanPayload({ profile, hook, kind, slideCount: SLIDE_COUNT });
+  const tone = pickTone();
+  const payload = buildPlanPayload({ profile, hook, kind, slideCount: SLIDE_COUNT, tone });
   const out = await callGemini(CAROUSEL_COPY_PROMPT, JSON.stringify(payload), 0.7);
   if (!out || !Array.isArray(out.slides) || out.slides.length === 0) {
     throw new Error('AI returned an invalid response. Please try again.');
@@ -169,6 +190,12 @@ export async function generateCarouselPlan({ profile, kind = 'value', hookId = n
     heading: String(s.heading || '').substring(0, 120),
     body: String(s.body || '').substring(0, 220),
   }));
+
+  // The ask rides on the last slide object, so it persists inside the existing
+  // slides JSON — no column, no migration, and a carousel made before this
+  // shipped simply renders without one.
+  const cta = cleanCta(out.cta);
+  if (cta) slides[slides.length - 1].cta = cta;
   const hashtags = (Array.isArray(out.hashtags) ? out.hashtags : [])
     .map((h) => String(h).replace(/^#/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())
     .filter(Boolean).slice(0, 8);

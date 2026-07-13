@@ -130,6 +130,35 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
     bLines.forEach(function (ln, i) { x.fillText(ln, pad, bTop + i * bLH); });
   }
 
+  // The ask. Carried on the slide object (last slide only — the generator puts
+  // it nowhere else), so old carousels and the hook slide simply have none.
+  // Sits under the type block in the brand color, with a short rule above it so
+  // it reads as the arc's payoff rather than another body line. It gives the
+  // free-tier watermark a wide berth: they share this slide's bottom edge.
+  if (slide.cta && !hero) {
+    // The watermark owns the bottom-right corner on free-tier slides; the CTA
+    // gets the column to its left and shrinks, then wraps, to stay out of it.
+    var cAvail = maxW - (opts.watermark ? 340 : 0);
+    var cSize = 38, cLines;
+    do {
+      x.font = '700 ' + cSize + 'px ' + family;
+      cLines = wrapText(x, slide.cta, cAvail);
+      if (cLines.length <= 2) break;
+      cSize -= 2;
+    } while (cSize > 24);
+    cLines = cLines.slice(0, 2);
+    var cLH = Math.round(cSize * 1.28);
+    var cW = Math.min(Math.max.apply(null, cLines.map(function (ln) { return x.measureText(ln).width; })), cAvail);
+    var cTop = Math.min(top + blockH + 64, SLIDE_H - pad - 40 - cLines.length * cLH);
+
+    x.fillStyle = isHex(accent) ? accent : ink;
+    x.globalAlpha = 0.55;
+    x.fillRect(pad, cTop - 26, cW, 3);
+    x.globalAlpha = 1;
+    x.textBaseline = 'top';
+    cLines.forEach(function (ln, i) { x.fillText(ln, pad, cTop + i * cLH); });
+  }
+
   // NO slide-index chip — deliberate (2026-07-13 spec).
 
   // Free-tier watermark: whisper, not a badge. Last slide only (caller decides).

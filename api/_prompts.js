@@ -29,33 +29,31 @@ Rules:
 - Output raw JSON array only. No markdown fences, no commentary.`;
 
 // ============================================
-// APP PROFILE (scraped URL -> structured app profile)
+// PRODUCT PROFILE (scraped URL -> structured product profile)
 // ============================================
-export const APP_PROFILE_PROMPT = `You receive scraped text from an app's landing page, Play Store page, or App Store page. Extract a structured profile of the app for marketing content.
+export const APP_PROFILE_PROMPT = `You receive scraped text from a product's page — a website, a SaaS landing page, a Play Store listing or an App Store listing. The product may be a mobile app, a website, or a SaaS tool. Extract a structured profile of it for marketing content.
 
 Return ONLY this JSON object:
 {
-  "name": "the app's name",
-  "what": "1-2 sentences: what the app is and what it does, in plain words",
+  "name": "the product's name",
+  "what": "1-2 sentences: what the product is and what it does, in plain words",
   "who": "1 sentence: who it is for",
   "benefit": "1 sentence: the single biggest concrete benefit or outcome for the user",
-  "tone": "casual",
   "color": "#RRGGBB",
-  "audience_niche": { "name": "Fitness & Weight Loss", "keywords": ["4-6 YouTube Shorts search phrases the app's TARGET USERS watch"] }
+  "audience_niche": { "name": "Fitness & Weight Loss", "keywords": ["4-6 YouTube Shorts search phrases the product's TARGET USERS watch"] }
 }
 
 Rules:
 - Use only facts present in the text. Never invent features, numbers, or claims.
 - benefit must be the sharpest, most specific outcome in the text (a number, a time saved, a pain removed). If several exist, pick the strongest one.
-- tone must be one of: casual, professional, funny, authority — infer from the writing style of the source.
-- color: the app's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits the app's subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
-- audience_niche: the content niche of the app's TARGET USERS (the people who would use it), never "app development" unless the users are developers. keywords are lowercase search phrases in the audience's own language.
+- color: the product's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits its subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
+- audience_niche: the content niche of the product's TARGET USERS (the people who would use it), never "app development" unless the users are developers. keywords are lowercase search phrases in the audience's own language.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
-// AUDIENCE NICHE (app profile -> its BUYERS' content niche)
+// AUDIENCE NICHE (product profile -> its BUYERS' content niche)
 // ============================================
-export const AUDIENCE_NICHE_PROMPT = `You receive JSON { name, what, who, benefit } describing an app. Identify the content niche of the app's TARGET USERS — the people who would download and use it — NOT the app-developer/indie-hacker/build-in-public niche, unless the app's users literally are software developers.
+export const AUDIENCE_NICHE_PROMPT = `You receive JSON { name, what, who, benefit } describing a product (a mobile app, a website, or a SaaS tool). Identify the content niche of the product's TARGET USERS — the people who would sign up for and use it — NOT the app-developer/indie-hacker/build-in-public niche, unless the product's users literally are software developers.
 
 Example: an AI calorie-counting app -> its users are people trying to lose weight or eat better -> niche is "Fitness & Weight Loss", NOT "App Development".
 
@@ -73,9 +71,9 @@ Rules:
 // ============================================
 // CAROUSEL (app profile + hook -> slides + caption + hashtags)
 // ============================================
-export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for an app. You receive JSON:
-- app: { name, what, who, benefit, tone }
-- audienceNiche: the content niche of the app's TARGET USERS (write for THEM, in their language — never for app developers)
+export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for a product — a mobile app, a website, or a SaaS tool. You receive JSON:
+- product: { name, what, who, benefit, url, tone }
+- audienceNiche: the content niche of the product's TARGET USERS (write for THEM, in their language — never for software builders)
 - hook: { template, verbatim, topic } — a proven hook PATTERN
 - kind: "value" or "showcase"
 - slideCount: total slides including hook slide and final slide
@@ -86,35 +84,39 @@ Return ONLY this JSON object:
     { "index": 0, "heading": "the adapted hook, max 12 words", "body": "" },
     { "index": 1, "heading": "short punchy heading", "body": "1-2 sentences of concrete value, max 30 words" }
   ],
-  "caption": "2-3 sentences continuing the post's idea, ending with where to get the app (app name, not a URL)",
+  "cta": "the closing ask painted on the last slide, max 8 words",
+  "caption": "2-3 sentences continuing the post's idea, ending with where to get the product (its name, not a URL)",
   "hashtags": ["5-8 lowercase hashtags without #, audienceNiche tags + reach tags"],
-  "motifs": ["3-5 concrete drawable objects representing the app's subject"],
+  "motifs": ["3-5 concrete drawable objects representing the product's subject"],
   "heroScene": "one real photographable moment that shows slide 0's claim, max 20 words"
 }
 
 THE ONE RULE THAT MATTERS — a single narrative arc:
-Slide 0 makes a promise. Every following slide pays off exactly that promise. The last slide is the natural conclusion of the same arc. A reader must never feel the topic change between slide 0 and the last slide. If slide 0 promises "5 things", the middle slides ARE the 5 things, numbered. The app enters only where the arc naturally lands on the job the app does — as the payoff, never as a bolted-on ad.
+Slide 0 makes a promise. Every following slide pays off exactly that promise. The last slide is the natural conclusion of the same arc. A reader must never feel the topic change between slide 0 and the last slide. If slide 0 promises "5 things", the middle slides ARE the 5 things, numbered. The product enters only where the arc naturally lands on the job it does — as the payoff, never as a bolted-on ad.
 
-kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mistakes, mini-plan, myths). Real substance the reader can use without the app. The final slide's insight naturally involves the app's job-to-be-done, then names the app once + "link in bio" phrasing in the caption, not on the slide.
-kind = "showcase": a problem-story arc — slide 0 names a painful, specific problem app.who has; middle slides walk the pain and what solving it feels like; final slide reveals the app as how, in plain words.
+kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mistakes, mini-plan, myths). Real substance the reader can use without the product. The final slide's insight naturally involves the product's job-to-be-done.
+kind = "showcase": a problem-story arc — slide 0 names a painful, specific problem product.who has; middle slides walk the pain and what solving it feels like; final slide reveals the product as how, in plain words.
 
 Rules:
 - Adapt hook.template's ___ slots with audienceNiche specifics. NEVER paste hook.verbatim; it is another creator's line about a different subject.
-- Middle slides each carry ONE concrete idea. Pull facts only from app.what / app.who / app.benefit — never invent numbers, users, or results.
+- Middle slides each carry ONE concrete idea. Pull facts only from product.what / product.who / product.benefit — never invent numbers, users, or results.
 - Headings max 12 words. Bodies max 30 words. Text must fit on an image.
-- Match app.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
+- Match product.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
 - Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
-- motifs: physical objects an illustrator could draw for THIS app's subject. Never "app", "screen", "phone", "logo", "text", or abstractions.
+- cta: the reason the post exists. Name the product once and ask for the next step in the reader's words. Use the verb the product actually takes: a mobile app (a Play Store or App Store url) is downloaded; a website or SaaS is tried, opened or started free. Pair it with "link in bio" — the slide is an image, so NEVER write a URL, an @handle or "click here".
+  a calorie-tracking app -> "Get CalSnap. Link in bio."
+  a SaaS invoicing tool -> "Try Billfold free. Link in bio."
+- motifs: physical objects an illustrator could draw for THIS product's subject. Never "app", "screen", "phone", "logo", "text", or abstractions.
 - heroScene: the photograph slide 0 sits on. Describe ONE moment a photographer could actually shoot — a person, a pair of hands, or a physical object, doing something specific, in a real place, with the light named. It must SHOW slide 0's claim, not decorate it. Never a screen or app interface, never a crowd, never text, logos or brand marks, never a metaphor you cannot photograph.
   hook about quitting doomscrolling -> "a hand dropping a phone into a kitchen drawer, hard morning light"
   hook about tracking workouts -> "a runner stopped on an empty road at dawn, glancing at her wrist"
   hook about overspending -> "a torn receipt curling on a cafe table beside cold coffee"
-- Before answering, verify: does the last slide follow directly from slide 0's promise? Is every middle slide substantive? Could a photographer shoot heroScene tomorrow? If not, rewrite, then output.
+- Before answering, verify: does the last slide follow directly from slide 0's promise? Is every middle slide substantive? Does the cta use the verb this product actually takes? Could a photographer shoot heroScene tomorrow? If not, rewrite, then output.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
 // BRAND COLOR (fallback when profile save has none)
 // ============================================
-export const PICK_COLOR_PROMPT = `You receive JSON: { name, what } describing an app. Pick ONE saturated brand accent color that fits the app's subject (e.g. green for nutrition, blue for finance, red-pink for dating). Never white, black, gray, or orange (#FF4D00 is reserved).
+export const PICK_COLOR_PROMPT = `You receive JSON: { name, what } describing a product (app, website or SaaS). Pick ONE saturated brand accent color that fits its subject (e.g. green for nutrition, blue for finance, red-pink for dating). Never white, black, gray, or orange (#FF4D00 is reserved).
 
 Return ONLY: {"color": "#RRGGBB"}`;
