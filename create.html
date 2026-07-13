@@ -512,6 +512,8 @@ function renderCarousel() {
 // One AI background per carousel (textless), then canvas draws the text —
 // razor-sharp type, zero typo risk, one image bill instead of six.
 var SLIDE_IMAGES = {};
+// carouselId -> background data URL, so reopening a carousel this session is instant
+var BG_CACHE = {};
 
 function drawSlide(bg, slide, count, style, isLast) {
   var R = window.SlideRender;
@@ -527,14 +529,25 @@ function generateSlides(freshBg) {
   SLIDE_IMAGES = {};
   var slides = ST.carousel.slides;
   var style = ST.carousel.style || 'bold';
-  slides.forEach(function (s) { renderSlideStatus(s.index, 'designing background…'); });
+  var cid = ST.carousel.carouselId;
   var dl = el('dl-all'); if (dl) dl.disabled = true;
+
+  // Already fetched this carousel's background this session? Draw it now —
+  // no round trip, no waiting.
+  if (!freshBg && BG_CACHE[cid]) {
+    paintSlides(BG_CACHE[cid], slides, style, ST.watermark);
+    return;
+  }
+
+  slides.forEach(function (s) {
+    renderSlideStatus(s.index, freshBg || !ST.carousel.hasBg ? 'designing background…' : 'loading…');
+  });
 
   fetch('/api/carousel', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action: 'background', carouselId: ST.carousel.carouselId, fresh: freshBg ? 1 : 0,
+      action: 'background', carouselId: cid, fresh: freshBg ? 1 : 0,
       motifs: ST.carousel.motifs || [], accent: ST.carousel.accent || ''
     })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
@@ -544,34 +557,41 @@ function generateSlides(freshBg) {
         var d2 = el('dl-all'); if (d2) d2.disabled = false;
         return;
       }
-      var bg = new Image();
-      bg.onload = function () {
-        var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-        ready.then(function () {
-          var pending = slides.length;
-          ST.watermark = !!res.j.watermark;
-          slides.forEach(function (s) {
-            var isLast = s.index === slides.length - 1;
-            try {
-              var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
-              SLIDE_IMAGES[s.index] = dataUrl;
-              var box = el('slide-' + s.index);
-              if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
-            } catch (e) {
-              renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
-            }
-            if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
-          });
-        });
-      };
-      bg.onerror = function () {
-        slides.forEach(function (s) { renderSlideStatus(s.index, 'background failed — hit “New background” to retry'); });
-      };
-      bg.src = res.j.image;
+      BG_CACHE[cid] = res.j.image;
+      ST.carousel.hasBg = true;
+      paintSlides(res.j.image, slides, style, !!res.j.watermark);
     })
     .catch(function () {
       slides.forEach(function (s) { renderSlideStatus(s.index, 'network error — hit “New background” to retry'); });
     });
+}
+
+// Draw the slides from a background image (fresh or cached — same path).
+function paintSlides(imageSrc, slides, style, watermark) {
+  var bg = new Image();
+  bg.onload = function () {
+    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    ready.then(function () {
+      var pending = slides.length;
+      ST.watermark = !!watermark;
+      slides.forEach(function (s) {
+        var isLast = s.index === slides.length - 1;
+        try {
+          var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
+          SLIDE_IMAGES[s.index] = dataUrl;
+          var box = el('slide-' + s.index);
+          if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
+        } catch (e) {
+          renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
+        }
+        if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
+      });
+    });
+  };
+  bg.onerror = function () {
+    slides.forEach(function (s) { renderSlideStatus(s.index, 'background failed — hit “New background” to retry'); });
+  };
+  bg.src = imageSrc;
 }
 
 function renderSlideStatus(index, msg) {
@@ -665,10 +685,13 @@ el('hist-list').addEventListener('click', function (e) {
   var row = e.target.closest('[data-c]'); if (!row) return;
   var c = (ST.history || []).find(function (x) { return x.id === parseInt(row.getAttribute('data-c'), 10); });
   if (!c) return;
-  ST.carousel = { carouselId: c.id, slides: c.slides, caption: c.caption, watermark: c.watermark, style: c.style };
+  ST.carousel = {
+    carouselId: c.id, slides: c.slides, caption: c.caption,
+    watermark: c.watermark, style: c.style, hasBg: !!c.has_bg,
+  };
   ST.watermark = !!c.watermark;
   renderCarousel();
-  generateSlides(); // re-renders slides (images aren't stored)
+  generateSlides(); // redraws the text over the carousel's saved background
   el('caro-out').scrollIntoView({ behavior: 'smooth' });
 });
 </script>

@@ -444,7 +444,8 @@ export async function saveCarouselBg(userId, id, b64) {
 export async function getCarousels(userId) {
   const sql = getSQL();
   return sql`
-    SELECT id, hook_id, style, slides, caption, watermark, created_at
+    SELECT id, hook_id, style, slides, caption, watermark, created_at,
+           (bg IS NOT NULL) AS has_bg
     FROM carousels WHERE user_id = ${userId}
     ORDER BY created_at DESC LIMIT 50
   `;
