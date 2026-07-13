@@ -40,6 +40,9 @@ export default async function handler(req, res) {
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
     if (body.action === 'link') {
+      if (user.tier !== 'pro') {
+        return res.status(402).json({ error: 'Auto-posting is part of Autopilot ($19/mo). Upgrade to connect your accounts.', upgrade: true });
+      }
       if (!uploadPostEnabled()) {
         return res.status(503).json({ error: 'Auto-posting is not enabled yet — download and post manually for now.' });
       }

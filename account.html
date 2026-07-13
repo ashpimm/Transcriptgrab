@@ -80,6 +80,7 @@
 <script>
 function el(id) { return document.getElementById(id); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+var CUR_TIER = 'free';
 
 window.addEventListener('load', function () {
   var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
@@ -91,6 +92,7 @@ window.addEventListener('load', function () {
 });
 
 function render(u) {
+  CUR_TIER = u.tier || 'free';
   el('who').innerHTML =
     (u.picture ? '<img src="' + esc(u.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
     '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Autopilot' : 'Free') + '</span></div>' +
@@ -132,6 +134,12 @@ function loadSocial() {
 
 function renderSocial(d) {
   if (!d.connected) {
+    if (CUR_TIER !== 'pro') {
+      el('autopilot-body').innerHTML =
+        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is part of Autopilot ($19/mo) — upgrade to connect TikTok + Instagram and let Autopilot post your daily carousel automatically.</p>' +
+        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Go Autopilot — $19/mo</a>';
+      return;
+    }
     el('autopilot-body').innerHTML =
       '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram to let Autopilot post your daily carousel automatically.</p>' +
       '<button class="btn btn-primary" id="connect-social">Connect TikTok + Instagram</button>' +

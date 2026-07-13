@@ -26,7 +26,7 @@
         title = 'You hit this month’s 30.';
         subtitle = 'Your Autopilot quota resets on your billing date.';
       } else if (!isSignedIn) {
-        title = 'Your first carousel is free.';
+        title = 'Your first 3 carousels are free.';
         subtitle = 'Sign in, paste your app’s link, and post today. No card required.';
       }
 

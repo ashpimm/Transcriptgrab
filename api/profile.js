@@ -368,8 +368,17 @@ export default async function handler(req, res) {
       }
       await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: kw }).catch(() => {});
     }
+    // Persist first: the user's edits must never be lost to a light-mine
+    // timeout below (mineNiche can eat most of maxDuration on a cold niche).
+    try {
+      await saveProfile(user.id, cleaned);
+    } catch (e) {
+      console.error('profile save error:', e);
+      return res.status(500).json({ error: 'Could not save your profile.' });
+    }
     // Fresh niches have zero mined hooks — kick a light mine inline so the
-    // user's first generation isn't stuck on curated fallbacks. Best effort.
+    // user's first generation isn't stuck on curated fallbacks. Best effort;
+    // the profile is already saved above, so a timeout here costs nothing.
     if (cleaned.audience_niche && process.env.YOUTUBE_API_KEY) {
       try {
         const pool = await getAutoHookPool(cleaned.audience_niche.slug, 5);
@@ -385,13 +394,7 @@ export default async function handler(req, res) {
         console.error('light mine on save failed:', e.message);
       }
     }
-    try {
-      await saveProfile(user.id, cleaned);
-      return res.status(200).json({ ok: true, profile: cleaned });
-    } catch (e) {
-      console.error('profile save error:', e);
-      return res.status(500).json({ error: 'Could not save your profile.' });
-    }
+    return res.status(200).json({ ok: true, profile: cleaned });
   }
 
   if (action === 'import') {

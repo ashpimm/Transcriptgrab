@@ -252,7 +252,8 @@ export async function ensureNiche({ slug, name, keywords }) {
   const rows = await sql`
     INSERT INTO niches (slug, name, keywords)
     VALUES (${slug}, ${name}, ${keywords || []})
-    ON CONFLICT (slug) DO UPDATE SET name = niches.name
+    ON CONFLICT (slug) DO UPDATE SET
+      keywords = CASE WHEN cardinality(niches.keywords) = 0 THEN EXCLUDED.keywords ELSE niches.keywords END
     RETURNING *
   `;
   return rows[0];

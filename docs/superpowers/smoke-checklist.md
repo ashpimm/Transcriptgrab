@@ -27,9 +27,13 @@ Run this on a Vercel preview deploy after the USER ACTIONS below are done
       env once the first customer actually pays for Autopilot. Until then
       `uploadPostEnabled()` is false everywhere: `/api/social` link action
       returns 503 ("Auto-posting is not enabled yet — download and post
-      manually for now"), and the autopilot cron's Phase 2 (publish) is
-      skipped entirely — Phase 1 (queue top-up) still runs and fills the
-      `posts` table, it just never ships anything.
+      manually for now"), so no user can ever get `upload_post_username`
+      set. Both autopilot cron phases require it: `getAutopilotUsers()`
+      only selects `tier = 'pro' AND upload_post_username IS NOT NULL`, so
+      Phase 1 (queue top-up) finds zero eligible users and Phase 2 (publish)
+      has nothing queued to publish. Without the key, the product runs in
+      manual-export mode only (users generate + download ZIPs on `/create`);
+      queueing and auto-posting both need the key plus a connected pro user.
 - [ ] **Push `hooklab-rebuild` to `main` via GitHub Desktop** (CLI push fails
       on the `/dev/tty` credential prompt in this environment) — then let
       Vercel deploy prod.

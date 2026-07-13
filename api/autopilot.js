@@ -7,7 +7,7 @@
 
 import {
   getAutopilotUsers, countFuturePosts, countAllPosts, createPost,
-  getDuePosts, setPostStatus, consumeCarousel, canGenerateCarousel,
+  getDuePosts, setPostStatus, consumeCarousel, canGenerateCarousel, refreshUsage,
 } from './_db.js';
 import { generateCarouselPlan, postKind, backgroundPrompt, nextSlots, cleanMotifs } from './_generate.js';
 import { renderSlidePngs } from './_render.js';
@@ -29,38 +29,16 @@ export default async function handler(req, res) {
   const errors = [];
   let toppedUp = 0, posted = 0, failed = 0;
 
-  // ===== Phase 1: top up queues =====
-  try {
-    const users = (await getAutopilotUsers()).slice(0, MAX_TOPUP_USERS_PER_RUN);
-    for (const user of users) {
-      try {
-        const gate = canGenerateCarousel(user);
-        if (!gate.allowed) continue; // fair-use cap reached this month
-        const { n, scheduledAts } = await countFuturePosts(user.id);
-        if (n >= QUEUE_DAYS) continue;
-        const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n);
-        let total = await countAllPosts(user.id);
-        for (const slot of slots) {
-          if (!canGenerateCarousel(user).allowed) break; // re-check: loop mutates carousels_used
-          const plan = await generateCarouselPlan({ profile: user.profile, kind: postKind(total) });
-          await createPost({
-            userId: user.id, scheduledAt: slot.toISOString(), kind: postKind(total),
-            style: plan.style, slides: plan.slides, caption: plan.caption,
-            accent: plan.accent, motifs: plan.motifs,
-          });
-          await consumeCarousel(user, 'pro');
-          user.carousels_used = (user.carousels_used || 0) + 1;
-          total++; toppedUp++;
-        }
-      } catch (e) { errors.push(`topup u${user.id}: ${e.message}`); }
-    }
-  } catch (e) { errors.push(`topup: ${e.message}`); }
-
-  // ===== Phase 2: publish due posts =====
+  // ===== Phase 1: publish due posts (the paid deliverable — must run first =====
+  // so it isn't starved of the maxDuration=60 budget by top-up Gemini calls) =====
   if (uploadPostEnabled()) {
     const due = await getDuePosts(MAX_PUBLISH_PER_RUN).catch((e) => { errors.push(`due: ${e.message}`); return []; });
     for (const post of due) {
       try {
+        if (post.tier !== 'pro' || !post.upload_post_username) {
+          await setPostStatus(post.id, 'skipped', { error: 'subscription inactive or account disconnected' });
+          continue;
+        }
         const bgB64 = await callGeminiImage(
           backgroundPrompt(post.style, post.profile, cleanMotifs(post.motifs), post.accent)
         );
@@ -86,6 +64,36 @@ export default async function handler(req, res) {
       }
     }
   }
+
+  // ===== Phase 2: top up queues =====
+  try {
+    const users = (await getAutopilotUsers()).slice(0, MAX_TOPUP_USERS_PER_RUN);
+    for (const user of users) {
+      try {
+        await refreshUsage(user); // reset monthly quota if usage_reset_at has passed
+        const gate = canGenerateCarousel(user);
+        if (!gate.allowed) continue; // fair-use cap reached this month
+        const { n, scheduledAts } = await countFuturePosts(user.id);
+        if (n >= QUEUE_DAYS) continue;
+        const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n);
+        let total = await countAllPosts(user.id);
+        for (const slot of slots) {
+          const slotGate = canGenerateCarousel(user);
+          if (!slotGate.allowed) break; // re-check: loop mutates carousels_used/credits
+          const plan = await generateCarouselPlan({ profile: user.profile, kind: postKind(total) });
+          await createPost({
+            userId: user.id, scheduledAt: slot.toISOString(), kind: postKind(total),
+            style: plan.style, slides: plan.slides, caption: plan.caption,
+            accent: plan.accent, motifs: plan.motifs,
+          });
+          await consumeCarousel(user, slotGate.source);
+          if (slotGate.source === 'credit') user.credits = (user.credits || 0) - 1;
+          else user.carousels_used = (user.carousels_used || 0) + 1;
+          total++; toppedUp++;
+        }
+      } catch (e) { errors.push(`topup u${user.id}: ${e.message}`); }
+    }
+  } catch (e) { errors.push(`topup: ${e.message}`); }
 
   return res.status(200).json({ toppedUp, posted, failed, errors });
 }

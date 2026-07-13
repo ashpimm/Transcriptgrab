@@ -278,6 +278,7 @@ function renderProfileSummary() {
   el('ps-name').textContent = p.name || 'Your app';
   el('ps-what').textContent = p.what || '';
   var meta = [p.who, p.tone ? 'tone: ' + p.tone : ''].filter(Boolean).join(' · ');
+  meta += (p.audience_niche && p.audience_niche.name) ? ' · ' + p.audience_niche.name : '';
   el('ps-meta').innerHTML = (isHex(p.color) ? '<span class="swatch" style="background:' + p.color + '"></span>' : '') + esc(meta);
 }
 
@@ -326,6 +327,7 @@ function runImport(url) {
       if (res.s === 200 && res.j.prefill) {
         fillForm(res.j.prefill);
         ST.pendingAppUrl = res.j.prefill.app_url || url;
+        ST.prefillNiche = res.j.prefill.audience_niche || null;
         showMsg('Here’s what we read. Fix anything that’s off, then save.', true);
       } else {
         ST.pendingAppUrl = url;
@@ -347,7 +349,8 @@ el('save-profile').addEventListener('click', function () {
     who: el('f-who').value,
     benefit: el('f-benefit').value,
     tone: el('f-tone').value,
-    color: ST.formColor || (ST.profile && ST.profile.color) || ''
+    color: ST.formColor || (ST.profile && ST.profile.color) || '',
+    audience_niche: ST.prefillNiche || (ST.profile && ST.profile.audience_niche) || null
   };
   var btn = el('save-profile');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -360,6 +363,7 @@ el('save-profile').addEventListener('click', function () {
       btn.disabled = false; btn.textContent = 'Save profile';
       if (res.s === 200) {
         ST.profile = res.j.profile;
+        ST.prefillNiche = null;
         renderProfileSummary();
         el('gen-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (res.s === 401) {
@@ -378,9 +382,10 @@ el('save-profile').addEventListener('click', function () {
 
 // ============ HOOK PICKER ============
 function loadHooks() {
+  var nicheSlug = (ST.profile && ST.profile.audience_niche && ST.profile.audience_niche.slug) || 'appdev';
   Promise.all([
     fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
-    fetch('/api/hooks?niche=appdev&curated=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
+    fetch('/api/hooks?niche=' + encodeURIComponent(nicheSlug) + '&curated=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
   ]).then(function (both) {
     var swipe = both[0].hooks || [];
     var lib = (both[1].hooks || []).filter(function (h) { return !swipe.some(function (s) { return s.id === h.id; }); });
@@ -544,10 +549,14 @@ function generateSlides() {
           ST.watermark = !!res.j.watermark;
           slides.forEach(function (s) {
             var isLast = s.index === slides.length - 1;
-            var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
-            SLIDE_IMAGES[s.index] = dataUrl;
-            var box = el('slide-' + s.index);
-            if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
+            try {
+              var dataUrl = drawSlide(bg, s, slides.length, style, isLast);
+              SLIDE_IMAGES[s.index] = dataUrl;
+              var box = el('slide-' + s.index);
+              if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
+            } catch (e) {
+              renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
+            }
             if (--pending === 0) { var d = el('dl-all'); if (d) d.disabled = false; }
           });
         });
