@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 
 const file = process.argv[2];
 if (!file) { console.error('Usage: node scripts/run-migration.mjs <file.sql>'); process.exit(1); }
+if (!file.endsWith('.sql')) { console.error(`Refusing to run non-SQL file: ${file}`); process.exit(1); }
 if (!process.env.POSTGRES_URL) { console.error('POSTGRES_URL not set'); process.exit(1); }
 
 const sql = neon(process.env.POSTGRES_URL);
