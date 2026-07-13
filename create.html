@@ -484,7 +484,7 @@ function renderCarousel() {
     }).join('') + '</div>' +
     '<div class="caption-card"><div class="lbl">CAPTION + HASHTAGS</div><div id="cap-text">' + esc(c.caption) + '</div></div>' +
     '<div class="dl-row">' +
-      '<button class="btn btn-primary" id="dl-all" disabled>Download slides (.zip)</button>' +
+      '<button class="btn btn-primary" id="dl-all" disabled>Download post (.zip)</button>' +
       '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
       '<button class="mini-btn" id="redo-bg">New visuals</button>' +
       '<button class="mini-btn" id="regen-all">Regenerate post</button>' +
@@ -678,10 +678,16 @@ function makeZip(files) { // files: [{name, bytes}]
   return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
 }
 function downloadZip() {
-  var files = Object.keys(SLIDE_IMAGES).sort().map(function (idx) {
+  var files = Object.keys(SLIDE_IMAGES).sort(function (a, b) { return a - b; }).map(function (idx) {
     return { name: 'hooklab-slide-' + (parseInt(idx, 10) + 1) + '.png', bytes: b64ToBytes(SLIDE_IMAGES[idx]) };
   });
   if (!files.length) return;
+  var caption = (ST.carousel && ST.carousel.caption) ? String(ST.carousel.caption) : '';
+  if (caption) {
+    // Windows Notepad only honours CRLF.
+    var txt = caption.replace(/\r?\n/g, '\r\n') + '\r\n';
+    files.push({ name: 'caption.txt', bytes: new TextEncoder().encode(txt) });
+  }
   var blob = makeZip(files);
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
