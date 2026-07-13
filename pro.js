@@ -21,10 +21,10 @@
       var isSignedIn = window.TGUser && TGUser.isSignedIn();
 
       var title = 'Keep shipping content.';
-      var subtitle = 'Autopilot gets you 30 carousels a month, watermark-free, posted for you daily to TikTok + Instagram.';
+      var subtitle = 'Pro gets you 30 carousels a month, watermark-free — a month of content in an afternoon.';
       if (variant === 'limit') {
         title = 'You hit this month’s 30.';
-        subtitle = 'Your Autopilot quota resets on your billing date.';
+        subtitle = 'Your Pro quota resets on your billing date.';
       } else if (!isSignedIn) {
         title = 'Your first 3 carousels are free.';
         subtitle = 'Sign in, paste your app’s link, and post today. No card required.';
@@ -35,7 +35,7 @@
           (variant === 'limit' ? '' :
           '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
             '<span class="tg-plan-price">$19<small>/mo</small></span>' +
-            '<span class="tg-plan-desc">Autopilot — 30 carousels a month, posted for you daily</span>' +
+            '<span class="tg-plan-desc">Pro — 30 carousels a month, no watermark</span>' +
           '</button>') +
         '</div>';
 

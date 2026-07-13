@@ -56,13 +56,13 @@
   <div class="acct-card">
     <h2>Need more?</h2>
     <div class="actions">
-      <button class="btn btn-primary" id="go-pro" style="display:none">Go Autopilot — $19/mo</button>
+      <button class="btn btn-primary" id="go-pro" style="display:none">Go Pro — $19/mo</button>
       <a class="btn btn-ghost" id="manage-sub" href="/api/checkout" style="display:none">Manage subscription</a>
     </div>
   </div>
 
   <div class="acct-card" id="autopilot-card" style="display:none">
-    <h2>Autopilot</h2>
+    <h2>Auto-posting</h2>
     <div id="autopilot-body"><span class="stat">Loading…</span></div>
   </div>
 
@@ -95,13 +95,13 @@ function render(u) {
   CUR_TIER = u.tier || 'free';
   el('who').innerHTML =
     (u.picture ? '<img src="' + esc(u.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
-    '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Autopilot' : 'Free') + '</span></div>' +
+    '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Pro' : 'Free') + '</span></div>' +
     '<div class="e">' + esc(u.email || '') + '</div></div>';
 
   var body = '';
   if (u.tier === 'pro') {
     var used = u.carouselsUsed || 0, lim = u.carouselsLimit || 30;
-    body += '<div class="row"><span>Autopilot $19/mo</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
+    body += '<div class="row"><span>Pro $19/mo — carousels this month</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
       '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, used / lim * 100) + '%"></div></div>';
   } else {
     var fUsed = u.freeCarouselsUsed || 0, fLim = u.freeCarouselsLimit || 3;
@@ -134,14 +134,21 @@ function loadSocial() {
 
 function renderSocial(d) {
   if (!d.connected) {
+    // Auto-posting ships behind a feature flag. Until it is on, say so plainly
+    // — never show a Connect button that can only fail.
+    if (!d.enabled) {
+      el('autopilot-body').innerHTML =
+        '<p style="color:var(--muted);font-size:13.5px;">Auto-posting to TikTok + Instagram is in private beta. Until it opens up, download your slides and paste the caption — about a minute per post. Pro members get it free the day it lands.</p>';
+      return;
+    }
     if (CUR_TIER !== 'pro') {
       el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is part of Autopilot ($19/mo) — upgrade to connect TikTok + Instagram and let Autopilot post your daily carousel automatically.</p>' +
-        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Go Autopilot — $19/mo</a>';
+        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is a Pro feature ($19/mo) — upgrade to connect TikTok + Instagram and have your daily carousel posted for you.</p>' +
+        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Go Pro — $19/mo</a>';
       return;
     }
     el('autopilot-body').innerHTML =
-      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram to let Autopilot post your daily carousel automatically.</p>' +
+      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram and your daily carousel gets posted for you.</p>' +
       '<button class="btn btn-primary" id="connect-social">Connect TikTok + Instagram</button>' +
       '<div id="connect-err" style="color:var(--signal);font-size:13px;margin-top:12px;display:none;"></div>';
     el('connect-social').addEventListener('click', function () {

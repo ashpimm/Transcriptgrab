@@ -244,7 +244,7 @@ function updateGenNote(u) {
   } else if ((u.freeCarouselsUsed || 0) < (u.freeCarouselsLimit || 3)) {
     note = 'free carousel ' + ((u.freeCarouselsUsed || 0) + 1) + ' of ' + (u.freeCarouselsLimit || 3) + ' · subtle watermark on last slide';
   } else {
-    note = 'free carousels used · $19/mo Autopilot — posted for you daily';
+    note = 'free carousels used · $19/mo Pro — 30 a month, no watermark';
   }
   el('gen-note').textContent = note;
 }
