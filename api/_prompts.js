@@ -74,14 +74,14 @@ Rules:
 export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for a product — a mobile app, a website, or a SaaS tool. You receive JSON:
 - product: { name, what, who, benefit, url, tone }
 - audienceNiche: the content niche of the product's TARGET USERS (write for THEM, in their language — never for software builders)
-- hook: { template, verbatim, topic } — a proven hook PATTERN
+- hook: { verbatim, template, topic } — verbatim is the EXACT opening line of a short-form video that already went viral (its views massively outran the creator's following). template is that same line with its swappable specifics marked as ___ slots. This line is your raw material, not a suggestion: it is proven to stop the scroll.
 - kind: "value" or "showcase"
 - slideCount: total slides including hook slide and final slide
 
 Return ONLY this JSON object:
 {
   "slides": [
-    { "index": 0, "heading": "the adapted hook, max 12 words", "body": "" },
+    { "index": 0, "heading": "hook.verbatim transplanted onto this product's subject, max 12 words", "body": "" },
     { "index": 1, "heading": "short punchy heading", "body": "1-2 sentences of concrete value, max 30 words" }
   ],
   "cta": "the closing ask painted on the last slide, max 8 words",
@@ -98,7 +98,8 @@ kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mista
 kind = "showcase": a problem-story arc — slide 0 names a painful, specific problem product.who has; middle slides walk the pain and what solving it feels like; final slide reveals the product as how, in plain words.
 
 Rules:
-- Adapt hook.template's ___ slots with audienceNiche specifics. NEVER paste hook.verbatim; it is another creator's line about a different subject.
+- Slide 0 is a TRANSPLANT of hook.verbatim, NOT a refill of hook.template. Keep the verbatim line's exact sentence structure, rhythm, and emotional tension — the ___ slots in hook.template show you the ONLY words to swap; everything that is not a slot is the winning DNA, so keep it. Swap the slot words for audienceNiche specifics tied to product's job-to-be-done. If the original carries a concrete number, a surprise, or real stakes, yours carries an equally concrete one — never blandify it into a generic niche statement. Do not reuse the original's subject; it was about a different topic.
+  verbatim "I deleted 2,000 photos and my phone finally felt new again" (template "I deleted ___ and my ___ finally ___") for a calorie app -> "I cut 3 foods and the scale finally started moving" (keeps the I-[did-specific-thing]-and-[thing]-finally-[payoff] DNA). NOT "Track calories to lose weight" (that threw the hook away).
 - Middle slides each carry ONE concrete idea. Pull facts only from product.what / product.who / product.benefit — never invent numbers, users, or results.
 - Headings max 12 words. Bodies max 30 words. Text must fit on an image.
 - Match product.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
