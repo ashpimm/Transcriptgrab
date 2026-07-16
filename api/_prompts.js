@@ -76,10 +76,12 @@ export const HOOK_PICK_PROMPT = `You receive JSON { product, audienceNiche, hook
 
 Pick the hooks that would transplant BEST onto THIS product.
 
-A hook transplants well when the thing that made it work — the surprise, the stakes, the concrete number, the curiosity gap — survives the subject swap. It transplants badly when its appeal is welded to its original subject (a specific recipe hook for a tracking app, a product-review hook for a habit app, a gym-culture joke for a meditation app).
+A hook transplants well when the thing that made it work — the surprise, the stakes, the concrete number, the curiosity gap — survives the subject swap. It transplants badly when its appeal is welded to its original subject: a recipe/meal-plan hook for a tracking app (the promise IS the recipes, which the product cannot deliver), a product-review hook for a habit app, a gym-culture joke for a meditation app. Being in the same broad niche is NOT fit — the test is whether the hook still works when its subject becomes THIS product's job-to-be-done.
 
-Return ONLY this JSON object, best fit first, 3 to 8 ids, only ids that exist in the input:
+Return ONLY this JSON object, best fit first, only ids that exist in the input:
 {"ids": [7, 12, 3]}
+
+Include a hook only if it genuinely transplants. If NONE do, return {"ids": []} — an honest empty list beats a bad pick.
 
 No markdown fences, no commentary.`;
 
@@ -115,10 +117,12 @@ kind = "showcase": a problem-story arc — slide 0 names a painful, specific pro
 Rules:
 - Slide 0 is a TRANSPLANT of hook.verbatim, NOT a refill of hook.template. Keep the verbatim line's exact sentence structure, rhythm, and emotional tension — the ___ slots in hook.template show you the ONLY words to swap; everything that is not a slot is the winning DNA, so keep it. Swap the slot words for audienceNiche specifics tied to product's job-to-be-done. If the original carries a concrete number, a surprise, or real stakes, yours carries an equally concrete one — never blandify it into a generic niche statement. Do not reuse the original's subject; it was about a different topic.
   verbatim "I deleted 2,000 photos and my phone finally felt new again" (template "I deleted ___ and my ___ finally ___") for a calorie app -> "I cut 3 foods and the scale finally started moving" (keeps the I-[did-specific-thing]-and-[thing]-finally-[payoff] DNA). NOT "Track calories to lose weight" (that threw the hook away).
+- The swapped-in subject must be the product's JOB-TO-BE-DONE, never merely the same broad niche. A meal-prep hook adapted for a calorie-tracking app becomes a hook about knowing/tracking what you eat — if the transplanted line would still make sense as the original creator's video, you have not transplanted it.
+- Slide 0's promise must be PAYABLE by the slides. If the original hook promises countable content the slides cannot deliver from product facts ("7 meals", "5 recipes"), keep its rhythm but re-anchor the promise to what the middle slides WILL actually contain. Never open with a promise the carousel doesn't keep.
 - Middle slides each carry ONE concrete idea. Pull facts only from product.what / product.who / product.benefit — never invent numbers, users, or results.
 - Headings max 12 words. Bodies max 30 words. Text must fit on an image.
 - Match product.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
-- Banned: "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
+- Banned EVERYWHERE (slides, caption, cta): "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
 - cta: the reason the post exists. Name the product once and ask for the next step in the reader's words. Use the verb the product actually takes: a mobile app (a Play Store or App Store url) is downloaded; a website or SaaS is tried, opened or started free. Pair it with "link in bio" — the slide is an image, so NEVER write a URL, an @handle or "click here".
   a calorie-tracking app -> "Get CalSnap. Link in bio."
   a SaaS invoicing tool -> "Try Billfold free. Link in bio."

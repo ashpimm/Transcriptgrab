@@ -204,16 +204,24 @@ async function pickHook(profile, hookId) {
   }
   const nicheSlug = profile.audience_niche?.slug || 'appdev';
   let pool = await getAutoHookPool(nicheSlug, 20);
-  if (pool.length === 0) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
+  const mined = pool.length > 0;
+  if (!mined) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
   if (pool.length === 0) return null;
-  // Big enough pool: let the model shortlist the hooks that transplant onto
-  // THIS product, then random-pick within the shortlist. Any failure falls
-  // back to plain random — selection quality degrades, generation never dies.
-  if (pool.length > 3) {
+  // Let the model shortlist the mined hooks that transplant onto THIS product,
+  // then random-pick within the shortlist. Runs even on a 2-hook pool — a tiny
+  // pool is MORE likely to hold nothing that fits, not less. Three outcomes:
+  //   shortlist -> random-pick within it;
+  //   explicit all-rejected ({ids:[]}) -> curated patterns beat a bad-fit hook;
+  //   call failure/garbage -> plain random, generation never dies.
+  if (mined && pool.length >= 2) {
     try {
       const out = await callGemini(HOOK_PICK_PROMPT, JSON.stringify(buildHookPickPayload(profile, pool)), 0.2);
-      const fit = resolveHookPick(pool, out);
-      if (fit.length > 0) return fit[Math.floor(Math.random() * fit.length)];
+      if (out && Array.isArray(out.ids)) {
+        const fit = resolveHookPick(pool, out);
+        if (fit.length > 0) return fit[Math.floor(Math.random() * fit.length)];
+        const curated = await getCuratedHookPool(12);
+        if (curated.length > 0) pool = curated;
+      }
     } catch (e) {
       console.error('hook pick failed, falling back to random:', e.message);
     }
