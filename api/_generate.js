@@ -134,7 +134,7 @@ export function nextSlots(nowIso, existing, days) {
   for (let i = 0; out.length < days && i < days + 7; i++) {
     const slot = new Date(now);
     slot.setUTCDate(slot.getUTCDate() + i);
-    slot.setUTCHours(15, 0, 0, 0);
+    slot.setUTCHours(20, 0, 0, 0); // 5:30 AM ACST — due before the 20:30 UTC cron posts at 6 AM Adelaide
     if (slot <= now) continue;
     if (takenDays.has(slot.toISOString().substring(0, 10))) continue;
     out.push(slot);
