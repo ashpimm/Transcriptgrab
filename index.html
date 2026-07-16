@@ -281,6 +281,26 @@
   </div>
 </footer>
 
+<script>
+// Signed-in visitors land in the studio, not on the pitch. Sync read of the
+// nav's user cache = instant redirect, no landing flash on repeat visits;
+// falls back to the auth fetch when the cache is cold. Escape hatches: a
+// #hash (footer/pricing links) or ?stay=1 shows the landing anyway.
+(function () {
+  if (window.location.hash || /[?&]stay=1/.test(window.location.search)) return;
+  function go() { window.location.replace('/create'); }
+  try {
+    var raw = localStorage.getItem('tg_user_cache');
+    if (raw) {
+      var cached = JSON.parse(raw);
+      if (cached && cached.u && cached.t && (Date.now() - cached.t) < 5 * 60 * 1000) { go(); return; }
+    }
+  } catch (e) { /* fall through to the fetch below */ }
+  window.addEventListener('DOMContentLoaded', function () {
+    if (window.TGUser) TGUser.ready.then(function (u) { if (u) go(); });
+  });
+})();
+</script>
 <script src="/nav.js" defer></script>
 <script src="/pro.js" defer></script>
 <script>
