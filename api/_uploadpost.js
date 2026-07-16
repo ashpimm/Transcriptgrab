@@ -41,6 +41,44 @@ export async function generateLinkUrl(username) {
   return url;
 }
 
+// Parse GET /uploadposts/users into the platforms actually linked for one
+// profile. Their docs never define the UserProfile schema, so accept the
+// plausible shapes; anything unrecognized returns null = "unknown" and the
+// caller keeps its requested platforms (publish itself will surface the truth).
+export function linkedPlatformsFrom(data, username) {
+  const profiles = Array.isArray(data?.profiles) ? data.profiles : null;
+  if (!profiles) return null;
+  const profile = profiles.find((p) => p && p.username === username);
+  if (!profile) return null;
+  const accounts = profile.social_accounts ?? profile.socials ?? profile.connected_accounts;
+  if (Array.isArray(accounts)) return accounts.filter((a) => typeof a === 'string' && a);
+  if (accounts && typeof accounts === 'object') {
+    return Object.keys(accounts).filter((k) => {
+      const v = accounts[k];
+      if (!v) return false;
+      if (typeof v === 'object') return Object.keys(v).length > 0;
+      return true; // non-empty string or other truthy scalar
+    });
+  }
+  return null;
+}
+
+export async function getLinkedPlatforms(username) {
+  const data = await call('/uploadposts/users', { method: 'GET' });
+  const linked = linkedPlatformsFrom(data, username);
+  if (linked === null) {
+    console.error('upload-post users list unparsed for', username, ':', JSON.stringify(data).substring(0, 300));
+  }
+  return linked;
+}
+
+// Which platforms a post actually ships to: requested ∩ linked.
+// linked === null means we couldn't tell — keep the requested list.
+export function effectivePlatforms(requested, linked) {
+  if (linked === null) return requested;
+  return requested.filter((p) => linked.includes(p));
+}
+
 export async function uploadPhotos({ username, photos, title, caption, platforms }) {
   const form = new FormData();
   form.append('user', username);

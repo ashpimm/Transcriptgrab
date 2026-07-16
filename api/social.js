@@ -3,7 +3,7 @@
 // POST /api/social {action:'link'} -> { url } (hosted upload-post linking page)
 
 import { getSession, setUploadPostUsername, getPostsForUser } from './_db.js';
-import { uploadPostEnabled, createUploadPostUser, generateLinkUrl } from './_uploadpost.js';
+import { uploadPostEnabled, createUploadPostUser, generateLinkUrl, getLinkedPlatforms } from './_uploadpost.js';
 
 function cors(req, res) {
   const origin = req.headers.origin || '';
@@ -26,10 +26,18 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const posts = await getPostsForUser(user.id);
+      // linked: platform names actually connected at upload-post, null = unknown
+      // (lookup failed or response shape unrecognized) — page falls back to a
+      // plain "Connected" line rather than claiming platforms it can't verify.
+      let linked = null;
+      if (user.upload_post_username && uploadPostEnabled()) {
+        linked = await getLinkedPlatforms(user.upload_post_username).catch(() => null);
+      }
       return res.status(200).json({
         enabled: uploadPostEnabled(),
         connected: !!user.upload_post_username,
         username: user.upload_post_username || '',
+        linked,
         posts,
       });
     }

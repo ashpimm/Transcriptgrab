@@ -13,7 +13,7 @@ import {
   generateCarouselPlan, postKind, backgroundPrompt, heroPrompt, nextSlots, cleanMotifs,
 } from './_generate.js';
 import { renderSlidePngs } from './_render.js';
-import { uploadPostEnabled, uploadPhotos } from './_uploadpost.js';
+import { uploadPostEnabled, uploadPhotos, getLinkedPlatforms, effectivePlatforms } from './_uploadpost.js';
 import { callGeminiImageRetry } from './_shared.js';
 
 export const maxDuration = 60;
@@ -35,10 +35,25 @@ export default async function handler(req, res) {
   // so it isn't starved of the maxDuration=60 budget by top-up Gemini calls) =====
   if (uploadPostEnabled()) {
     const due = await getDuePosts(MAX_PUBLISH_PER_RUN).catch((e) => { errors.push(`due: ${e.message}`); return []; });
+    const linkedCache = new Map(); // username -> platforms[] | null, one lookup per user per run
     for (const post of due) {
       try {
         if (post.tier !== 'pro' || !post.upload_post_username) {
           await setPostStatus(post.id, 'skipped', { error: 'subscription inactive or account disconnected' });
+          continue;
+        }
+        // Never ask upload-post to publish to a platform the customer hasn't
+        // linked — one unlinked platform would fail the whole upload call.
+        if (!linkedCache.has(post.upload_post_username)) {
+          linkedCache.set(post.upload_post_username,
+            await getLinkedPlatforms(post.upload_post_username).catch((err) => {
+              console.error('linked-platforms lookup failed:', err.message);
+              return null; // unknown -> publish with the requested list as before
+            }));
+        }
+        const platforms = effectivePlatforms(post.platforms || ['tiktok', 'instagram'], linkedCache.get(post.upload_post_username));
+        if (!platforms.length) {
+          await setPostStatus(post.id, 'skipped', { error: 'no linked social accounts for this post — connect one in Account' });
           continue;
         }
         // Hook slide gets a photograph of its subject; the rest share the
@@ -63,7 +78,7 @@ export default async function handler(req, res) {
         const result = await uploadPhotos({
           username: post.upload_post_username, photos: pngs,
           title: post.slides[0]?.heading || '', caption: post.caption,
-          platforms: post.platforms || ['tiktok', 'instagram'],
+          platforms,
         });
         await setPostStatus(post.id, 'posted', { externalIds: result });
         posted++;

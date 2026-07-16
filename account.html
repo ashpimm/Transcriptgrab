@@ -38,6 +38,11 @@
 .status-pill.posted { background: var(--ink); color: #000; }
 .status-pill.failed { background: rgba(255,77,0,.16); color: var(--signal); }
 .status-pill.skipped { background: var(--glass); color: var(--muted); }
+.plat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 2px; }
+.plat-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); }
+.plat-chip.on { background: var(--ink); color: #000; border-color: var(--ink); }
+.plat-chip.off { background: transparent; color: var(--muted); }
+.plat-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
 </style>
 </head>
 <body>
@@ -151,33 +156,29 @@ function renderSocial(d) {
       '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram and your daily carousel gets posted for you.</p>' +
       '<button class="btn btn-primary" id="connect-social">Connect TikTok + Instagram</button>' +
       '<div id="connect-err" style="color:var(--signal);font-size:13px;margin-top:12px;display:none;"></div>';
-    el('connect-social').addEventListener('click', function () {
-      var btn = this;
-      btn.disabled = true; btn.textContent = 'Connecting…';
-      fetch('/api/social', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'link' })
-      }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
-        .then(function (res) {
-          btn.disabled = false; btn.textContent = 'Connect TikTok + Instagram';
-          if (res.s === 200 && res.j.url) {
-            window.open(res.j.url, '_blank');
-          } else {
-            var e = el('connect-err');
-            e.textContent = (res.j && res.j.error) || 'Something went wrong. Please try again.';
-            e.style.display = 'block';
-          }
-        })
-        .catch(function () {
-          btn.disabled = false; btn.textContent = 'Connect TikTok + Instagram';
-          var e = el('connect-err');
-          e.textContent = 'Connection error. Please try again.';
-          e.style.display = 'block';
-        });
-    });
+    wireLinkButton('connect-social', 'Connect TikTok + Instagram');
     return;
   }
+
+  // Connected: show WHICH platforms are actually linked, not an internal id.
+  // d.linked null = couldn't verify -> plain Connected line, no false claims.
+  var PLATFORMS = ['instagram', 'tiktok'];
+  var html = '';
+  if (Array.isArray(d.linked)) {
+    var chips = PLATFORMS.concat(d.linked.filter(function (p) { return PLATFORMS.indexOf(p) < 0; }));
+    html += '<div class="plat-row">' + chips.map(function (p) {
+      var on = d.linked.indexOf(p) >= 0;
+      return '<span class="plat-chip ' + (on ? 'on' : 'off') + '"><span class="dot"></span>' +
+        esc(p) + (on ? '' : ' — not linked') + '</span>';
+    }).join('') + '</div>';
+    if (d.linked.length === 0) {
+      html += '<p style="color:var(--signal);font-size:13px;margin-top:12px;">No accounts linked yet — posts can’t go out until you link one.</p>';
+    }
+  } else {
+    html += '<div class="row"><span>Status</span><span class="v">Connected ✓</span></div>';
+  }
+  html += '<div class="actions"><button class="btn btn-ghost btn-sm" id="manage-social">Link / manage accounts</button></div>' +
+    '<div id="connect-err" style="color:var(--signal);font-size:13px;margin-top:12px;display:none;"></div>';
 
   var posts = d.posts || [];
   var queueHtml = posts.length
@@ -196,9 +197,40 @@ function renderSocial(d) {
       }).join('') + '</div>'
     : '<p style="color:var(--muted);font-size:13.5px;">No posts queued yet — the next one drafts within 24 hours.</p>';
 
-  el('autopilot-body').innerHTML =
-    '<div class="row"><span>Status</span><span class="v">Connected ✓ ' + esc(d.username || '') + '</span></div>' +
+  el('autopilot-body').innerHTML = html +
     '<div style="margin-top:16px;">' + queueHtml + '</div>';
+  wireLinkButton('manage-social', 'Link / manage accounts');
+}
+
+// Both "Connect" (first time) and "Link / manage accounts" (already connected)
+// go through the same flow: ask the server for a fresh hosted linking URL.
+function wireLinkButton(id, label) {
+  var btn = el(id);
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    btn.disabled = true; btn.textContent = 'Opening…';
+    fetch('/api/social', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'link' })
+    }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (res) {
+        btn.disabled = false; btn.textContent = label;
+        if (res.s === 200 && res.j.url) {
+          window.open(res.j.url, '_blank');
+        } else {
+          var e = el('connect-err');
+          e.textContent = (res.j && res.j.error) || 'Something went wrong. Please try again.';
+          e.style.display = 'block';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false; btn.textContent = label;
+        var e = el('connect-err');
+        e.textContent = 'Connection error. Please try again.';
+        e.style.display = 'block';
+      });
+  });
 }
 
 el('go-pro').addEventListener('click', function () { TGPro._checkout('autopilot'); });
