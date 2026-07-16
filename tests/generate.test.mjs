@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { postKind, buildPlanPayload, cleanCta, pickTone, TONES } from '../api/_generate.js';
+import {
+  postKind, buildPlanPayload, cleanCta, pickTone, TONES,
+  buildHookPickPayload, resolveHookPick,
+} from '../api/_generate.js';
 
 test('postKind: every 4th post is a showcase (75/25 mix)', () => {
   assert.equal(postKind(0), 'value');
@@ -55,6 +58,37 @@ test('pickTone returns a valid tone and does not always return the same one', ()
     seen.add(t);
   }
   assert.ok(seen.size > 1, 'tone never varied across 60 generations');
+});
+
+// Best-fit hook selection: the model ranks the pool for THIS app, we random-
+// pick among its picks. Same niche pool, different apps -> different hooks.
+const POOL = [
+  { id: 7, hook_verbatim: 'WHY are people LIKE THIS in the gym??', hook_template: 'WHY are people LIKE THIS in the ___??', topic: 'gym etiquette', outlier_score: 689.79 },
+  { id: 9, hook_verbatim: 'Macros for Dummies Easy Macro Calculation!', hook_template: '___ for Dummies Easy ___ Calculation!', topic: 'macro calculation', outlier_score: 290.7 },
+  { id: 12, hook_verbatim: 'High Protein Burger Bowls -Crockpot Meal Prep (8 Meals)', hook_template: 'High Protein ___ Bowls -Crockpot Meal Prep (___ Meals)', topic: 'meal prep', outlier_score: 162.56 },
+];
+
+test('buildHookPickPayload sends the product + candidate hooks with ids', () => {
+  const p = buildHookPickPayload(PROFILE, POOL);
+  assert.equal(p.product.name, 'CalSnap');
+  assert.equal(p.product.what, 'AI calorie counter');
+  assert.equal(p.audienceNiche, 'Fitness & Weight Loss');
+  assert.equal(p.hooks.length, 3);
+  assert.deepEqual(Object.keys(p.hooks[0]).sort(), ['hook', 'id', 'score', 'topic']);
+  assert.equal(p.hooks[0].id, 7);
+  assert.equal(p.hooks[0].hook, 'WHY are people LIKE THIS in the gym??');
+});
+
+test('resolveHookPick keeps only pool ids, in the model\'s order, deduped', () => {
+  const picked = resolveHookPick(POOL, { ids: [9, 999, 7, 9] });
+  assert.deepEqual(picked.map((h) => h.id), [9, 7]);
+});
+
+test('resolveHookPick returns [] on garbage so callers fall back to random', () => {
+  assert.deepEqual(resolveHookPick(POOL, null), []);
+  assert.deepEqual(resolveHookPick(POOL, {}), []);
+  assert.deepEqual(resolveHookPick(POOL, { ids: 'nope' }), []);
+  assert.deepEqual(resolveHookPick(POOL, { ids: [999] }), []);
 });
 
 test('cleanCta keeps a short ask, drops URLs, clamps length', () => {

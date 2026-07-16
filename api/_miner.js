@@ -21,8 +21,8 @@ function videoUrl(videoId) {
 
 export async function mineNiche(niche, apiKey, opts = {}) {
   const {
-    maxKeywords = 4, maxSeedChannels = 3,
-    maxExtractions = 10, maxTranscripts = 3, dry = false,
+    maxKeywords = 6, maxSeedChannels = 3,
+    maxExtractions = 12, maxTranscripts = 12, dry = false,
   } = opts;
   const errors = [];
 
@@ -65,17 +65,25 @@ export async function mineNiche(niche, apiKey, opts = {}) {
 
   // 4. Split into refresh (already known) vs new
   const existing = await getExistingHookUrls(outliers.map((o) => o.url));
-  const fresh = outliers.filter((o) => !existing.has(o.url)).slice(0, maxExtractions);
+  const newOutliers = outliers.filter((o) => !existing.has(o.url));
   const refresh = outliers.filter((o) => existing.has(o.url));
 
-  // 5. Transcript enrichment for top few new outliers
-  let transcriptCount = 0;
-  for (const o of fresh) {
-    if (transcriptCount >= maxTranscripts) break;
+  // 5. Transcript gate: a hook is something a person SAYS — no transcript, no
+  // hook. Title-only extraction shipped SEO titles as "hooks" (a 5-second
+  // silent short's title is not a hook). Walk candidates best-score-first,
+  // keep only those with real spoken words, cap the Supadata spend.
+  const fresh = [];
+  let transcriptAttempts = 0;
+  for (const o of newOutliers) {
+    if (fresh.length >= maxExtractions || transcriptAttempts >= maxTranscripts) break;
+    transcriptAttempts++;
     try {
-      o.transcript = (await fetchTranscript(o.url)).text.substring(0, 2000);
-      transcriptCount++;
-    } catch { /* title-only extraction is fine */ }
+      const text = (await fetchTranscript(o.url)).text.substring(0, 2000);
+      if (text.trim().length >= 40) { // a few spoken words minimum — noise floor
+        o.transcript = text;
+        fresh.push(o);
+      }
+    } catch { /* no captions -> not eligible */ }
   }
 
   // 6. Gemini extraction (one batched call)

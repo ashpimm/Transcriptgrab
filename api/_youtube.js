@@ -15,10 +15,25 @@ export function computeOutlierScore(views, followers) {
   return Math.min(score, 9999.99);
 }
 
+// Floors under the 5x rule. A 1-follower channel makes every upload a 100x
+// "outlier" on ratio alone — the views floor demands proof of real reach, the
+// follower floor keeps the denominator (and the score leaderboard) sane.
+export const MIN_OUTLIER_VIEWS = 10_000;
+export const MIN_OUTLIER_FOLLOWERS = 50;
+
 export function isOutlier(views, followers) {
-  if (!followers || followers <= 0) return false;
+  if (!followers || followers < MIN_OUTLIER_FOLLOWERS) return false;
+  if (!views || views < MIN_OUTLIER_VIEWS) return false;
   // Raw ratio, not the rounded display score — 4.9999x must not round up to qualify.
   return views / followers >= 5;
+}
+
+// "Proven hook" must mean proven RECENTLY — what went viral 18 months ago is
+// not what the algorithm is pushing now.
+export const FRESH_WINDOW_DAYS = 120;
+
+export function publishedAfterISO(days = FRESH_WINDOW_DAYS, nowMs = Date.now()) {
+  return new Date(nowMs - days * 24 * 3600 * 1000).toISOString();
 }
 
 // relevanceLanguage:'en' is only a hint to YouTube — Hindi/other-script videos
@@ -51,7 +66,7 @@ async function ytFetch(path, params, apiKey) {
  * @returns {Promise<Array<{videoId, title, channelId}>>}
  */
 export async function searchShorts(keyword, apiKey) {
-  const publishedAfter = new Date(Date.now() - 18 * 30 * 24 * 3600 * 1000).toISOString();
+  const publishedAfter = publishedAfterISO();
   const data = await ytFetch('search', {
     part: 'snippet',
     q: keyword,
@@ -84,6 +99,7 @@ export async function channelRecentShorts(channelId, apiKey) {
     videoDuration: 'short',
     order: 'viewCount',
     maxResults: '15',
+    publishedAfter: publishedAfterISO(),
   }, apiKey);
 
   return (data.items || [])

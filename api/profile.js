@@ -7,7 +7,7 @@
 
 import {
   getSession, getProfile, saveProfile, slugifyNiche, ensureNiche,
-  getAutoHookPool, getNicheBySlug,
+  getAutoHookPool, getNicheBySlug, mergeKeywords, setNicheKeywords,
 } from './_db.js';
 import { callGemini } from './_shared.js';
 import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
@@ -336,6 +336,10 @@ export default async function handler(req, res) {
     }
     // Every profile gets an audience niche: it decides which niche gets mined
     // and which hook pool feeds generation. Derived once, user-visible later.
+    // THIS app's keywords always merge into the niche row, new-first — so the
+    // freshest app's own description drives the next mine, instead of the
+    // niche forever running on whatever keywords its first app happened to set.
+    let appKw = rawKw;
     if (!cleaned.audience_niche) {
       try {
         const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
@@ -343,9 +347,11 @@ export default async function handler(req, res) {
         }), 0.3);
         const slug = slugifyNiche(derived?.name);
         if (slug) {
-          const keywords = (Array.isArray(derived.keywords) ? derived.keywords : [])
-            .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
-          await ensureNiche({ slug, name: clipText(derived.name, 100), keywords });
+          if (appKw.length === 0) {
+            appKw = (Array.isArray(derived.keywords) ? derived.keywords : [])
+              .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
+          }
+          await ensureNiche({ slug, name: clipText(derived.name, 100), keywords: appKw });
           cleaned.audience_niche = { slug, name: clipText(derived.name, 100) };
         }
       } catch (e) {
@@ -355,19 +361,32 @@ export default async function handler(req, res) {
       // User-confirmed niche may be brand new — make sure the row exists.
       // Prefer keywords echoed back by the client (from import); if none,
       // best-effort derive some so a new niche row never starts empty.
-      let kw = rawKw;
-      if (kw.length === 0) {
+      if (appKw.length === 0) {
         try {
           const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
             name: cleaned.name, what: cleaned.what, who: cleaned.who, benefit: cleaned.benefit,
           }), 0.3);
-          kw = (Array.isArray(derived?.keywords) ? derived.keywords : [])
+          appKw = (Array.isArray(derived?.keywords) ? derived.keywords : [])
             .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
         } catch (e) {
           console.error('audience niche keyword derivation (confirmed niche) failed:', e.message);
         }
       }
-      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: kw }).catch(() => {});
+      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: appKw }).catch(() => {});
+    }
+    // Merge this app's keywords into the (possibly pre-existing) niche row.
+    if (cleaned.audience_niche && appKw.length > 0) {
+      try {
+        const row = await getNicheBySlug(cleaned.audience_niche.slug);
+        if (row) {
+          const merged = mergeKeywords(appKw, row.keywords);
+          if (JSON.stringify(merged) !== JSON.stringify(row.keywords || [])) {
+            await setNicheKeywords(cleaned.audience_niche.slug, merged);
+          }
+        }
+      } catch (e) {
+        console.error('niche keyword merge failed:', e.message);
+      }
     }
     // Persist first: the user's edits must never be lost to a light-mine
     // timeout below (mineNiche can eat most of maxDuration on a cold niche).
@@ -386,8 +405,10 @@ export default async function handler(req, res) {
         if (pool.length < 5) {
           const nicheRow = await getNicheBySlug(cleaned.audience_niche.slug);
           if (nicheRow) {
+            // Hooks are transcript-gated now: maxTranscripts must cover the
+            // extractions or a light mine inserts nothing.
             await mineNiche(nicheRow, process.env.YOUTUBE_API_KEY, {
-              maxKeywords: 2, maxSeedChannels: 0, maxExtractions: 6, maxTranscripts: 0,
+              maxKeywords: 2, maxSeedChannels: 0, maxExtractions: 4, maxTranscripts: 6,
             });
           }
         }

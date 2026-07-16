@@ -4,9 +4,9 @@
 // ============================================
 // HOOK EXTRACTION (mining pipeline)
 // ============================================
-export const HOOK_EXTRACTION_PROMPT = `You are a short-form content researcher. You receive a JSON object: { niche: "<the creator audience being researched>", videos: [...] }. Each video has: i (index), title, views, followers, and sometimes transcript (the spoken words).
+export const HOOK_EXTRACTION_PROMPT = `You are a short-form content researcher. You receive a JSON object: { niche: "<the creator audience being researched>", videos: [...] }. Each video has: i (index), title, views, followers, and transcript (the spoken words).
 
-For EACH video, extract its hook and metadata. The hook is the attention-grabbing opening line: use the first sentence of the transcript if available, otherwise infer from the title.
+For EACH video, extract its hook and metadata. The hook is the attention-grabbing opening: the first 1-2 spoken sentences of the transcript, cleaned of filler ("um", "hey guys", "welcome back"). The title is context only — a hook is something a person SAYS to camera, never an SEO title. If the transcript opens with music, noise, a fragment, or has no clear spoken opening line, mark the video relevant: false.
 
 Return ONLY a JSON array, one object per input video:
 [{
@@ -65,8 +65,23 @@ Return ONLY this JSON object:
 
 Rules:
 - name: 2-4 words, Title Case, the audience's content niche.
+- Be as SPECIFIC as the product allows: a generic calorie counter -> "Fitness & Weight Loss", but a fasting tracker -> "Intermittent Fasting", a budgeting app for couples -> "Couples Money & Budgeting". A specialized product in a mega-niche gets its own narrower niche, never the mega-bucket.
 - keywords: 4-6 YouTube Shorts search phrases this audience actually types or watches — their language, not marketing jargon. Lowercase.
 - Output raw JSON only. No markdown fences.`;
+
+// ============================================
+// HOOK PICK (app profile + candidate hooks -> best-fit shortlist)
+// ============================================
+export const HOOK_PICK_PROMPT = `You receive JSON { product, audienceNiche, hooks }. hooks are the opening lines of short-form videos that already went viral in this audience's niche (score = how many times the video's views outran the creator's following). One of them will be transplanted onto this product: its sentence structure kept, its subject swapped for the product's job-to-be-done.
+
+Pick the hooks that would transplant BEST onto THIS product.
+
+A hook transplants well when the thing that made it work — the surprise, the stakes, the concrete number, the curiosity gap — survives the subject swap. It transplants badly when its appeal is welded to its original subject (a specific recipe hook for a tracking app, a product-review hook for a habit app, a gym-culture joke for a meditation app).
+
+Return ONLY this JSON object, best fit first, 3 to 8 ids, only ids that exist in the input:
+{"ids": [7, 12, 3]}
+
+No markdown fences, no commentary.`;
 
 // ============================================
 // CAROUSEL (app profile + hook -> slides + caption + hashtags)

@@ -4,7 +4,7 @@
 
 import { getAutoHookPool, getCuratedHookPool, getHooksByIds } from './_db.js';
 import { callGemini } from './_shared.js';
-import { CAROUSEL_COPY_PROMPT } from './_prompts.js';
+import { CAROUSEL_COPY_PROMPT, HOOK_PICK_PROMPT } from './_prompts.js';
 
 export const SLIDE_COUNT = 6;
 
@@ -159,15 +159,65 @@ export function buildPlanPayload({ profile, hook, kind, slideCount, tone }) {
   };
 }
 
+// ============================================
+// BEST-FIT HOOK SELECTION
+// ============================================
+// Two apps in the same niche must not draw from an identical random pool: the
+// model ranks candidates for THIS app, then we random-pick among its picks —
+// fit without repetition. Pure payload/validation helpers are unit tested.
+export function buildHookPickPayload(profile, pool) {
+  return {
+    product: {
+      name: profile.name || '',
+      what: profile.what || '',
+      who: profile.who || '',
+      benefit: profile.benefit || '',
+    },
+    audienceNiche: profile.audience_niche?.name || 'General',
+    hooks: pool.map((h) => ({
+      id: h.id,
+      hook: h.hook_verbatim || h.hook_template || '',
+      topic: h.topic || '',
+      score: h.outlier_score,
+    })),
+  };
+}
+
+export function resolveHookPick(pool, out) {
+  const ids = Array.isArray(out?.ids) ? out.ids : [];
+  const byId = new Map(pool.map((h) => [h.id, h]));
+  const seen = new Set();
+  const picked = [];
+  for (const id of ids) {
+    if (byId.has(id) && !seen.has(id)) {
+      seen.add(id);
+      picked.push(byId.get(id));
+    }
+  }
+  return picked;
+}
+
 async function pickHook(profile, hookId) {
   if (Number.isInteger(hookId) && hookId > 0) {
     const found = (await getHooksByIds([hookId]))[0];
     if (found) return found;
   }
   const nicheSlug = profile.audience_niche?.slug || 'appdev';
-  let pool = await getAutoHookPool(nicheSlug, 10);
+  let pool = await getAutoHookPool(nicheSlug, 20);
   if (pool.length === 0) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
   if (pool.length === 0) return null;
+  // Big enough pool: let the model shortlist the hooks that transplant onto
+  // THIS product, then random-pick within the shortlist. Any failure falls
+  // back to plain random — selection quality degrades, generation never dies.
+  if (pool.length > 3) {
+    try {
+      const out = await callGemini(HOOK_PICK_PROMPT, JSON.stringify(buildHookPickPayload(profile, pool)), 0.2);
+      const fit = resolveHookPick(pool, out);
+      if (fit.length > 0) return fit[Math.floor(Math.random() * fit.length)];
+    } catch (e) {
+      console.error('hook pick failed, falling back to random:', e.message);
+    }
+  }
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

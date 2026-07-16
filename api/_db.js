@@ -211,11 +211,11 @@ export async function getNicheBySlug(slug) {
   return rows[0] || null;
 }
 
-export async function getStalestNiche() {
+export async function getStalestNiches(limit = 1) {
   const sql = getSQL();
   // Niches that belong to a paying subscriber's audience jump the queue when
   // they haven't been mined in 24h; otherwise plain stalest-first rotation.
-  const rows = await sql`
+  return sql`
     SELECT n.* FROM niches n
     WHERE n.active = TRUE
     ORDER BY (
@@ -226,8 +226,12 @@ export async function getStalestNiche() {
       )
     ) DESC,
     n.last_mined_at ASC NULLS FIRST
-    LIMIT 1
+    LIMIT ${limit}
   `;
+}
+
+export async function getStalestNiche() {
+  const rows = await getStalestNiches(1);
   return rows[0] || null;
 }
 
@@ -243,6 +247,29 @@ export function slugifyNiche(name) {
     .replace(/^-+|-+$/g, '')
     .substring(0, 50)
     .replace(/-+$/, '');
+}
+
+// Merge keyword lists for a niche: the fresh app's own keywords lead (they
+// drive the next mine), existing ones follow, case-insensitive dedupe, capped.
+// Pure — unit tested.
+export function mergeKeywords(fresh, existing, cap = 12) {
+  const out = [];
+  const seen = new Set();
+  for (const k of [...(Array.isArray(fresh) ? fresh : []), ...(Array.isArray(existing) ? existing : [])]) {
+    const s = String(k || '').trim();
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+export async function setNicheKeywords(slug, keywords) {
+  const sql = getSQL();
+  await sql`UPDATE niches SET keywords = ${keywords || []} WHERE slug = ${slug}`;
 }
 
 // Insert-or-fetch a niche row. DO UPDATE (no-op) instead of DO NOTHING so the
