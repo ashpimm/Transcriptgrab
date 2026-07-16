@@ -6,10 +6,10 @@ export const SLIDE_W = 1080;
 export const SLIDE_H = 1350;
 
 export const SLIDE_THEMES = {
-  bold:     { overlay: 'rgba(13,16,20,0.62)',    ink: '#FFFFFF', sub: 'rgba(255,255,255,0.85)', mono: false },
-  mono:     { overlay: 'rgba(250,250,247,0.88)', ink: '#141414', sub: 'rgba(20,20,20,0.72)',    mono: false },
-  notebook: { overlay: 'rgba(247,242,230,0.82)', ink: '#20232B', sub: 'rgba(32,35,43,0.75)',    mono: false },
-  stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true  },
+  bold:     { overlay: 'rgba(13,16,20,0.62)',    ink: '#FFFFFF', sub: 'rgba(255,255,255,0.85)', mono: false, dark: true  },
+  mono:     { overlay: 'rgba(250,250,247,0.88)', ink: '#141414', sub: 'rgba(20,20,20,0.72)',    mono: false, dark: false },
+  notebook: { overlay: 'rgba(247,242,230,0.82)', ink: '#20232B', sub: 'rgba(32,35,43,0.75)',    mono: false, dark: false },
+  stat:     { overlay: 'rgba(5,6,8,0.68)',       ink: '#F5F5F6', sub: 'rgba(245,245,246,0.72)', mono: true,  dark: true  },
 };
 
 // The hook slide is a PHOTOGRAPH, not a background. Every theme's flat wash
@@ -41,17 +41,25 @@ function heroScrim(x, textBottom) {
 
 function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
 
-// A dark brand color (navy, charcoal) on the hero's near-black scrim is an
-// invisible accent bar — and the bar is the only brand mark the cover carries.
-// Lift it toward white while keeping it recognisably their color.
-function heroAccent(hex, ink) {
+// A brand color the theme's backdrop swallows is an invisible mark: charcoal
+// on the dark overlays (first live IG post shipped a black-on-black CTA), or
+// off-white on the paper washes. Pull it toward the readable end while keeping
+// it recognisably their color. Dark backdrops lift, light backdrops sink.
+function visibleAccent(hex, ink, dark) {
   if (!isHex(hex)) return ink;
   var r = parseInt(hex.substr(1, 2), 16) / 255;
   var g = parseInt(hex.substr(3, 2), 16) / 255;
   var b = parseInt(hex.substr(5, 2), 16) / 255;
-  if (0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.35) return hex;
-  var lift = function (c) { return Math.round((c + (1 - c) * 0.55) * 255); };
-  return 'rgb(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ')';
+  var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (dark && lum < 0.35) {
+    var lift = function (c) { return Math.round((c + (1 - c) * 0.55) * 255); };
+    return 'rgb(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ')';
+  }
+  if (!dark && lum > 0.62) {
+    var sink = function (c) { return Math.round(c * 0.4 * 255); };
+    return 'rgb(' + sink(r) + ',' + sink(g) + ',' + sink(b) + ')';
+  }
+  return hex;
 }
 
 function wrapText(x, text, maxWidth) {
@@ -115,7 +123,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   x.fillRect(0, 0, SLIDE_W, SLIDE_H);
 
   // accent bar above the heading — the USER'S brand color, never Hooklab orange
-  x.fillStyle = hero ? heroAccent(accent, ink) : (isHex(accent) ? accent : ink);
+  x.fillStyle = visibleAccent(accent, ink, hero || theme.dark);
   x.fillRect(pad, top - 56, 88, 12);
 
   x.textBaseline = 'top';
@@ -151,7 +159,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
     var cW = Math.min(Math.max.apply(null, cLines.map(function (ln) { return x.measureText(ln).width; })), cAvail);
     var cTop = Math.min(top + blockH + 64, SLIDE_H - pad - 40 - cLines.length * cLH);
 
-    x.fillStyle = isHex(accent) ? accent : ink;
+    x.fillStyle = visibleAccent(accent, ink, theme.dark);
     x.globalAlpha = 0.55;
     x.fillRect(pad, cTop - 26, cW, 3);
     x.globalAlpha = 1;

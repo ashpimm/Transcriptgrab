@@ -150,6 +150,44 @@ test('a long CTA never collides with the free-tier watermark', async () => {
   assert.equal(hits, 0, `${hits} accent pixels landed in the watermark's corner`);
 });
 
+// First live IG publish (2026-07-17) shipped the CTA in the app's near-black
+// brand color on the bold theme's dark overlay: black on black. The hero had a
+// contrast guard; the CTA and text-slide accent bar did not.
+async function ctaPixels(accent, style) {
+  const slide = { index: 0, heading: 'Snap it', body: '', cta: 'Get HUD Plus. Link in bio.' };
+  const [withCta] = await renderSlidePngs({ slides: [slide], style, accent, bgBase64: PX, watermark: false });
+  const [without] = await renderSlidePngs({ slides: [{ ...slide, cta: '' }], style, accent, bgBase64: PX, watermark: false });
+  const load = async (png) => {
+    const img = await loadImage(png);
+    const c = createCanvas(SLIDE_W, SLIDE_H);
+    c.getContext('2d').drawImage(img, 0, 0);
+    return c.getContext('2d').getImageData(0, 0, SLIDE_W, SLIDE_H).data;
+  };
+  const a = await load(withCta), b = await load(without);
+  // luminance of every pixel the CTA actually painted
+  const lums = [];
+  for (let i = 0; i < a.length; i += 4) {
+    if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]) {
+      lums.push(0.2126 * a[i] + 0.7152 * a[i + 1] + 0.0722 * a[i + 2]);
+    }
+  }
+  return lums;
+}
+
+test('a near-black brand color still gives a readable CTA on dark themes', async () => {
+  const lums = await ctaPixels('#0A0A14', 'bold');
+  assert.ok(lums.length > 200, 'expected the CTA to paint pixels');
+  const bright = Math.max(...lums);
+  assert.ok(bright > 140, `brightest CTA pixel is ${bright.toFixed(0)}/255 — unreadable on the dark overlay`);
+});
+
+test('a near-white brand color still gives a readable CTA on paper themes', async () => {
+  const lums = await ctaPixels('#FAFAFA', 'mono');
+  assert.ok(lums.length > 200, 'expected the CTA to paint pixels');
+  const dark = Math.min(...lums);
+  assert.ok(dark < 120, `darkest CTA pixel is ${dark.toFixed(0)}/255 — unreadable on the paper wash`);
+});
+
 test('an undecodable hero degrades to the background instead of throwing', async () => {
   const bufs = await renderSlidePngs({
     slides: SLIDES, style: 'bold', accent: '#22C55E',
