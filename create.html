@@ -319,6 +319,7 @@ function runImport(url) {
         fillForm(res.j.prefill);
         ST.pendingAppUrl = res.j.prefill.app_url || url;
         ST.prefillNiche = res.j.prefill.audience_niche || null;
+        ST.prefillFacts = res.j.prefill.facts || null;
         showMsg('Here’s what we read. Fix anything that’s off, then save.', true);
       } else {
         ST.pendingAppUrl = url;
@@ -340,7 +341,8 @@ el('save-profile').addEventListener('click', function () {
     who: el('f-who').value,
     benefit: el('f-benefit').value,
     color: ST.formColor || (ST.profile && ST.profile.color) || '',
-    audience_niche: ST.prefillNiche || (ST.profile && ST.profile.audience_niche) || null
+    audience_niche: ST.prefillNiche || (ST.profile && ST.profile.audience_niche) || null,
+    facts: ST.prefillFacts || (ST.profile && ST.profile.facts) || []
   };
   var btn = el('save-profile');
   btn.disabled = true; btn.textContent = 'Saving…';

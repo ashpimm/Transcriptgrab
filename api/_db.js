@@ -497,6 +497,17 @@ export async function saveCarouselHero(userId, id, hero) {
   }
 }
 
+// Hook ids of the user's most recent carousels — the generation variety guard.
+export async function getRecentHookIds(userId, n = 5) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT hook_id FROM carousels
+    WHERE user_id = ${userId} AND hook_id IS NOT NULL
+    ORDER BY created_at DESC LIMIT ${n}
+  `;
+  return [...new Set(rows.map((r) => r.hook_id))];
+}
+
 export async function getCarousels(userId) {
   const sql = getSQL();
   return sql`

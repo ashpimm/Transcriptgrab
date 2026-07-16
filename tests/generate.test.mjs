@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   postKind, buildPlanPayload, cleanCta, pickTone, TONES,
-  buildHookPickPayload, resolveHookPick,
+  buildHookPickPayload, resolveHookPick, excludeHooks,
 } from '../api/_generate.js';
 
 test('postKind: every 4th post is a showcase (75/25 mix)', () => {
@@ -96,6 +96,33 @@ test('resolveHookPick returns [] on garbage so callers fall back to random', () 
 // caller swaps to curated patterns instead of random-picking a bad-fit hook.
 test('resolveHookPick: explicit empty ids is a valid all-rejected verdict', () => {
   assert.deepEqual(resolveHookPick(POOL, { ids: [] }), []);
+});
+
+// Repetition guard: a 2-hook pool produced three near-identical decks in a
+// row. Hooks used by the user's recent carousels leave the pool — unless that
+// would empty it (a tiny pool must still generate SOMETHING).
+test('excludeHooks drops recently used hooks', () => {
+  assert.deepEqual(excludeHooks(POOL, [9]).map((h) => h.id), [7, 12]);
+  assert.deepEqual(excludeHooks(POOL, []).map((h) => h.id), [7, 9, 12]);
+  assert.deepEqual(excludeHooks(POOL, null).map((h) => h.id), [7, 9, 12]);
+});
+
+test('excludeHooks never empties the pool', () => {
+  assert.deepEqual(excludeHooks(POOL, [7, 9, 12]).map((h) => h.id), [7, 9, 12]);
+});
+
+test('buildPlanPayload carries product facts for slide substance', () => {
+  const p = buildPlanPayload({
+    profile: { ...PROFILE, facts: ['photo logging in under 5 seconds', 'supports 40+ diets'] },
+    hook: { hook_template: '___', hook_verbatim: '', topic: '' },
+    kind: 'value',
+    slideCount: 6,
+    tone: 'casual',
+  });
+  assert.deepEqual(p.product.facts, ['photo logging in under 5 seconds', 'supports 40+ diets']);
+  // absent facts -> empty array, never undefined (prompt contract)
+  const q = buildPlanPayload({ profile: PROFILE, hook: { hook_template: '___' }, kind: 'value', slideCount: 6, tone: 'casual' });
+  assert.deepEqual(q.product.facts, []);
 });
 
 test('cleanCta keeps a short ask, drops URLs, clamps length', () => {

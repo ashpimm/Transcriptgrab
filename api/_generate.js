@@ -149,6 +149,7 @@ export function buildPlanPayload({ profile, hook, kind, slideCount, tone }) {
       what: profile.what,
       who: profile.who || '',
       benefit: profile.benefit || '',
+      facts: Array.isArray(profile.facts) ? profile.facts : [],
       url: profile.app_url || '',
       tone: TONES.includes(tone) ? tone : 'casual',
     },
@@ -197,13 +198,22 @@ export function resolveHookPick(pool, out) {
   return picked;
 }
 
-async function pickHook(profile, hookId) {
+// Drop hooks the user's recent carousels already used — variety guard for
+// small pools. Never empties the pool: with everything recently used, reuse
+// beats a dead generate button.
+export function excludeHooks(pool, usedIds) {
+  const used = new Set(Array.isArray(usedIds) ? usedIds : []);
+  const filtered = pool.filter((h) => !used.has(h.id));
+  return filtered.length > 0 ? filtered : pool;
+}
+
+async function pickHook(profile, hookId, excludeHookIds) {
   if (Number.isInteger(hookId) && hookId > 0) {
     const found = (await getHooksByIds([hookId]))[0];
     if (found) return found;
   }
   const nicheSlug = profile.audience_niche?.slug || 'appdev';
-  let pool = await getAutoHookPool(nicheSlug, 20);
+  let pool = excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds);
   const mined = pool.length > 0;
   if (!mined) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
   if (pool.length === 0) return null;
@@ -229,8 +239,8 @@ async function pickHook(profile, hookId) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export async function generateCarouselPlan({ profile, kind = 'value', hookId = null, styleOverride = '' }) {
-  const hook = await pickHook(profile, hookId);
+export async function generateCarouselPlan({ profile, kind = 'value', hookId = null, styleOverride = '', excludeHookIds = null }) {
+  const hook = await pickHook(profile, hookId, excludeHookIds);
   if (!hook) throw new Error('No hooks available yet — try again shortly.');
 
   const styleKeys = Object.keys(STYLES);

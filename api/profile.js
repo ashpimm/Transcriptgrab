@@ -281,6 +281,11 @@ function cleanProfile(p) {
     what: clipText(p.what, 1000),
     who: clipText(p.who, 600),
     benefit: clipText(p.benefit, 300),
+    // Concrete product claims from the store listing/site — the substance
+    // slides get written from. Without them the copy model only has three
+    // thin sentences and every "value" post collapses into a generic pitch.
+    facts: (Array.isArray(p.facts) ? p.facts : [])
+      .map((f) => clipText(String(f), 120)).filter(Boolean).slice(0, 8),
     color: /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color.toUpperCase() : '',
     audience_niche: (function () {
       if (!p.audience_niche || typeof p.audience_niche !== 'object') return null;
@@ -440,6 +445,7 @@ export default async function handler(req, res) {
         what: structured.what,
         who: structured.who,
         benefit: structured.benefit,
+        facts: structured.facts,
         color: structured.color,
         audience_niche: structured.audience_niche && structured.audience_niche.name
           ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name, keywords: structuredKw }

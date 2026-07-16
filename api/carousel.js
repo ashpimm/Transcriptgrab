@@ -15,6 +15,7 @@
 import {
   getSession, getProfile, saveCarousel, getCarousels, getCarousel,
   saveCarouselBg, saveCarouselHero, canGenerateCarousel, consumeCarousel,
+  getRecentHookIds,
 } from './_db.js';
 import { callGeminiImageRetry } from './_shared.js';
 import {
@@ -77,8 +78,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Set up your app profile first.', needsProfile: true });
       }
 
-      // hookId + style are optional — the done-for-you default picks a random
-      // hook from the audience niche's top performers + a random style.
+      // hookId + style are optional — the done-for-you default picks a
+      // best-fit hook from the audience niche's top performers + a random
+      // style, avoiding hooks this user's recent carousels already used.
+      const recentHookIds = await getRecentHookIds(user.id).catch(() => []);
       let plan;
       try {
         plan = await generateCarouselPlan({
@@ -86,6 +89,7 @@ export default async function handler(req, res) {
           hookId: parseInt(body.hookId, 10),
           styleOverride: body.style || '',
           kind: 'value',
+          excludeHookIds: recentHookIds,
         });
       } catch (e) {
         if (String(e.message).startsWith('No hooks')) {

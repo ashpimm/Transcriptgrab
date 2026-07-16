@@ -39,6 +39,7 @@ Return ONLY this JSON object:
   "what": "1-2 sentences: what the product is and what it does, in plain words",
   "who": "1 sentence: who it is for",
   "benefit": "1 sentence: the single biggest concrete benefit or outcome for the user",
+  "facts": ["3-8 concrete, specific claims from the text — features, numbers, capabilities — each under 15 words"],
   "color": "#RRGGBB",
   "audience_niche": { "name": "Fitness & Weight Loss", "keywords": ["4-6 YouTube Shorts search phrases the product's TARGET USERS watch"] }
 }
@@ -46,6 +47,7 @@ Return ONLY this JSON object:
 Rules:
 - Use only facts present in the text. Never invent features, numbers, or claims.
 - benefit must be the sharpest, most specific outcome in the text (a number, a time saved, a pain removed). If several exist, pick the strongest one.
+- facts: the SPECIFIC substance marketing copy gets written from — "scans a meal photo in under 5 seconds", "supports 40+ diets", "syncs with Apple Health". Skip vague puffery ("easy to use", "best app"). Fewer real facts beat padded weak ones.
 - color: the product's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits its subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
 - audience_niche: the content niche of the product's TARGET USERS (the people who would use it), never "app development" unless the users are developers. keywords are lowercase search phrases in the audience's own language.
 - Output raw JSON only. No markdown fences.`;
@@ -89,7 +91,7 @@ No markdown fences, no commentary.`;
 // CAROUSEL (app profile + hook -> slides + caption + hashtags)
 // ============================================
 export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for a product — a mobile app, a website, or a SaaS tool. You receive JSON:
-- product: { name, what, who, benefit, url, tone }
+- product: { name, what, who, benefit, facts, url, tone } — facts are verified claims about the product; the ONLY product claims you may use
 - audienceNiche: the content niche of the product's TARGET USERS (write for THEM, in their language — never for software builders)
 - hook: { verbatim, template, topic } — verbatim is the EXACT opening line of a short-form video that already went viral (its views massively outran the creator's following). template is that same line with its swappable specifics marked as ___ slots. This line is your raw material, not a suggestion: it is proven to stop the scroll.
 - kind: "value" or "showcase"
@@ -111,7 +113,7 @@ Return ONLY this JSON object:
 THE ONE RULE THAT MATTERS — a single narrative arc:
 Slide 0 makes a promise. Every following slide pays off exactly that promise. The last slide is the natural conclusion of the same arc. A reader must never feel the topic change between slide 0 and the last slide. If slide 0 promises "5 things", the middle slides ARE the 5 things, numbered. The product enters only where the arc naturally lands on the job it does — as the payoff, never as a bolted-on ad.
 
-kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mistakes, mini-plan, myths). Real substance the reader can use without the product. The final slide's insight naturally involves the product's job-to-be-done.
+kind = "value": a genuinely useful listicle/guide for audienceNiche (tips, mistakes, mini-plan, myths). Real substance the reader can use without the product — this is what earns saves, shares and follows; an ad earns a scroll-past. HARD RULE: the product may appear in AT MOST one middle slide, and only where the arc naturally lands on its job. Every other middle slide teaches real audienceNiche substance: use your genuine domain knowledge — real numbers, named examples, specific mistakes ("a 'healthy' smoothie bowl runs 600-900 calories", not "smoothies can be caloric"). Vague advice anyone could write is a failed slide. The final slide + cta carry the product.
 kind = "showcase": a problem-story arc — slide 0 names a painful, specific problem product.who has; middle slides walk the pain and what solving it feels like; final slide reveals the product as how, in plain words.
 
 Rules:
@@ -119,7 +121,8 @@ Rules:
   verbatim "I deleted 2,000 photos and my phone finally felt new again" (template "I deleted ___ and my ___ finally ___") for a calorie app -> "I cut 3 foods and the scale finally started moving" (keeps the I-[did-specific-thing]-and-[thing]-finally-[payoff] DNA). NOT "Track calories to lose weight" (that threw the hook away).
 - The swapped-in subject must be the product's JOB-TO-BE-DONE, never merely the same broad niche. A meal-prep hook adapted for a calorie-tracking app becomes a hook about knowing/tracking what you eat — if the transplanted line would still make sense as the original creator's video, you have not transplanted it.
 - Slide 0's promise must be PAYABLE by the slides. If the original hook promises countable content the slides cannot deliver from product facts ("7 meals", "5 recipes"), keep its rhythm but re-anchor the promise to what the middle slides WILL actually contain. Never open with a promise the carousel doesn't keep.
-- Middle slides each carry ONE concrete idea. Pull facts only from product.what / product.who / product.benefit — never invent numbers, users, or results.
+- Middle slides each carry ONE concrete idea.
+- Claims ABOUT THE PRODUCT come only from product.what / product.benefit / product.facts — never invent features, user counts, or results the product doesn't claim. Knowledge about the NICHE (nutrition numbers, training facts, money stats) is yours to use freely in value slides — accuracy over caution, but only well-established facts.
 - Headings max 12 words. Bodies max 30 words. Text must fit on an image.
 - Match product.tone: casual = contractions and plain talk; professional = tight and direct; funny = one honest joke maximum; authority = confident short declaratives.
 - Banned EVERYWHERE (slides, caption, cta): "here's the truth", "skyrocket", "game-changer", "unlock", "elevate", "delve". No em-dashes, no emoji in slides.
