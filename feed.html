@@ -43,6 +43,39 @@
 .skel-card { height: 300px; }
 @media (max-width: 920px) { .grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .page { padding: 36px 0 64px; }
+  .page-head { margin-bottom: 28px; }
+  .page-head h1 { font-size: 38px; line-height: 1.06; letter-spacing: 0; }
+  .page-head .sub { margin-top: 14px; font-size: 16px; line-height: 1.55; }
+
+  #niche-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    margin-left: -18px;
+    margin-right: -18px;
+    padding: 0 18px 8px;
+    scrollbar-width: none;
+  }
+  #niche-bar::-webkit-scrollbar { display: none; }
+  .toolbar.meta { justify-content: flex-start; margin-bottom: 24px; }
+  .grid { gap: 14px; }
+  .src-link { font-size: 13px; line-height: 1.45; }
+
+  .use-strip { margin-top: 36px; padding: 30px 20px; }
+  .use-strip h3 { font-size: 24px; line-height: 1.15; letter-spacing: 0; }
+  .use-strip p { font-size: 16px; line-height: 1.55; }
+  .use-strip .btn { width: 100%; }
+
+  .drawer { right: -100%; width: 100%; max-width: 100%; }
+  .drawer-head { padding: 18px; }
+  .drawer-head h2 { font-size: 21px; }
+  .drawer-list { padding: 18px; }
+  .drawer-item .t { font-size: 16px; }
+  .drawer-foot { padding: 16px 18px calc(16px + env(safe-area-inset-bottom)); }
+  .skel-card { height: 260px; }
+}
 </style>
 </head>
 <body>

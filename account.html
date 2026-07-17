@@ -43,6 +43,31 @@
 .plat-chip.on { background: var(--ink); color: #000; border-color: var(--ink); }
 .plat-chip.off { background: transparent; color: var(--muted); }
 .plat-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
+@media (max-width: 640px) {
+  .page { padding: 36px 18px 64px; }
+  .page h1 { margin-bottom: 24px; font-size: 38px; letter-spacing: 0; }
+  .acct-card { padding: 20px; border-radius: 20px; }
+  .acct-card h2 { font-size: 17px; }
+  .acct-card p, .acct-card #connect-err { font-size: 15.5px !important; line-height: 1.55; }
+
+  .who { gap: 14px; }
+  .who img { width: 52px; height: 52px; }
+  .who .n { font-size: 17px; }
+  .who .e { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+
+  .row { align-items: flex-start; flex-direction: column; gap: 4px; padding: 14px 0; font-size: 16px; }
+  .row .v { font-size: 14.5px; }
+  .actions { align-items: stretch; flex-direction: column; }
+  .actions .btn { width: 100%; }
+  .plan-badge { font-size: 12px; padding: 6px 12px; }
+
+  .queue-item { align-items: stretch; flex-direction: column; padding: 15px; font-size: 15px; }
+  .queue-item .qi-date { font-size: 13px; }
+  .queue-item .qi-heading { font-size: 15.5px; white-space: normal; }
+  .queue-item .qi-error { font-size: 13.5px; }
+  .status-pill { align-self: flex-start; min-height: 30px; padding: 6px 10px; font-size: 12px; }
+  .plat-chip { min-height: 44px; font-size: 13px; }
+}
 </style>
 </head>
 <body>

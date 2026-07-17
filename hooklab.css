@@ -114,23 +114,23 @@ h1, h2, h3 { text-wrap: balance; }
 .pastebar .btn { flex-shrink: 0; }
 
 @media (max-width: 560px) {
-  .hero .pastebar {
+  .pastebar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    border-radius: 28px;
+    border-radius: 20px;
     padding: 12px;
   }
 
-  .hero .pastebar input {
+  .pastebar input {
     width: 100%;
-    min-height: 44px;
+    min-height: 50px;
+    font-size: 16px;
     padding: 0 10px;
   }
 
-  .hero .pastebar .btn {
+  .pastebar .btn {
     width: 100%;
-    min-height: 50px;
   }
 }
 
@@ -224,6 +224,62 @@ select.chip { appearance: none; }
 /* focus */
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
   outline: 2px solid var(--ink); outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  :root { --radius: 20px; --radius-s: 13px; }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 16px; line-height: 1.55; }
+
+  .wrap { padding-left: 18px; padding-right: 18px; }
+  .section { padding: 64px 0; }
+  .section-head { margin-bottom: 32px; }
+  .section-head h2 { font-size: 32px; line-height: 1.08; letter-spacing: 0; }
+  .section-head p { font-size: 16px; line-height: 1.55; margin-top: 14px; }
+
+  .kicker { font-size: 13px; letter-spacing: .08em; }
+
+  .btn {
+    min-height: 50px;
+    padding: 15px 22px;
+    font-size: 16px;
+    touch-action: manipulation;
+  }
+  .btn-sm { min-height: 44px; padding: 11px 18px; font-size: 14.5px; }
+
+  .hook-card { border-radius: 18px; padding: 16px; gap: 14px; }
+  .hook-card .hook-text { font-size: 19px; line-height: 1.32; letter-spacing: 0; }
+  .hook-card .hook-verbatim { font-size: 15px; line-height: 1.55; }
+  .stat, .hook-card .stat { font-size: 13px; line-height: 1.45; }
+  .score-chip { font-size: 13px; }
+  .tag { font-size: 12px; }
+
+  .chip {
+    min-height: 44px;
+    padding: 10px 17px;
+    font-size: 14.5px;
+    touch-action: manipulation;
+  }
+
+  .field { margin-bottom: 22px; }
+  .field label { font-size: 15.5px; margin-bottom: 8px; }
+  .field .hint { font-size: 13.5px; line-height: 1.5; }
+  .field textarea, .field input[type=text], .field input[type=url], .field select {
+    min-height: 50px;
+    padding: 13px 15px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .msg { font-size: 15px; line-height: 1.5; }
+  .empty { padding: 48px 0; font-size: 16px; }
+
+  .footer { padding: 38px 0 48px; margin-top: 24px; }
+  .footer-inner { align-items: flex-start; flex-direction: column; }
+  .footer .brand { font-size: 18px; }
+  .footer nav { width: 100%; gap: 18px; flex-wrap: wrap; }
+  .footer a { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

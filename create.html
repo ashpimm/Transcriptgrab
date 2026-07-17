@@ -96,6 +96,69 @@
 .hist-row:hover { border-color: var(--line-2); }
 .hist-row .t { font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+@media (max-width: 640px) {
+  .page { padding: 36px 0 64px; }
+  .page-head { margin-bottom: 26px; }
+  .page-head h1 { font-size: 38px; line-height: 1.06; letter-spacing: 0; }
+  .page-head .sub { font-size: 16px; line-height: 1.55; }
+
+  .gate { padding: 64px 0; }
+  .gate h2 { font-size: 30px; letter-spacing: 0; }
+  .gate p { font-size: 16px; }
+  .gate .btn { width: 100%; }
+
+  .profile-zone, .gen-zone { margin-bottom: 24px; }
+  .profile-card, .gen-card { padding: 20px; border-radius: 20px; }
+  .profile-card h2, .gen-card h2 { font-size: 20px; line-height: 1.3; }
+  .profile-card .hint-line, .gen-card .hint-line { font-size: 15.5px; line-height: 1.55; }
+  .manual-toggle, .customize-toggle { min-height: 44px; margin-top: 12px; font-size: 15px; text-align: left; }
+
+  .profile-summary { flex-direction: column; gap: 16px; }
+  .profile-summary .ps-name { font-size: 19px; }
+  .profile-summary .ps-what { font-size: 16px; line-height: 1.5; }
+  .profile-summary .ps-meta { font-size: 13px; line-height: 1.5; }
+  .profile-summary .btn { width: 100%; }
+
+  .gen-card .btn { max-width: none; }
+  .gen-note { font-size: 13px; line-height: 1.5; }
+  .customize { gap: 28px; }
+  .customize h3 { font-size: 17px; }
+  .customize .hint { font-size: 14.5px; line-height: 1.5; }
+  .pick-list { max-height: 420px; }
+  .pick-item { min-height: 50px; padding: 14px; font-size: 15px; }
+  .pick-item .st { font-size: 12px; }
+  .pick-list .status { font-size: 14px !important; line-height: 1.5; }
+  .style-tile { padding: 12px 10px 14px; font-size: 15px; }
+  .style-tile small { font-size: 12px; }
+
+  .slide-grid {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    margin-right: -18px;
+    padding: 2px 18px 12px 0;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .slide-grid::-webkit-scrollbar { display: none; }
+  .slide-box { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
+  .slide-box .status { font-size: 13px; }
+  .slide-box .redo { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+
+  .caption-card { padding: 16px; font-size: 16px; line-height: 1.6; }
+  .caption-card .lbl { font-size: 12px; }
+  .dl-row { flex-direction: column; }
+  .dl-row .btn, .mini-btn { width: 100%; min-height: 48px; font-size: 15px; }
+
+  .empty-state { padding: 54px 10px; font-size: 16px; }
+  .empty-state h3 { font-size: 22px; }
+  .history { margin-top: 32px; }
+  .history h2 { font-size: 20px; }
+  .hist-row { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .hist-row .t { width: 100%; font-size: 16px; white-space: normal; }
+  .hist-row .stat { font-size: 13px; }
+}
+
 </style>
 </head>
 <body>

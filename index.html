@@ -134,6 +134,52 @@
 .final { text-align: center; padding: clamp(88px, 12vw, 150px) 0; }
 .final h2 { font-size: clamp(32px, 5vw, 60px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; max-width: 16ch; margin: 0 auto; }
 .final .btn { margin-top: 32px; }
+
+@media (max-width: 640px) {
+  .hero { padding: 44px 0 26px; }
+  .hero h1 { max-width: 10ch; margin-top: 18px; font-size: 44px; line-height: 1.04; letter-spacing: 0; }
+  .hero .sub { margin-top: 20px; font-size: 17px; line-height: 1.55; }
+  .hero .pastebar { margin-top: 28px; }
+  .hero .fine { margin-top: 12px; font-size: 13px; }
+  .hero-proof { flex-direction: column; gap: 6px; margin-top: 18px; font-size: 14px; }
+
+  .demo { padding-top: 8px; scroll-margin-top: 116px; }
+  .demo-frame { border-radius: 20px; padding: 16px; }
+  .demo-label { display: block; margin-bottom: 16px; }
+  .demo-label .stat { display: flex; font-size: 13.5px; line-height: 1.5; }
+  .demo-label .stat + .stat { margin-top: 10px; }
+  .slide-strip { gap: 12px; padding: 4px 2px 14px; scroll-snap-type: x mandatory; }
+  .mini-slide { width: min(76vw, 290px); border-radius: 12px; scroll-snap-align: start; }
+  .slide-strip .mini-slide:nth-child(n),
+  .slide-strip .mini-slide:nth-child(n):hover { transform: none; }
+  .demo-post { margin-top: 18px; padding: 16px; }
+  .demo-post .dp-label { font-size: 12px; }
+  .demo-post p { font-size: 16px; line-height: 1.55; }
+  .demo-post .dp-tags { font-size: 14px; line-height: 1.55; word-spacing: 2px; }
+
+  .proof-method { padding-top: 64px; }
+  .proof-points { gap: 32px; padding-top: 26px; }
+  .proof-point h3 { font-size: 21px; }
+  .proof-point p { font-size: 16px; line-height: 1.55; }
+
+  .steps { gap: 36px; }
+  .step h3 { font-size: 21px; letter-spacing: 0; }
+  .step p { font-size: 16px; line-height: 1.55; }
+
+  .plan { padding: 24px 22px; }
+  .plan .name { font-size: 17px; }
+  .plan .for { font-size: 15.5px; line-height: 1.5; }
+  .plan li { font-size: 16px; line-height: 1.5; }
+  .plan > div:last-child { font-size: 13px !important; line-height: 1.45; }
+
+  .faq summary { padding: 22px 0; font-size: 17px; line-height: 1.4; }
+  .faq .a { padding: 0 0 22px; font-size: 16px; line-height: 1.55; }
+
+  .final { padding: 64px 0; }
+  .final h2 { font-size: 38px; letter-spacing: 0; }
+  .final .btn { width: 100%; margin-top: 26px; }
+  .final > div { font-size: 13px !important; }
+}
 </style>
 </head>
 <body>
