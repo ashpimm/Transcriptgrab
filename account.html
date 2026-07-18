@@ -168,20 +168,20 @@ function renderSocial(d) {
     // — never show a Connect button that can only fail.
     if (!d.enabled) {
       el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;">Auto-posting to TikTok + Instagram is in private beta. Until it opens up, download your slides and paste the caption — about a minute per post. Pro members get it free the day it lands.</p>';
+        '<p style="color:var(--muted);font-size:13.5px;">Auto-posting to Instagram is in private beta (TikTok coming soon). Until it opens up, download your slides and paste the caption — about a minute per post. Pro members get it free the day it lands.</p>';
       return;
     }
     if (CUR_TIER !== 'pro') {
       el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is a Pro feature ($19/mo) — upgrade to connect TikTok + Instagram and have your daily carousel posted for you.</p>' +
+        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is a Pro feature ($19/mo) — upgrade to connect Instagram and have your daily carousel posted for you (TikTok coming soon).</p>' +
         '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Go Pro — $19/mo</a>';
       return;
     }
     el('autopilot-body').innerHTML =
-      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect TikTok + Instagram and your daily carousel gets posted for you.</p>' +
-      '<button class="btn btn-primary" id="connect-social">Connect TikTok + Instagram</button>' +
+      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect Instagram and your daily carousel gets posted for you. TikTok coming soon.</p>' +
+      '<button class="btn btn-primary" id="connect-social">Connect Instagram</button>' +
       '<div id="connect-err" style="color:var(--signal);font-size:13px;margin-top:12px;display:none;"></div>';
-    wireLinkButton('connect-social', 'Connect TikTok + Instagram');
+    wireLinkButton('connect-social', 'Connect Instagram');
     return;
   }
 

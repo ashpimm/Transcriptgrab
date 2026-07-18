@@ -173,15 +173,15 @@
   <div id="app" style="display:none">
     <div class="page-head">
       <h1 class="display">Create a post.</h1>
-      <p class="sub">Your product + a proven hook = a carousel ready to publish.</p>
+      <p class="sub">Your app + a proven hook = a carousel ready to publish.</p>
     </div>
 
     <!-- ============ PRODUCT PROFILE ============ -->
     <section class="profile-zone" id="profile-zone">
       <div class="profile-card" id="profile-card">
         <div id="profile-setup">
-          <h2>Tell us about your product — once.</h2>
-          <div class="hint-line">Paste its link — a site, a SaaS landing page, Play Store, or App Store. We’ll read it and draft the profile for you.</div>
+          <h2>Tell us about your app — once.</h2>
+          <div class="hint-line">Paste its link — App Store, Play Store, or your app’s landing page. We’ll read it and draft the profile for you.</div>
           <form class="pastebar" id="import-form">
             <input type="url" id="import-url" placeholder="https://yourproduct.com">
             <button class="btn btn-primary" type="submit" id="import-btn">Read my page</button>
@@ -330,7 +330,7 @@ function renderProfileSummary() {
   el('profile-setup').style.display = 'none';
   el('profile-form').classList.remove('show');
   el('profile-summary').style.display = 'flex';
-  el('ps-name').textContent = p.name || 'Your product';
+  el('ps-name').textContent = p.name || 'Your app';
   el('ps-what').textContent = p.what || '';
   var meta = p.who || '';
   meta += (p.audience_niche && p.audience_niche.name) ? (meta ? ' · ' : '') + p.audience_niche.name : '';
