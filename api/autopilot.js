@@ -8,6 +8,7 @@
 import {
   getAutopilotUsers, countFuturePosts, countAllPosts, createPost,
   getDuePosts, setPostStatus, consumeCarousel, canGenerateCarousel, refreshUsage,
+  saveCarousel, saveCarouselBg, saveCarouselHero,
 } from './_db.js';
 import {
   generateCarouselPlan, postKind, backgroundPrompt, heroPrompt, nextSlots, cleanMotifs,
@@ -80,6 +81,16 @@ export default async function handler(req, res) {
         });
         await setPostStatus(post.id, 'posted', { externalIds: result });
         posted++;
+        // Mirror into Past carousels (create page) so the subscriber can
+        // reopen, download, and cross-post to platforms they haven't linked.
+        // The post is already live — bookkeeping failure must not fail it.
+        try {
+          const mirrored = await saveCarousel(post.user_id, null, post.style, post.slides, post.caption, false, post.hero_scene);
+          await saveCarouselBg(post.user_id, mirrored.id, bgB64);
+          if (heroB64) await saveCarouselHero(post.user_id, mirrored.id, heroB64);
+        } catch (e) {
+          console.error(`history mirror failed (post ${post.id}):`, e.message);
+        }
       } catch (e) {
         if ((post.retries || 0) < 1) {
           await setPostStatus(post.id, 'queued', { error: e.message, retries: (post.retries || 0) + 1 });
