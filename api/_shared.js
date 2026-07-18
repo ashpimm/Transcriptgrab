@@ -21,6 +21,19 @@ export function handleCors(req, res) {
 }
 
 /**
+ * Auth gate for cron endpoints (/api/mine, /api/autopilot).
+ * Vercel's documented cron auth is `Authorization: Bearer ${CRON_SECRET}`;
+ * the x-vercel-cron header is undocumented and not guaranteed, so it's
+ * accepted but never required. Manual runs pass ?secret=$ADMIN_SECRET.
+ */
+export function cronAuthOk(req) {
+  if (req.headers['x-vercel-cron']) return true;
+  const cron = process.env.CRON_SECRET;
+  if (cron && req.headers['authorization'] === `Bearer ${cron}`) return true;
+  return !!(process.env.ADMIN_SECRET && req.query && req.query.secret === process.env.ADMIN_SECRET);
+}
+
+/**
  * Generate one image with gemini-2.5-flash-image.
  * Returns a base64 PNG string (no data: prefix). Throws on failure.
  */

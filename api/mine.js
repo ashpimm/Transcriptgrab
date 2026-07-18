@@ -1,7 +1,7 @@
 // api/mine.js — Niche research pipeline (cron + admin trigger).
 //
 // GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1]
-// Also runs via Vercel cron (x-vercel-cron header), one niche per run
+// Also runs via Vercel cron (Bearer CRON_SECRET), one niche per run
 // (the one mined longest ago).
 //
 // Pipeline: search Shorts per keyword + seed channels -> batch video/channel
@@ -10,6 +10,7 @@
 
 import { getNicheBySlug, getStalestNiches } from './_db.js';
 import { mineNiche } from './_miner.js';
+import { cronAuthOk } from './_shared.js';
 
 export const maxDuration = 60;
 
@@ -23,9 +24,7 @@ const TIME_BUDGET_MS = 35_000;
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const isCron = !!req.headers['x-vercel-cron'];
-  const secretOk = process.env.ADMIN_SECRET && req.query.secret === process.env.ADMIN_SECRET;
-  if (!isCron && !secretOk) return res.status(401).json({ error: 'Unauthorized' });
+  if (!cronAuthOk(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'YOUTUBE_API_KEY not configured' });

@@ -14,7 +14,7 @@ import {
 } from './_generate.js';
 import { renderSlidePngs } from './_render.js';
 import { uploadPostEnabled, uploadPhotos, getLinkedPlatforms, effectivePlatforms } from './_uploadpost.js';
-import { callGeminiImageRetry } from './_shared.js';
+import { callGeminiImageRetry, cronAuthOk } from './_shared.js';
 
 export const maxDuration = 60;
 
@@ -24,9 +24,7 @@ const MAX_TOPUP_USERS_PER_RUN = 6;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  const isCron = !!req.headers['x-vercel-cron'];
-  const secretOk = process.env.ADMIN_SECRET && req.query.secret === process.env.ADMIN_SECRET;
-  if (!isCron && !secretOk) return res.status(401).json({ error: 'Unauthorized' });
+  if (!cronAuthOk(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const errors = [];
   let toppedUp = 0, posted = 0, failed = 0;
