@@ -114,6 +114,33 @@ export function pickTone() {
   return TONES[Math.floor(Math.random() * TONES.length)];
 }
 
+export function retryablePlanError(error) {
+  const message = String(error?.message || error || '');
+  return /invalid response|empty response|AI error \((429|5\d\d)\)/i.test(message);
+}
+
+async function generatePlanJson(payload) {
+  const input = JSON.stringify(payload);
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const retryInstruction = attempt
+        ? '\n\nYour previous response was not valid JSON. Return one complete JSON object, double-check every comma, quote, brace, and bracket before responding.'
+        : '';
+      const out = await callGemini(CAROUSEL_COPY_PROMPT + retryInstruction, input, attempt ? 0.35 : 0.7);
+      if (!out || !Array.isArray(out.slides) || out.slides.length === 0) {
+        throw new Error('AI returned an invalid response. Please try again.');
+      }
+      return out;
+    } catch (error) {
+      lastError = error;
+      if (attempt > 0 || !retryablePlanError(error)) throw error;
+      console.warn('carousel plan generation failed once; retrying:', error.message);
+    }
+  }
+  throw lastError;
+}
+
 // The closing ask, written by the model and painted on the last slide. A slide
 // is an image, so a URL in it is unclickable noise — and profile text is free
 // text a scrape could have steered. Strip URLs, keep it to one short line.
@@ -248,10 +275,7 @@ export async function generateCarouselPlan({ profile, kind = 'value', hookId = n
 
   const tone = pickTone();
   const payload = buildPlanPayload({ profile, hook, kind, slideCount: SLIDE_COUNT, tone });
-  const out = await callGemini(CAROUSEL_COPY_PROMPT, JSON.stringify(payload), 0.7);
-  if (!out || !Array.isArray(out.slides) || out.slides.length === 0) {
-    throw new Error('AI returned an invalid response. Please try again.');
-  }
+  const out = await generatePlanJson(payload);
 
   const slides = out.slides.slice(0, SLIDE_COUNT).map((s, i) => ({
     index: i,

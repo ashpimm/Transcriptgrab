@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   postKind, buildPlanPayload, cleanCta, pickTone, TONES,
-  buildHookPickPayload, resolveHookPick, excludeHooks,
+  buildHookPickPayload, resolveHookPick, excludeHooks, retryablePlanError,
 } from '../api/_generate.js';
 
 test('postKind: every 4th post is a showcase (75/25 mix)', () => {
@@ -135,4 +135,13 @@ test('cleanCta keeps a short ask, drops URLs, clamps length', () => {
   assert.equal(cleanCta(''), '');
   assert.equal(cleanCta(null), '');
   assert.ok(cleanCta('x'.repeat(200)).length <= 60);
+});
+
+test('carousel planning retries malformed, empty, rate-limited, and transient responses only', () => {
+  assert.equal(retryablePlanError(new Error('AI returned an invalid response. Please try again.')), true);
+  assert.equal(retryablePlanError(new Error('Empty response from AI service.')), true);
+  assert.equal(retryablePlanError(new Error('AI error (429): rate limit')), true);
+  assert.equal(retryablePlanError(new Error('AI error (503): unavailable')), true);
+  assert.equal(retryablePlanError(new Error('AI error (400): bad request')), false);
+  assert.equal(retryablePlanError(new Error('No hooks available yet')), false);
 });
