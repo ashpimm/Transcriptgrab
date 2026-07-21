@@ -13,9 +13,10 @@ export function shotstackEnabled() {
 }
 
 export function reelSceneLength(index, count) {
-  if (index === 0) return 1.8;
-  if (index === count - 1) return 2.8;
-  return 2.2;
+  // These are reading slides, not decorative cuts. The hook lands quickly;
+  // every content/CTA slide gets enough time to read at a natural pace.
+  if (index === 0) return 4;
+  return 8.5;
 }
 
 export function buildReelEdit(assetUrls) {

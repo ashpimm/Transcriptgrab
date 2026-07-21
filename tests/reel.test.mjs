@@ -14,11 +14,11 @@ test('builds a silent 1080p 9:16 MP4 with deliberate slide timing', () => {
   assert.equal(edit.timeline.soundtrack, undefined);
   const clips = edit.timeline.tracks[0].clips;
   assert.deepEqual(clips.map((clip) => clip.asset.src), urls);
-  assert.deepEqual(clips.map((clip) => clip.start), [0, 1.8, 4]);
-  assert.deepEqual(clips.map((clip) => clip.length), [1.8, 2.2, 2.8]);
+  assert.deepEqual(clips.map((clip) => clip.start), [0, 4, 12.5]);
+  assert.deepEqual(clips.map((clip) => clip.length), [4, 8.5, 8.5]);
   assert.ok(clips.every((clip) => clip.effect && clip.transition.in === 'fade'));
-  assert.equal(reelSceneLength(0, 6), 1.8);
-  assert.equal(reelSceneLength(5, 6), 2.8);
+  assert.equal(reelSceneLength(0, 6), 4);
+  assert.equal(reelSceneLength(5, 6), 8.5);
 });
 
 test('Reel slide asset signatures reject tampering and expiry', () => {
