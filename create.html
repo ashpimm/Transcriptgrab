@@ -266,7 +266,7 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '', reelEnabled: false, reelPoll: null };
+var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '', reelEnabled: false, reelUpgradeRequired: false, reelPoll: null };
 
 function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
 
@@ -515,6 +515,7 @@ function runGenerate() {
       btn.disabled = false; btn.textContent = 'Generate my carousel';
       if (res.s === 200) {
         ST.reelEnabled = !!res.j.reelEnabled;
+        ST.reelUpgradeRequired = !!res.j.reelUpgradeRequired;
         ST.carousel = res.j;
         ST.watermark = !!res.j.watermark;
         updateGenNote();
@@ -605,22 +606,29 @@ function setReelUi(reel) {
   if (!btn || !note) return;
   note.className = 'reel-note';
 
+  updateHistoryReelState(ST.carousel.carouselId, reel);
+  if (ST.reelUpgradeRequired) {
+    btn.textContent = 'Unlock Reel export with Pro';
+    btn.disabled = false;
+    note.textContent = 'Pro turns this carousel into a vertical video ready for music in Instagram.';
+    return;
+  }
   if (!ST.reelEnabled) {
     btn.textContent = 'Reel export unavailable';
     btn.disabled = true;
-    note.textContent = 'The video renderer still needs its production API key.';
+    note.textContent = 'Video export is temporarily unavailable.';
     return;
   }
   if (reel.status === 'ready' && reel.url) {
     btn.textContent = 'Download Reel (.mp4)';
     btn.disabled = false;
-    note.textContent = 'Ready — silent 9:16 MP4. Add your song when you upload it to Instagram.';
+    note.textContent = 'Ready to download. Add your song when you upload it to Instagram.';
     return;
   }
   if (reel.status === 'submitting' || reel.status === 'rendering') {
     btn.textContent = 'Rendering Reel…';
     btn.disabled = true;
-    note.textContent = 'Rendering in the background. You can leave this page and reopen the carousel later.';
+    note.textContent = 'Making your video. You can leave this page and come back later.';
     scheduleReelPoll();
     return;
   }
@@ -640,11 +648,35 @@ function setReelUi(reel) {
   btn.textContent = 'Create Reel (.mp4)';
   btn.disabled = !ST.carousel.hasBg;
   note.textContent = ST.carousel.hasBg
-    ? 'Creates a silent 9:16 video. Choose your song when you upload it to Instagram.'
+    ? 'Turn these slides into a vertical video, then add music in Instagram.'
     : 'Finish generating the slide visuals first.';
 }
 
+function updateHistoryReelState(carouselId, reel) {
+  var item = (ST.history || []).find(function (c) { return c.id === carouselId; });
+  if (item) {
+    item.reel_status = reel.status;
+    item.reel_url = reel.url || '';
+    item.reel_error = reel.error || '';
+    item.reel_requested_at = reel.requestedAt || null;
+    item.reel_finished_at = reel.finishedAt || null;
+    item.reel_url_expires_at = reel.expiresAt || null;
+  }
+  var row = document.querySelector('.hist-row[data-c="' + carouselId + '"]');
+  if (!row) return;
+  var badge = row.querySelector('.reel-badge');
+  if (!badge) return;
+  var active = reel.status === 'rendering' || reel.status === 'submitting';
+  badge.className = 'reel-badge' + (reel.status === 'ready' ? ' ready' : (active ? ' active' : ''));
+  badge.textContent = reel.status === 'ready' ? ' · Reel ready' : (active ? ' · Reel rendering' : '');
+}
+
 function startReel() {
+  if (ST.reelUpgradeRequired) {
+    if (window.TGPro) TGPro.showUpgradeModal();
+    else window.location.href = '/#pricing';
+    return;
+  }
   var reel = (ST.carousel && ST.carousel.reel) || { status: 'idle' };
   if (reel.status === 'ready' && reel.url) { downloadReel(reel.url); return; }
   var btn = el('dl-reel');
@@ -899,6 +931,7 @@ function loadHistory() {
     .then(function (d) {
       if (!d) return;
       ST.reelEnabled = !!d.reelEnabled;
+      ST.reelUpgradeRequired = !!d.reelUpgradeRequired;
       if (!d.carousels || !d.carousels.length) return;
       el('history').style.display = 'block';
       el('hist-list').innerHTML = d.carousels.map(function (c) {

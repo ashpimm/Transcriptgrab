@@ -69,6 +69,11 @@ function reelJobIsFresh(row) {
   return requested > Date.now() - (30 * 60 * 1000);
 }
 
+function reelAccess(user) {
+  const pro = user?.tier === 'pro';
+  return { reelEnabled: pro && shotstackEnabled(), reelUpgradeRequired: !pro };
+}
+
 async function serveReelSlide(req, res) {
   const carouselId = parseInt(req.query.carouselId, 10);
   const index = parseInt(req.query.index, 10);
@@ -100,7 +105,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       await ensureReelSchema();
       const carousels = await getCarousels(user.id);
-      return res.status(200).json({ carousels, reelEnabled: shotstackEnabled() });
+      return res.status(200).json({ carousels, ...reelAccess(user) });
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -152,12 +157,15 @@ export default async function handler(req, res) {
       return res.status(200).json({
         carouselId: saved.id, style: plan.style, slides: plan.slides, caption: plan.caption,
         motifs: plan.motifs, accent: plan.accent,
-        watermark: !!gate.watermark, source: gate.source, reelEnabled: shotstackEnabled(),
+        watermark: !!gate.watermark, source: gate.source, ...reelAccess(user),
       });
     }
 
     // ===== REEL: submit/poll a silent 9:16 MP4 render for download =====
     if (action === 'reel') {
+      if (user.tier !== 'pro') {
+        return res.status(402).json({ error: 'Reel downloads are included with Pro.', upgrade: true });
+      }
       if (!shotstackEnabled()) {
         return res.status(503).json({ error: 'Reel downloads are not configured yet.' });
       }

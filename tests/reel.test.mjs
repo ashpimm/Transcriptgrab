@@ -48,6 +48,8 @@ test('create page exposes render progress, retry, and direct MP4 download states
   assert.match(source, /Retry Reel render/);
   assert.match(source, /hooklab-reel\.mp4/);
   assert.match(source, /choose your song in Instagram/i);
+  assert.match(source, /updateHistoryReelState/);
+  assert.match(source, /Unlock Reel export with Pro/);
   const classicScripts = [...source.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
   assert.ok(classicScripts.length > 0);
   for (const script of classicScripts) assert.doesNotThrow(() => new Function(script));
@@ -60,4 +62,14 @@ test('Reel jobs are stored on the carousel and reclaim stale submissions', () =>
   const api = fs.readFileSync(new URL('../api/carousel.js', import.meta.url), 'utf8');
   assert.match(api, /verifyReelAsset/);
   assert.match(api, /reelJobIsFresh/);
+  assert.match(api, /user\.tier !== 'pro'/);
+  assert.match(api, /Reel downloads are included with Pro/);
+});
+
+test('landing page describes the current Pro carousel, Reel, and autopilot product', () => {
+  const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(source, /downloadable 9:16 Reel/);
+  assert.match(source, /Daily Instagram auto-posting/);
+  assert.match(source, /whether each post succeeded/);
+  assert.match(source, /How do Reel downloads work\?/);
 });
