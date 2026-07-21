@@ -19,7 +19,7 @@ Return ONLY a JSON array, one object per input video:
 }]
 
 Rules:
-- relevant: true ONLY if a creator in the given niche could credibly post content in this video's pattern about their own work. Keyword search is noisy — a niche of "App Developers & SaaS" will surface Minecraft builds, toy hauls, city-government clips, random vlogs. Those are relevant: false. When unsure, false.
+- relevant: true ONLY if a creator in the given niche could credibly post content in this video's pattern about their own work. Keyword search is noisy — a niche like "Productivity & Focus" can surface Minecraft builds, toy hauls, city-government clips, random vlogs. Those are relevant: false. When unsure, false.
 - If relevant is false, you may leave the other fields as empty strings.
 - hook_verbatim must be a complete, self-contained line someone would say to camera. Fragments like "Ah." or half-sentences are not hooks — mark those videos relevant: false.
 - hook_template: replace names, numbers, niches, and product-specifics with ___ slots. Example: "How I took my client from 150 to 130 lbs in 8 weeks" becomes "How I took my client from ___ to ___ in ___". Keep the sentence structure and emotional punch intact.

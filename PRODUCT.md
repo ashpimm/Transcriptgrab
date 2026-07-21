@@ -10,7 +10,7 @@ web
 
 ## Users
 
-Short-form content creators, solo founders, and small agencies (fitness coaches, realtors, coaches, app developers) who need viral hooks fast. Their context: they open Hooklab when facing a blank page — no idea what to post — and want proven, high-performing hook patterns they can adapt to their own voice in minutes, not hours. They are creator-native, phone-first in spirit, allergic to "marketing tool" bloat. The job to be done: go from blank → a scripted, ready-to-shoot content pack backed by evidence that the hook already worked.
+Short-form content creators, app founders, product owners, and small agencies who need viral hooks fast. Their context: they open Hooklab when facing a blank page — no idea what to post — and want proven, high-performing hook patterns from their buyer's niche that they can adapt to their product in minutes, not hours. They are creator-native, phone-first in spirit, allergic to "marketing tool" bloat. The job to be done: go from blank → a scripted, ready-to-shoot content pack backed by evidence that the hook already worked.
 
 ## Product Purpose
 

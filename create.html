@@ -442,10 +442,13 @@ el('save-profile').addEventListener('click', function () {
 
 // ============ HOOK PICKER ============
 function loadHooks() {
-  var nicheSlug = (ST.profile && ST.profile.audience_niche && ST.profile.audience_niche.slug) || 'appdev';
+  var nicheSlug = ST.profile && ST.profile.audience_niche && ST.profile.audience_niche.slug;
+  var hookUrl = nicheSlug
+    ? '/api/hooks?niche=' + encodeURIComponent(nicheSlug) + '&curated=1'
+    : '/api/hooks?curated=1';
   Promise.all([
     fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
-    fetch('/api/hooks?niche=' + encodeURIComponent(nicheSlug) + '&curated=1', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
+    fetch(hookUrl, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
   ]).then(function (both) {
     var swipe = both[0].hooks || [];
     var lib = (both[1].hooks || []).filter(function (h) { return !swipe.some(function (s) { return s.id === h.id; }); });

@@ -134,7 +134,7 @@
 <script src="/nav.js" defer></script>
 <script src="/pro.js" defer></script>
 <script>
-var S = { niche: 'appdev', format: null, tier: 'anon', hooks: [], total: 0, swipe: [] };
+var S = { niche: null, format: null, tier: 'anon', hooks: [], total: 0, swipe: [] };
 
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -150,10 +150,6 @@ function load() {
       S.tier = data.tier || 'anon';
       S.hooks = data.hooks || [];
       S.total = data.total || 0;
-      // if the default niche is empty, fall back to all niches once
-      if (!S.hooks.length && S.niche === 'appdev' && !S._fellBack) {
-        S._fellBack = true; S.niche = null; load(); return;
-      }
       renderNiches(data.niches || []);
       render();
     })

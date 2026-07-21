@@ -239,8 +239,8 @@ async function pickHook(profile, hookId, excludeHookIds) {
     const found = (await getHooksByIds([hookId]))[0];
     if (found) return found;
   }
-  const nicheSlug = profile.audience_niche?.slug || 'appdev';
-  let pool = excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds);
+  const nicheSlug = profile.audience_niche?.slug || '';
+  let pool = nicheSlug ? excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds) : [];
   const mined = pool.length > 0;
   if (!mined) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
   if (pool.length === 0) return null;
