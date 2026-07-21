@@ -675,6 +675,11 @@ export async function claimSubmittedPosts(runId, limit = 20) {
     WITH candidates AS (
       SELECT id FROM posts
       WHERE status = 'submitted'
+         OR (
+           status = 'failed'
+           AND external_ids->>'request_id' IS NOT NULL
+           AND error ~* '^[a-z0-9_-]+: (processing|pending|queued|in[ _-]progress|submitted|running)$'
+         )
       ORDER BY scheduled_at ASC
       FOR UPDATE SKIP LOCKED
       LIMIT ${limit}

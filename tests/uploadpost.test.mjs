@@ -107,3 +107,11 @@ test('status parser distinguishes pending, completed, and terminal failure', () 
   assert.equal(failed.state, 'failed');
   assert.match(failed.message, /disconnected/);
 });
+
+test('provider success false plus processing detail remains pending', () => {
+  const state = uploadStatusState({
+    status: 'completed',
+    results: { instagram: { success: false, error: 'processing' } },
+  });
+  assert.deepEqual(state, { state: 'pending' });
+});

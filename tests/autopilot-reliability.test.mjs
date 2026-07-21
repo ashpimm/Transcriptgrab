@@ -80,3 +80,9 @@ test('top-up work is bounded to one AI carousel per Hobby invocation', () => {
   assert.match(source, /MAX_TOPUP_POSTS_PER_RUN = 1/);
   assert.match(source, /postsCreatedThisRun >= MAX_TOPUP_POSTS_PER_RUN/);
 });
+
+test('misclassified provider-processing rows are eligible for safe verification', () => {
+  const source = fs.readFileSync(new URL('../api/_db.js', import.meta.url), 'utf8');
+  assert.match(source, /external_ids->>'request_id' IS NOT NULL/);
+  assert.match(source, /processing\|pending\|queued/);
+});

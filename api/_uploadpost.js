@@ -122,9 +122,17 @@ function stateFromResults(results) {
   const failures = [];
   for (const result of entries) {
     const state = normalizedStatus(result?.status || result?.publish_status);
-    if (result?.success === false || FAILED_STATES.has(state)) {
+    const detailState = normalizedStatus(result?.error || result?.message).replace(/[\s-]+/g, '_');
+    // Upload-Post can report success:false while a platform is still
+    // processing. An explicit terminal status wins, but a pending status or
+    // pending detail must never be converted into a permanent failure.
+    if (FAILED_STATES.has(state)) {
       failures.push(`${result?.platform || 'platform'}: ${result?.error || result?.message || state || 'failed'}`);
-    } else if (PENDING_STATES.has(state) || (result?.success !== true && !SUCCESS_STATES.has(state))) {
+    } else if (PENDING_STATES.has(state) || PENDING_STATES.has(detailState)) {
+      pending = true;
+    } else if (result?.success === false) {
+      failures.push(`${result?.platform || 'platform'}: ${result?.error || result?.message || state || 'failed'}`);
+    } else if (result?.success !== true && !SUCCESS_STATES.has(state)) {
       pending = true;
     }
   }
