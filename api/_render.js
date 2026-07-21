@@ -31,17 +31,43 @@ export async function renderSlidePngs({ slides, style, accent, bgBase64, heroBas
     : null;
 
   const out = [];
-  for (const slide of slides) {
-    const canvas = createCanvas(SLIDE_W, SLIDE_H);
-    const isLast = slide.index === slides.length - 1;
-    const isHero = !!hero && slide.index === 0;
-    drawSlideOn(canvas, isHero ? hero : bg, slide, slides.length, style, accent, {
-      hero: isHero,
-      watermark: !!watermark && isLast,
-      fontSans: 'Geist',
-      fontMono: '"Geist Mono"',
-    });
-    out.push(canvas.toBuffer('image/png'));
-  }
+  for (const slide of slides) out.push(renderLoadedSlide({
+    slide, slides, style, accent, bg, hero, watermark, width: SLIDE_W, height: SLIDE_H,
+  }));
   return out;
+}
+
+function renderLoadedSlide({ slide, slides, style, accent, bg, hero, watermark, width, height, format = 'png' }) {
+  const canvas = createCanvas(width, height);
+  const isLast = slide.index === slides.length - 1;
+  const isHero = !!hero && slide.index === 0;
+  drawSlideOn(canvas, isHero ? hero : bg, slide, slides.length, style, accent, {
+    hero: isHero,
+    watermark: !!watermark && isLast,
+    fontSans: 'Geist',
+    fontMono: '"Geist Mono"',
+  });
+  // Reel frames cross a public serverless response before the video provider
+  // fetches them. JPEG keeps photo-heavy frames comfortably below Vercel's
+  // response limit; carousel downloads stay lossless PNGs.
+  return format === 'jpeg'
+    ? canvas.toBuffer('image/jpeg', 92)
+    : canvas.toBuffer('image/png');
+}
+
+export async function renderReelSlideJpeg({ carousel, index, accent }) {
+  registerFonts();
+  const slides = Array.isArray(carousel.slides) ? carousel.slides : [];
+  const slide = slides.find((item) => item.index === index);
+  if (!slide || !carousel.bg) throw new Error('Reel slide assets are not ready.');
+  const [bg, hero] = await Promise.all([
+    loadImage(Buffer.from(carousel.bg, 'base64')),
+    carousel.hero
+      ? loadImage(Buffer.from(carousel.hero, 'base64')).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+  return renderLoadedSlide({
+    slide, slides, style: carousel.style, accent, bg, hero,
+    watermark: !!carousel.watermark, width: 1080, height: 1920, format: 'jpeg',
+  });
 }

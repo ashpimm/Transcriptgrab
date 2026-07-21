@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { renderSlidePngs } from '../api/_render.js';
+import { renderReelSlideJpeg, renderSlidePngs } from '../api/_render.js';
 import { SLIDE_W, SLIDE_H } from '../slide-render.mjs';
 
 // 1x1 red PNG
@@ -26,6 +26,21 @@ test('renders one PNG buffer per slide', async () => {
     assert.equal(b.subarray(1, 4).toString('ascii'), 'PNG');
     assert.ok(b.length > 5000); // real 1080x1350 render, not an empty canvas
   }
+});
+
+test('renders a compact portrait Reel frame without changing carousel dimensions', async () => {
+  const jpeg = await renderReelSlideJpeg({
+    carousel: { slides: SLIDES, style: 'bold', bg: PX, watermark: false },
+    index: 0,
+    accent: '#22C55E',
+  });
+  assert.ok(Buffer.isBuffer(jpeg));
+  assert.equal(jpeg[0], 0xff);
+  assert.equal(jpeg[1], 0xd8);
+  const image = await loadImage(jpeg);
+  assert.equal(image.width, 1080);
+  assert.equal(image.height, 1920);
+  assert.ok(jpeg.length < 4_000_000, 'Reel asset should stay below the serverless response limit');
 });
 
 // 1x1 blue PNG — a stand-in "photograph", so slide 0 differs from the rest.

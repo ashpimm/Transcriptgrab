@@ -86,6 +86,11 @@
 .mini-btn { background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--ink); transition: all .15s; }
 .mini-btn:hover { border-color: var(--line-2); }
 .mini-btn:disabled { opacity: .5; cursor: wait; }
+.reel-note { width: 100%; margin-top: 2px; color: var(--muted); font-family: var(--mono); font-size: 11.5px; line-height: 1.5; }
+.reel-note.err { color: #D94A3A; }
+.reel-badge { color: var(--muted); }
+.reel-badge.ready { color: #238451; }
+.reel-badge.active { color: var(--signal); }
 .empty-state { text-align: center; padding: 70px 20px; color: var(--muted); }
 .empty-state h3 { font-size: 19px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
 
@@ -261,7 +266,7 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '' };
+var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '', reelEnabled: false, reelPoll: null };
 
 function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
 
@@ -509,6 +514,7 @@ function runGenerate() {
     .then(function (res) {
       btn.disabled = false; btn.textContent = 'Generate my carousel';
       if (res.s === 200) {
+        ST.reelEnabled = !!res.j.reelEnabled;
         ST.carousel = res.j;
         ST.watermark = !!res.j.watermark;
         updateGenNote();
@@ -542,6 +548,7 @@ function runGenerate() {
 el('gen-btn').addEventListener('click', runGenerate);
 
 function renderCarousel() {
+  stopReelPoll();
   var c = ST.carousel;
   el('caro-out').innerHTML =
     '<div class="slide-grid">' + c.slides.map(function (s) {
@@ -550,17 +557,139 @@ function renderCarousel() {
     '<div class="caption-card"><div class="lbl">CAPTION + HASHTAGS</div><div id="cap-text">' + esc(c.caption) + '</div></div>' +
     '<div class="dl-row">' +
       '<button class="btn btn-primary" id="dl-all" disabled>Download post (.zip)</button>' +
+      '<button class="mini-btn" id="dl-reel" disabled>Create Reel (.mp4)</button>' +
       '<button class="mini-btn" id="copy-cap">Copy caption</button>' +
       '<button class="mini-btn" id="redo-bg">New visuals</button>' +
       '<button class="mini-btn" id="regen-all">Regenerate post</button>' +
+      '<div class="reel-note" id="reel-note">Create a silent 9:16 video, then choose your song in Instagram.</div>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
     navigator.clipboard.writeText(c.caption);
     this.textContent = 'Copied'; var b = this; setTimeout(function () { b.textContent = 'Copy caption'; }, 1500);
   });
   el('dl-all').addEventListener('click', downloadZip);
+  el('dl-reel').addEventListener('click', startReel);
   el('redo-bg').addEventListener('click', function () { generateSlides(true); });
   el('regen-all').addEventListener('click', runGenerate);
+  setReelUi(c.reel || reelFromRow(c));
+}
+
+// ============ REEL RENDER + DOWNLOAD ============
+function reelFromRow(c) {
+  return {
+    status: (c && c.reel_status) || 'idle',
+    url: (c && c.reel_url) || '',
+    error: (c && c.reel_error) || '',
+    requestedAt: (c && c.reel_requested_at) || null,
+    finishedAt: (c && c.reel_finished_at) || null,
+    expiresAt: (c && c.reel_url_expires_at) || null
+  };
+}
+
+function stopReelPoll() {
+  if (ST.reelPoll) clearTimeout(ST.reelPoll);
+  ST.reelPoll = null;
+}
+
+function scheduleReelPoll() {
+  stopReelPoll();
+  ST.reelPoll = setTimeout(pollReel, 4000);
+}
+
+function setReelUi(reel) {
+  if (!ST.carousel) return;
+  reel = reel || { status: 'idle' };
+  ST.carousel.reel = reel;
+  var btn = el('dl-reel');
+  var note = el('reel-note');
+  if (!btn || !note) return;
+  note.className = 'reel-note';
+
+  if (!ST.reelEnabled) {
+    btn.textContent = 'Reel export unavailable';
+    btn.disabled = true;
+    note.textContent = 'The video renderer still needs its production API key.';
+    return;
+  }
+  if (reel.status === 'ready' && reel.url) {
+    btn.textContent = 'Download Reel (.mp4)';
+    btn.disabled = false;
+    note.textContent = 'Ready — silent 9:16 MP4. Add your song when you upload it to Instagram.';
+    return;
+  }
+  if (reel.status === 'submitting' || reel.status === 'rendering') {
+    btn.textContent = 'Rendering Reel…';
+    btn.disabled = true;
+    note.textContent = 'Rendering in the background. You can leave this page and reopen the carousel later.';
+    scheduleReelPoll();
+    return;
+  }
+  if (reel.status === 'failed') {
+    btn.textContent = 'Retry Reel render';
+    btn.disabled = !ST.carousel.hasBg;
+    note.className = 'reel-note err';
+    note.textContent = reel.error || 'The video render failed. Your carousel is safe — try again.';
+    return;
+  }
+  if (reel.status === 'expired') {
+    btn.textContent = 'Render Reel again';
+    btn.disabled = !ST.carousel.hasBg;
+    note.textContent = 'The previous download expired. Render a fresh copy when you need it.';
+    return;
+  }
+  btn.textContent = 'Create Reel (.mp4)';
+  btn.disabled = !ST.carousel.hasBg;
+  note.textContent = ST.carousel.hasBg
+    ? 'Creates a silent 9:16 video. Choose your song when you upload it to Instagram.'
+    : 'Finish generating the slide visuals first.';
+}
+
+function startReel() {
+  var reel = (ST.carousel && ST.carousel.reel) || { status: 'idle' };
+  if (reel.status === 'ready' && reel.url) { downloadReel(reel.url); return; }
+  var btn = el('dl-reel');
+  btn.disabled = true; btn.textContent = 'Starting Reel…';
+  apiPost({ action: 'reel', carouselId: ST.carousel.carouselId })
+    .then(function (res) {
+      if (res.s === 200 || res.s === 202) { setReelUi(res.j); return; }
+      setReelUi({ status: 'failed', error: res.j.error || 'The Reel renderer could not start.' });
+    })
+    .catch(function () { setReelUi({ status: 'failed', error: 'Network error — try the Reel again.' }); });
+}
+
+function pollReel() {
+  ST.reelPoll = null;
+  if (!ST.carousel) return;
+  var carouselId = ST.carousel.carouselId;
+  apiPost({ action: 'reel-status', carouselId: carouselId })
+    .then(function (res) {
+      if (!ST.carousel || ST.carousel.carouselId !== carouselId) return;
+      if (res.s === 200 || res.s === 202) setReelUi(res.j);
+      else setReelUi({ status: 'failed', error: res.j.error || 'Could not check the Reel render.' });
+    })
+    .catch(function () {
+      if (ST.carousel && ST.carousel.carouselId === carouselId) scheduleReelPoll();
+    });
+}
+
+function downloadReel(url) {
+  var btn = el('dl-reel');
+  if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
+  fetch(url).then(function (r) {
+    if (!r.ok) throw new Error('download failed');
+    return r.blob();
+  }).then(function (blob) {
+    var objectUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = 'hooklab-reel.mp4';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 4000);
+    setReelUi(ST.carousel.reel);
+  }).catch(function () {
+    window.open(url, '_blank', 'noopener');
+    setReelUi(ST.carousel.reel);
+  });
 }
 
 // ============ SLIDE RENDERING ============
@@ -676,6 +805,8 @@ function paintSlides(images, slides, style, watermark) {
         }
       });
       var d = el('dl-all'); if (d) d.disabled = false;
+      ST.carousel.hasBg = true;
+      setReelUi(ST.carousel.reel || reelFromRow(ST.carousel));
     });
   }).catch(function () {
     slides.forEach(function (s) { renderSlideStatus(s.index, 'images failed — hit “New visuals” to retry'); });
@@ -766,11 +897,16 @@ function loadHistory() {
   fetch('/api/carousel', { credentials: 'same-origin' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      if (!d || !d.carousels || !d.carousels.length) return;
+      if (!d) return;
+      ST.reelEnabled = !!d.reelEnabled;
+      if (!d.carousels || !d.carousels.length) return;
       el('history').style.display = 'block';
       el('hist-list').innerHTML = d.carousels.map(function (c) {
         var first = (c.slides && c.slides[0] && c.slides[0].heading) || 'Carousel';
-        return '<div class="hist-row" data-c="' + c.id + '"><span class="t">' + esc(first) + '</span><span class="stat">' + esc(c.style) + ' · ' + new Date(c.created_at).toLocaleDateString() + '</span></div>';
+        var rs = reelFromRow(c).status;
+        var reelLabel = rs === 'ready' ? ' · Reel ready' : ((rs === 'rendering' || rs === 'submitting') ? ' · Reel rendering' : '');
+        var reelClass = rs === 'ready' ? ' ready' : ((rs === 'rendering' || rs === 'submitting') ? ' active' : '');
+        return '<div class="hist-row" data-c="' + c.id + '"><span class="t">' + esc(first) + '</span><span class="stat">' + esc(c.style) + ' · ' + new Date(c.created_at).toLocaleDateString() + '<span class="reel-badge' + reelClass + '">' + reelLabel + '</span></span></div>';
       }).join('');
       ST.history = d.carousels;
     });
@@ -782,6 +918,9 @@ el('hist-list').addEventListener('click', function (e) {
   ST.carousel = {
     carouselId: c.id, slides: c.slides, caption: c.caption,
     watermark: c.watermark, style: c.style, hasBg: !!c.has_bg,
+    reel: reelFromRow(c), reel_status: c.reel_status, reel_url: c.reel_url,
+    reel_error: c.reel_error, reel_requested_at: c.reel_requested_at,
+    reel_finished_at: c.reel_finished_at, reel_url_expires_at: c.reel_url_expires_at,
   };
   ST.watermark = !!c.watermark;
   renderCarousel();

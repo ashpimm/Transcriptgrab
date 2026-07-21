@@ -25,11 +25,11 @@ export const HERO_THEME = { ink: '#FFFFFF', sub: 'rgba(255,255,255,0.88)' };
 // length: it holds full strength to just past the last line, then falls away
 // fast so the photograph is seen. A guessed cutoff put long headings in white
 // on bare photo. A little weight returns at the bottom to seat the subject.
-function heroScrim(x, textBottom) {
-  var end = Math.min(Math.max((textBottom + 40) / SLIDE_H, 0.34), 0.74);
+function heroScrim(x, textBottom, slideH) {
+  var end = Math.min(Math.max((textBottom + 40) / slideH, 0.34), 0.74);
   var fade = Math.min(end + 0.16, 0.94);
   var clear = Math.min(fade + 0.12, 0.98);
-  var g = x.createLinearGradient(0, 0, 0, SLIDE_H);
+  var g = x.createLinearGradient(0, 0, 0, slideH);
   g.addColorStop(0.00, 'rgba(8,9,11,0.92)');
   g.addColorStop(end * 0.72, 'rgba(8,9,11,0.86)');
   g.addColorStop(end, 'rgba(8,9,11,0.72)');
@@ -84,13 +84,15 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   var fontMono = opts.fontMono || '"Geist Mono", monospace';
   var family = theme.mono ? fontMono : fontSans;
   var x = canvas.getContext('2d');
+  var slideW = canvas.width || SLIDE_W;
+  var slideH = canvas.height || SLIDE_H;
 
   // cover-fit background (naturalWidth in browsers, width on server images)
   var iw = bg.naturalWidth || bg.width, ih = bg.naturalHeight || bg.height;
-  var scale = Math.max(SLIDE_W / iw, SLIDE_H / ih);
-  x.drawImage(bg, (SLIDE_W - iw * scale) / 2, (SLIDE_H - ih * scale) / 2, iw * scale, ih * scale);
+  var scale = Math.max(slideW / iw, slideH / ih);
+  x.drawImage(bg, (slideW - iw * scale) / 2, (slideH - ih * scale) / 2, iw * scale, ih * scale);
 
-  var pad = 100, maxW = SLIDE_W - pad * 2;
+  var pad = Math.round(slideW * 100 / SLIDE_W), maxW = slideW - pad * 2;
 
   // Lay the type out BEFORE the overlay — the hero scrim is sized from where
   // the text actually ends. Measuring touches no pixels, so the text slides
@@ -116,11 +118,11 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
   var blockH = hLines.length * hLH + gap + bLines.length * bLH;
   // Hero: pin the type to the top so the photo's subject owns the lower frame.
   // Text slides: centre the block as before.
-  var top = hero ? pad + 56 : Math.max(pad + 120, (SLIDE_H - blockH) / 2);
+  var top = hero ? pad + 56 : Math.max(pad + 120, (slideH - blockH) / 2);
 
   // legibility overlay
-  x.fillStyle = hero ? heroScrim(x, top + blockH) : theme.overlay;
-  x.fillRect(0, 0, SLIDE_W, SLIDE_H);
+  x.fillStyle = hero ? heroScrim(x, top + blockH, slideH) : theme.overlay;
+  x.fillRect(0, 0, slideW, slideH);
 
   // accent bar above the heading — the USER'S brand color, never Hooklab orange
   x.fillStyle = visibleAccent(accent, ink, hero || theme.dark);
@@ -157,7 +159,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
     cLines = cLines.slice(0, 2);
     var cLH = Math.round(cSize * 1.28);
     var cW = Math.min(Math.max.apply(null, cLines.map(function (ln) { return x.measureText(ln).width; })), cAvail);
-    var cTop = Math.min(top + blockH + 64, SLIDE_H - pad - 40 - cLines.length * cLH);
+    var cTop = Math.min(top + blockH + 64, slideH - pad - 40 - cLines.length * cLH);
 
     x.fillStyle = visibleAccent(accent, ink, theme.dark);
     x.globalAlpha = 0.55;
@@ -176,7 +178,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
     x.fillStyle = ink;
     x.font = '500 26px ' + fontMono;
     x.textBaseline = 'alphabetic';
-    x.fillText(wm, SLIDE_W - pad - x.measureText(wm).width, SLIDE_H - 52);
+    x.fillText(wm, slideW - pad - x.measureText(wm).width, slideH - 52);
     x.globalAlpha = 1;
   }
 }

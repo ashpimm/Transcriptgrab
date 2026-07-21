@@ -517,11 +517,35 @@ export async function getRecentHookIds(userId, n = 5) {
   return [...new Set(rows.map((r) => r.hook_id))];
 }
 
+let reelSchemaPromise;
+
+export async function ensureReelSchema() {
+  if (!reelSchemaPromise) {
+    reelSchemaPromise = (async () => {
+      const sql = getSQL();
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_status VARCHAR(20)`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_render_id VARCHAR(100)`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_url TEXT`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_poster_url TEXT`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_error TEXT`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_requested_at TIMESTAMPTZ`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_checked_at TIMESTAMPTZ`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_finished_at TIMESTAMPTZ`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS reel_url_expires_at TIMESTAMPTZ`;
+    })().catch((error) => {
+      reelSchemaPromise = null;
+      throw error;
+    });
+  }
+  return reelSchemaPromise;
+}
+
 export async function getCarousels(userId) {
   const sql = getSQL();
   return sql`
     SELECT id, hook_id, style, slides, caption, watermark, created_at,
-           (bg IS NOT NULL) AS has_bg
+           (bg IS NOT NULL) AS has_bg, reel_status, reel_url, reel_error,
+           reel_requested_at, reel_finished_at, reel_url_expires_at
     FROM carousels WHERE user_id = ${userId}
     ORDER BY created_at DESC LIMIT 50
   `;
@@ -531,6 +555,68 @@ export async function getCarousel(userId, id) {
   const sql = getSQL();
   const rows = await sql`
     SELECT * FROM carousels WHERE user_id = ${userId} AND id = ${id}
+  `;
+  return rows[0] || null;
+}
+
+export async function getCarouselByIdForRender(id) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT c.*, u.profile
+    FROM carousels c JOIN users u ON u.id = c.user_id
+    WHERE c.id = ${id}
+  `;
+  return rows[0] || null;
+}
+
+export async function claimReelRender(userId, carouselId) {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE carousels
+    SET reel_status = 'submitting', reel_render_id = NULL, reel_url = NULL,
+        reel_poster_url = NULL, reel_error = '', reel_requested_at = NOW(),
+        reel_checked_at = NULL, reel_finished_at = NULL, reel_url_expires_at = NULL
+    WHERE user_id = ${userId} AND id = ${carouselId}
+      AND (
+        reel_status IS NULL
+        OR reel_status IN ('failed', 'expired')
+        OR reel_requested_at < NOW() - INTERVAL '30 minutes'
+        OR (reel_status = 'ready' AND reel_url_expires_at <= NOW())
+      )
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+export async function saveReelSubmission(userId, carouselId, renderId) {
+  const sql = getSQL();
+  await sql`
+    UPDATE carousels SET reel_status = 'rendering', reel_render_id = ${renderId},
+      reel_checked_at = NOW()
+    WHERE user_id = ${userId} AND id = ${carouselId} AND reel_status = 'submitting'
+  `;
+}
+
+export async function saveReelState(userId, carouselId, state) {
+  const sql = getSQL();
+  const ready = state.status === 'ready';
+  await sql`
+    UPDATE carousels SET reel_status = ${state.status}, reel_error = ${state.error || ''},
+      reel_url = CASE WHEN ${ready} THEN ${state.url || ''} ELSE reel_url END,
+      reel_poster_url = CASE WHEN ${ready} THEN ${state.poster || ''} ELSE reel_poster_url END,
+      reel_checked_at = NOW(),
+      reel_finished_at = CASE WHEN ${ready || state.status === 'failed'} THEN NOW() ELSE reel_finished_at END,
+      reel_url_expires_at = CASE WHEN ${ready} THEN NOW() + INTERVAL '23 hours' ELSE reel_url_expires_at END
+    WHERE user_id = ${userId} AND id = ${carouselId}
+  `;
+}
+
+export async function getReelState(userId, carouselId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT id, reel_status, reel_render_id, reel_url, reel_error,
+      reel_requested_at, reel_checked_at, reel_finished_at, reel_url_expires_at
+    FROM carousels WHERE user_id = ${userId} AND id = ${carouselId}
   `;
   return rows[0] || null;
 }

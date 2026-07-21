@@ -15,12 +15,16 @@
 import {
   getSession, getProfile, saveCarousel, getCarousels, getCarousel,
   saveCarouselBg, saveCarouselHero, canGenerateCarousel, consumeCarousel,
-  getRecentHookIds,
+  getRecentHookIds, ensureReelSchema, getCarouselByIdForRender,
+  claimReelRender, saveReelSubmission, saveReelState, getReelState,
 } from './_db.js';
 import { callGeminiImageRetry } from './_shared.js';
 import {
   generateCarouselPlan, backgroundPrompt, heroPrompt, cleanMotifs, STYLES, resolveAccent,
 } from './_generate.js';
+import { renderReelSlideJpeg } from './_render.js';
+import { publicBaseUrl, reelAssetUrl, verifyReelAsset } from './_reel.js';
+import { getReelRender, shotstackEnabled, submitReel } from './_shotstack.js';
 
 export const maxDuration = 60;
 
@@ -45,16 +49,58 @@ function cors(req, res) {
   return false;
 }
 
+function reelJson(row) {
+  if (!row) return { status: 'idle' };
+  let status = row.reel_status || 'idle';
+  const expiresAt = row.reel_url_expires_at;
+  if (status === 'ready' && expiresAt && new Date(expiresAt).getTime() <= Date.now()) status = 'expired';
+  return {
+    status,
+    url: status === 'ready' ? (row.reel_url || '') : '',
+    error: row.reel_error || '',
+    requestedAt: row.reel_requested_at || null,
+    finishedAt: row.reel_finished_at || null,
+    expiresAt: expiresAt || null,
+  };
+}
+
+function reelJobIsFresh(row) {
+  const requested = row?.reel_requested_at ? new Date(row.reel_requested_at).getTime() : 0;
+  return requested > Date.now() - (30 * 60 * 1000);
+}
+
+async function serveReelSlide(req, res) {
+  const carouselId = parseInt(req.query.carouselId, 10);
+  const index = parseInt(req.query.index, 10);
+  const expires = parseInt(req.query.expires, 10);
+  const signature = String(req.query.signature || '');
+  if (!verifyReelAsset({ carouselId, index, expires, signature })) {
+    return res.status(403).json({ error: 'Invalid or expired Reel asset link.' });
+  }
+  const carousel = await getCarouselByIdForRender(carouselId);
+  if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+  const jpeg = await renderReelSlideJpeg({ carousel, index, accent: carousel.profile?.color || '' });
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Content-Length', String(jpeg.length));
+  res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
+  return res.status(200).send(jpeg);
+}
+
 export default async function handler(req, res) {
   if (cors(req, res)) return;
 
   try {
+    if (req.method === 'GET' && req.query?.asset === 'reel-slide') {
+      return await serveReelSlide(req, res);
+    }
+
     const user = await getSession(req).catch(() => null);
     if (!user) return res.status(401).json({ error: 'Sign in required.' });
 
     if (req.method === 'GET') {
+      await ensureReelSchema();
       const carousels = await getCarousels(user.id);
-      return res.status(200).json({ carousels });
+      return res.status(200).json({ carousels, reelEnabled: shotstackEnabled() });
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -106,8 +152,78 @@ export default async function handler(req, res) {
       return res.status(200).json({
         carouselId: saved.id, style: plan.style, slides: plan.slides, caption: plan.caption,
         motifs: plan.motifs, accent: plan.accent,
-        watermark: !!gate.watermark, source: gate.source,
+        watermark: !!gate.watermark, source: gate.source, reelEnabled: shotstackEnabled(),
       });
+    }
+
+    // ===== REEL: submit/poll a silent 9:16 MP4 render for download =====
+    if (action === 'reel') {
+      if (!shotstackEnabled()) {
+        return res.status(503).json({ error: 'Reel downloads are not configured yet.' });
+      }
+      await ensureReelSchema();
+      const carouselId = parseInt(body.carouselId, 10);
+      const carousel = await getCarousel(user.id, carouselId);
+      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!carousel.bg) {
+        return res.status(409).json({ error: 'Finish generating the slide visuals before creating a Reel.' });
+      }
+
+      const before = await getReelState(user.id, carouselId);
+      const existing = reelJson(before);
+      if (['submitting', 'rendering'].includes(existing.status) && reelJobIsFresh(before)) {
+        return res.status(202).json(existing);
+      }
+      if (existing.status === 'ready') return res.status(200).json(existing);
+
+      const claimed = await claimReelRender(user.id, carouselId);
+      if (!claimed) return res.status(202).json(reelJson(await getReelState(user.id, carouselId)));
+      try {
+        const expires = Math.floor(Date.now() / 1000) + (2 * 60 * 60);
+        const baseUrl = publicBaseUrl(req);
+        const assetUrls = [...carousel.slides]
+          .sort((a, b) => a.index - b.index)
+          .map((slide) => reelAssetUrl({ baseUrl, carouselId, index: slide.index, expires }));
+        const submitted = await submitReel(assetUrls);
+        await saveReelSubmission(user.id, carouselId, submitted.id);
+        return res.status(202).json(reelJson(await getReelState(user.id, carouselId)));
+      } catch (error) {
+        await saveReelState(user.id, carouselId, { status: 'failed', error: String(error.message || error).substring(0, 500) });
+        return res.status(502).json({ status: 'failed', error: 'The Reel renderer could not start. Please try again.' });
+      }
+    }
+
+    if (action === 'reel-status') {
+      await ensureReelSchema();
+      const carouselId = parseInt(body.carouselId, 10);
+      const state = await getReelState(user.id, carouselId);
+      if (!state) return res.status(404).json({ error: 'Carousel not found.' });
+      const current = reelJson(state);
+      if (current.status === 'ready' || current.status === 'failed' || current.status === 'expired' || current.status === 'idle') {
+        if (current.status === 'expired' && state.reel_status !== 'expired') {
+          await saveReelState(user.id, carouselId, { status: 'expired', error: '' });
+        }
+        return res.status(200).json(current);
+      }
+      if (!state.reel_render_id) {
+        if (!reelJobIsFresh(state)) {
+          await saveReelState(user.id, carouselId, { status: 'failed', error: 'The Reel render did not start. Please retry.' });
+          return res.status(200).json(reelJson(await getReelState(user.id, carouselId)));
+        }
+        return res.status(202).json(current);
+      }
+      try {
+        const provider = await getReelRender(state.reel_render_id);
+        await saveReelState(user.id, carouselId, provider.state === 'ready'
+          ? { status: 'ready', url: provider.url, poster: provider.poster || '', error: '' }
+          : provider.state === 'failed'
+            ? { status: 'failed', error: provider.error || 'Video render failed.' }
+            : { status: 'rendering', error: '' });
+        return res.status(200).json(reelJson(await getReelState(user.id, carouselId)));
+      } catch (error) {
+        console.error('reel status check delayed:', error.message);
+        return res.status(202).json(current);
+      }
     }
 
     // ===== BACKGROUND: the textless art every TEXT slide sits on =====
