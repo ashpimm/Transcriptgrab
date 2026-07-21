@@ -1,8 +1,10 @@
-/* hooklab.css — Hooklab design system v2
-   Reference lane: OpusClip / Vercel pure-black monochrome pill system.
+/* hooklab.css — Hooklab design system v3
+   Reference lane: pure-black monochrome pill system, one highlighter.
    Black canvas, white type, glassy dark cards, pill shapes everywhere.
    Color lives in the content (video thumbnails, slides); the one signal
-   accent (#FF4D00) is reserved for receipts and generation actions.
+   accent (#FFDD00, "highlighter") is reserved for receipts and generation
+   actions — it marks proof, like a highlighter over the line that worked.
+   Errors/danger use --danger (red), never the brand signal.
    Type: Geist (everything) / Geist Mono (data, receipts). */
 
 :root {
@@ -21,10 +23,15 @@
   --muted: #9C9FA6;            /* ≥4.5:1 on --bg and --surface */
 
   /* signal — receipts + generate actions only */
-  --signal: #FF4D00;
-  --signal-hi: #FF6A2B;
-  --signal-soft: rgba(255,77,0,.14);
-  --signal-line: rgba(255,77,0,.35);
+  --signal: #FFDD00;
+  --signal-hi: #FFE94D;
+  --signal-soft: rgba(255,221,0,.12);
+  --signal-line: rgba(255,221,0,.40);
+
+  /* danger — failures + errors (never the brand signal) */
+  --danger: #FF8A8A;
+  --danger-soft: rgba(255,90,90,.12);
+  --danger-line: rgba(255,90,90,.30);
 
   --font: 'Geist', -apple-system, 'Segoe UI', sans-serif;
   --mono: 'Geist Mono', ui-monospace, monospace;
@@ -55,7 +62,7 @@ body {
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
-::selection { background: var(--ink); color: var(--bg); }
+::selection { background: var(--signal); color: #000; }
 
 h1, h2, h3 { text-wrap: balance; }
 
@@ -88,10 +95,10 @@ h1, h2, h3 { text-wrap: balance; }
 /* primary — white pill on black (the opus CTA) */
 .btn-primary { background: var(--ink); color: #000; }
 .btn-primary:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 12px 32px -12px rgba(255,255,255,.35); }
-/* generate — the one saturated action. Black type on signal orange:
-   white fails AA (3.3:1) at this size, black passes (6.3:1). */
+/* generate — the one saturated action. Black type on highlighter yellow
+   (~14:1, passes AAA; white would fail). */
 .btn-signal { background: var(--signal); color: #000; }
-.btn-signal:hover { background: var(--signal-hi); transform: translateY(-1px); box-shadow: 0 14px 34px -12px rgba(255,77,0,.6); }
+.btn-signal:hover { background: var(--signal-hi); transform: translateY(-1px); box-shadow: 0 14px 34px -12px rgba(255,221,0,.45); }
 .btn-signal:disabled, .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
 /* quiet glass */
 .btn-ghost { background: var(--glass); border-color: var(--line); color: var(--ink); }
@@ -195,7 +202,7 @@ select.chip { appearance: none; }
 .field textarea:focus, .field input:focus, .field select:focus { outline: 2px solid rgba(255,255,255,.5); outline-offset: 1px; }
 
 .msg { padding: 12px 18px; border-radius: var(--radius-s); font-size: 14px; margin-bottom: 18px; display: none; }
-.msg.err { background: rgba(255,90,90,.1); border: 1px solid rgba(255,90,90,.3); color: #FF9B9B; display: block; }
+.msg.err { background: var(--danger-soft); border: 1px solid var(--danger-line); color: var(--danger); display: block; }
 .msg.ok { background: rgba(60,200,120,.1); border: 1px solid rgba(60,200,120,.3); color: #7BE3A6; display: block; }
 
 /* ============ MISC ============ */
@@ -223,7 +230,7 @@ select.chip { appearance: none; }
 
 /* focus */
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
-  outline: 2px solid var(--ink); outline-offset: 3px;
+  outline: 2px solid var(--signal); outline-offset: 3px;
 }
 
 @media (max-width: 640px) {

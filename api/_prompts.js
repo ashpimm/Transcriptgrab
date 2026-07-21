@@ -141,6 +141,6 @@ Rules:
 // ============================================
 // BRAND COLOR (fallback when profile save has none)
 // ============================================
-export const PICK_COLOR_PROMPT = `You receive JSON: { name, what } describing a product (app, website or SaaS). Pick ONE saturated brand accent color that fits its subject (e.g. green for nutrition, blue for finance, red-pink for dating). Never white, black, gray, or orange (#FF4D00 is reserved).
+export const PICK_COLOR_PROMPT = `You receive JSON: { name, what } describing a product (app, website or SaaS). Pick ONE saturated brand accent color that fits its subject (e.g. green for nutrition, blue for finance, red-pink for dating). Never white, black, gray, or yellow (#FFDD00 is Hooklab's own brand color, reserved).
 
 Return ONLY: {"color": "#RRGGBB"}`;

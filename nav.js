@@ -69,7 +69,7 @@
     '.suite-nav{background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:1000;font-family:"Geist",-apple-system,sans-serif;}' +
     '.suite-nav-inner{max-width:1160px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;gap:8px;position:relative;}' +
     '.suite-nav-brand{font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#F5F5F6;text-decoration:none;flex-shrink:0;transition:opacity 0.2s;}' +
-    '.suite-nav-brand::after{content:"_";color:#FF4D00;}' +
+    '.suite-nav-brand::after{content:"_";color:#FFDD00;}' +
     '.suite-nav-brand:hover{opacity:.8;}' +
     '.suite-nav-links{display:flex;align-items:center;gap:2px;position:absolute;left:50%;transform:translateX(-50%);}' +
     '.suite-nav-link{font-size:13.5px;font-weight:500;color:#9C9FA6;text-decoration:none;padding:7px 14px;border-radius:999px;transition:all 0.2s;white-space:nowrap;}' +

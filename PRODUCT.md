@@ -20,7 +20,7 @@ Hooklab mines viral outlier hooks (the 5x rule: views ≥ 5× account followers)
 
 Bold, punchy, creator-native. Speaks the language of people who actually post, not marketers who talk about posting. Confident and high-energy without tipping into hype or hustle-guru theatrics — the swagger is *earned* because every hook ships with receipts (view counts, follower counts, outlier scores). Voice: direct, a little irreverent, zero corporate hedging. Emotional goal: the user feels equipped and slightly unfair-advantaged, like they got the cheat sheet.
 
-Note: the current shipped look reads restrained/lab-precise (paper + ink + a single signal-orange). The owner wants it to feel bolder and more creator-native than it currently does — the personality above is the target direction, and the palette/energy is expected to move toward it. This is a redesign brief, not a description of the status quo.
+Note: the shipped look (v3, 2026-07-21) is a pure-black monochrome pill system with one highlighter-yellow signal (#FFDD00) reserved for receipts and generate actions — the yellow marks proof, like a highlighter over the line that worked. Errors/danger use a separate red (--danger), never the brand signal. User slides never use the brand yellow (reserved in PICK_COLOR_PROMPT).
 
 ## Anti-references
 
