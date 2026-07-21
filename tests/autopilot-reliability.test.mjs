@@ -74,3 +74,9 @@ test('signed-in social status includes a user-specific queue summary', () => {
   assert.match(account, /Next post/);
   assert.match(account, /No post is currently scheduled/);
 });
+
+test('top-up work is bounded to one AI carousel per Hobby invocation', () => {
+  const source = fs.readFileSync(new URL('../api/_autopilot-runner.js', import.meta.url), 'utf8');
+  assert.match(source, /MAX_TOPUP_POSTS_PER_RUN = 1/);
+  assert.match(source, /postsCreatedThisRun >= MAX_TOPUP_POSTS_PER_RUN/);
+});

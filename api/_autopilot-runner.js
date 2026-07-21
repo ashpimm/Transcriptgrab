@@ -23,6 +23,7 @@ const QUEUE_DAYS = 3;
 const MAX_PUBLISH_PER_RUN = 5;
 const MAX_VERIFY_PER_RUN = 5;
 const MAX_TOPUP_USERS_PER_RUN = 6;
+const MAX_TOPUP_POSTS_PER_RUN = 1;
 const RUN_BUDGET_MS = 52_000;
 const MIN_PUBLISH_START_MS = 24_000;
 const MIN_TOPUP_START_MS = 10_000;
@@ -304,7 +305,12 @@ export function handleTopup(req, res, scheduledTrigger) {
       try {
         const users = (await getAutopilotUsers()).slice(0, MAX_TOPUP_USERS_PER_RUN);
         ctx.stats.users = users.length;
+        let postsCreatedThisRun = 0;
         for (const user of users) {
+          if (postsCreatedThisRun >= MAX_TOPUP_POSTS_PER_RUN) {
+            ctx.stats.postBudgetReached = true;
+            break;
+          }
           if (ctx.deadline - Date.now() < MIN_TOPUP_START_MS) {
             ctx.stats.deferredUsers = (ctx.stats.deferredUsers || 0) + 1;
             break;
@@ -325,6 +331,10 @@ export function handleTopup(req, res, scheduledTrigger) {
             const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n);
             let total = await countAllPosts(user.id);
             for (const slot of slots) {
+              if (postsCreatedThisRun >= MAX_TOPUP_POSTS_PER_RUN) {
+                ctx.stats.postBudgetReached = true;
+                break;
+              }
               if (ctx.deadline - Date.now() < MIN_TOPUP_START_MS) {
                 ctx.stats.deferredSlots = (ctx.stats.deferredSlots || 0) + 1;
                 break;
@@ -346,6 +356,7 @@ export function handleTopup(req, res, scheduledTrigger) {
               if (gate.source === 'credit') user.credits = (user.credits || 0) - 1;
               else user.carousels_used = (user.carousels_used || 0) + 1;
               total++;
+              postsCreatedThisRun++;
               ctx.stats.toppedUp = (ctx.stats.toppedUp || 0) + 1;
             }
           } catch (error) {
