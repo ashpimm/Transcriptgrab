@@ -2,7 +2,9 @@
 // platforms, and choosing which platforms a post actually ships to.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { linkedPlatformsFrom, effectivePlatforms } from '../api/_uploadpost.js';
+import {
+  linkedPlatformsFrom, effectivePlatforms, uploadResponseState, uploadStatusState,
+} from '../api/_uploadpost.js';
 
 // ---- linkedPlatformsFrom(data, username) ----
 
@@ -68,4 +70,40 @@ test('linked unknown (null) -> requested unchanged', () => {
 
 test('nothing linked -> empty array', () => {
   assert.deepEqual(effectivePlatforms(['tiktok', 'instagram'], []), []);
+});
+
+// ---- provider outcomes: HTTP 200 is not necessarily a successful post ----
+
+test('async upload response stays pending until its request id is verified', () => {
+  assert.deepEqual(
+    uploadResponseState({ success: true, request_id: 'req-1', message: 'started' }),
+    { state: 'pending', requestId: 'req-1' },
+  );
+});
+
+test('synchronous platform failure is not misreported as posted', () => {
+  const state = uploadResponseState({
+    success: true,
+    results: {
+      instagram: { success: false, error: 'token expired' },
+      tiktok: { success: true },
+    },
+  });
+  assert.equal(state.state, 'failed');
+  assert.match(state.message, /instagram: token expired/);
+});
+
+test('synchronous all-platform success is posted', () => {
+  assert.deepEqual(uploadResponseState({
+    success: true,
+    results: { instagram: { success: true }, tiktok: { status: 'PUBLISH_SUCCESS' } },
+  }), { state: 'succeeded' });
+});
+
+test('status parser distinguishes pending, completed, and terminal failure', () => {
+  assert.equal(uploadStatusState({ status: 'in_progress', results: [] }).state, 'pending');
+  assert.equal(uploadStatusState({ status: 'completed', results: [{ platform: 'instagram', success: true }] }).state, 'succeeded');
+  const failed = uploadStatusState({ status: 'completed', results: [{ platform: 'instagram', success: false, error: 'disconnected' }] });
+  assert.equal(failed.state, 'failed');
+  assert.match(failed.message, /disconnected/);
 });

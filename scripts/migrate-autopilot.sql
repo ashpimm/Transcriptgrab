@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS posts (
   id           SERIAL PRIMARY KEY,
   user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   scheduled_at TIMESTAMPTZ NOT NULL,
-  status       VARCHAR(20) NOT NULL DEFAULT 'queued',  -- queued|posted|failed|skipped
+  status       VARCHAR(20) NOT NULL DEFAULT 'queued',  -- queued|publishing|submitted|verifying|posted|blocked|failed|skipped
   kind         VARCHAR(20) NOT NULL DEFAULT 'value',   -- value|showcase
   style        VARCHAR(50) DEFAULT 'bold',
   slides       JSONB NOT NULL,                          -- [{index, heading, body}]
@@ -25,7 +25,35 @@ CREATE TABLE IF NOT EXISTS posts (
   external_ids JSONB,
   error        TEXT DEFAULT '',
   retries      INTEGER DEFAULT 0,
+  publish_claimed_at TIMESTAMPTZ,
+  publish_run_id UUID,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_posts_due  ON posts(status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, scheduled_at DESC);
+
+-- Durable evidence for every scheduler invocation. This is intentionally
+-- separate from Vercel logs so the Account page and /api/health can report
+-- whether the worker ran even after log retention expires.
+CREATE TABLE IF NOT EXISTS autopilot_runs (
+  id          UUID PRIMARY KEY,
+  job         VARCHAR(20) NOT NULL, -- publish|topup
+  trigger     VARCHAR(30) NOT NULL, -- primary|recovery|manual
+  status      VARCHAR(20) NOT NULL DEFAULT 'running',
+  started_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  finished_at TIMESTAMPTZ,
+  stats       JSONB NOT NULL DEFAULT '{}',
+  errors      JSONB NOT NULL DEFAULT '[]',
+  duration_ms INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_autopilot_runs_job_started
+  ON autopilot_runs(job, started_at DESC);
+
+-- Prevent a flexible-window primary cron and its recovery cron from topping
+-- up the same customer concurrently.
+CREATE TABLE IF NOT EXISTS autopilot_locks (
+  job          VARCHAR(40) PRIMARY KEY,
+  owner        UUID NOT NULL,
+  locked_until TIMESTAMPTZ NOT NULL,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -12,7 +12,10 @@
   ],
   "crons": [
     { "path": "/api/mine", "schedule": "0 6 * * *" },
-    { "path": "/api/autopilot", "schedule": "30 20 * * *" }
+    { "path": "/api/autopilot-topup", "schedule": "0 17 * * *" },
+    { "path": "/api/autopilot-topup-recovery", "schedule": "0 19 * * *" },
+    { "path": "/api/autopilot", "schedule": "30 20 * * *" },
+    { "path": "/api/autopilot-recovery", "schedule": "0 22 * * *" }
   ],
   "redirects": [
     { "source": "/library", "destination": "/feed", "permanent": true },
@@ -32,6 +35,10 @@
     { "source": "/api/carousel", "destination": "/api/carousel" },
     { "source": "/api/social", "destination": "/api/social" },
     { "source": "/api/autopilot", "destination": "/api/autopilot" },
+    { "source": "/api/autopilot-recovery", "destination": "/api/autopilot?mode=publish&scheduledTrigger=recovery" },
+    { "source": "/api/autopilot-topup", "destination": "/api/autopilot?mode=topup&scheduledTrigger=primary" },
+    { "source": "/api/autopilot-topup-recovery", "destination": "/api/autopilot?mode=topup&scheduledTrigger=recovery" },
+    { "source": "/api/health", "destination": "/api/health" },
     { "source": "/feed", "destination": "/feed.html" },
     { "source": "/create", "destination": "/create.html" },
     { "source": "/account", "destination": "/account.html" },
@@ -39,6 +46,6 @@
     { "source": "/terms", "destination": "/terms.html" }
   ],
   "functions": {
-    "api/autopilot.js": { "includeFiles": "{fonts/**,slide-render.mjs}" }
+    "api/autopilot.js": { "includeFiles": "{fonts/**,slide-render.mjs}", "maxDuration": 60 }
   }
 }

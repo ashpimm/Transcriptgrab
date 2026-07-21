@@ -22,12 +22,11 @@ export function handleCors(req, res) {
 
 /**
  * Auth gate for cron endpoints (/api/mine, /api/autopilot).
- * Vercel's documented cron auth is `Authorization: Bearer ${CRON_SECRET}`;
- * the x-vercel-cron header is undocumented and not guaranteed, so it's
- * accepted but never required. Manual runs pass ?secret=$ADMIN_SECRET.
+ * Vercel's documented cron auth is `Authorization: Bearer ${CRON_SECRET}`.
+ * Never trust a caller-supplied marker header; manual runs use the separate
+ * ADMIN_SECRET query value.
  */
 export function cronAuthOk(req) {
-  if (req.headers['x-vercel-cron']) return true;
   const cron = process.env.CRON_SECRET;
   if (cron && req.headers['authorization'] === `Bearer ${cron}`) return true;
   return !!(process.env.ADMIN_SECRET && req.query && req.query.secret === process.env.ADMIN_SECRET);
@@ -55,6 +54,7 @@ export async function callGeminiImage(prompt) {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(18000),
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { responseModalities: ['IMAGE'] },

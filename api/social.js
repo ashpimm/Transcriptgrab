@@ -2,8 +2,12 @@
 // GET  /api/social                 -> { enabled, connected, username, posts }
 // POST /api/social {action:'link'} -> { url } (hosted upload-post linking page)
 
-import { getSession, setUploadPostUsername, getPostsForUser } from './_db.js';
+import {
+  getSession, setUploadPostUsername, getPostsForUser, getPostQueueSummary,
+  getLatestAutopilotRuns,
+} from './_db.js';
 import { uploadPostEnabled, createUploadPostUser, generateLinkUrl, getLinkedPlatforms } from './_uploadpost.js';
+import { publicAutopilotHealth } from './_autopilot-health.js';
 
 function cors(req, res) {
   const origin = req.headers.origin || '';
@@ -25,7 +29,11 @@ export default async function handler(req, res) {
     if (!user) return res.status(401).json({ error: 'Sign in required.' });
 
     if (req.method === 'GET') {
-      const posts = await getPostsForUser(user.id);
+      const [posts, queue, healthRows] = await Promise.all([
+        getPostsForUser(user.id),
+        getPostQueueSummary(user.id),
+        getLatestAutopilotRuns().catch(() => []),
+      ]);
       // linked: platform names actually connected at upload-post, null = unknown
       // (lookup failed or response shape unrecognized) — page falls back to a
       // plain "Connected" line rather than claiming platforms it can't verify.
@@ -39,6 +47,8 @@ export default async function handler(req, res) {
         username: user.upload_post_username || '',
         linked,
         posts,
+        queue,
+        health: publicAutopilotHealth(healthRows),
       });
     }
 

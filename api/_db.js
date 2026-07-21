@@ -537,7 +537,8 @@ export async function setUploadPostUsername(userId, username) {
 export async function getPostsForUser(userId, limit = 30) {
   const sql = getSQL();
   return sql`
-    SELECT id, scheduled_at, status, kind, style, slides, caption, platforms, error, created_at
+    SELECT id, scheduled_at, status, kind, style, slides, caption, platforms,
+           error, retries, created_at
     FROM posts WHERE user_id = ${userId}
     ORDER BY scheduled_at DESC LIMIT ${limit}
   `;
@@ -559,7 +560,10 @@ export async function countFuturePosts(userId) {
   const sql = getSQL();
   const rows = await sql`
     SELECT COUNT(*)::int AS n, COALESCE(array_agg(scheduled_at), '{}') AS at
-    FROM posts WHERE user_id = ${userId} AND status = 'queued' AND scheduled_at > NOW()
+    FROM posts
+    WHERE user_id = ${userId}
+      AND status IN ('queued', 'publishing', 'submitted', 'verifying', 'blocked')
+      AND scheduled_at > NOW()
   `;
   return { n: rows[0].n, scheduledAts: rows[0].at || [] };
 }
@@ -575,48 +579,230 @@ export async function createPost({ userId, scheduledAt, kind, style, slides, cap
   try {
     const rows = await sql`
       INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, hero_scene, platforms)
-      VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
-              ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])}, ${heroScene || ''},
-              ${platforms || ['tiktok', 'instagram']})
+      SELECT ${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
+             ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])}, ${heroScene || ''},
+             ${platforms || ['tiktok', 'instagram']}
+      WHERE NOT EXISTS (
+        SELECT 1 FROM posts
+        WHERE user_id = ${userId} AND scheduled_at = ${scheduledAt}
+          AND status IN ('queued', 'publishing', 'submitted', 'verifying', 'blocked', 'posted')
+      )
       RETURNING id
     `;
-    return rows[0];
+    return rows[0] || null;
   } catch (e) {
     if (!missingColumn(e, 'hero_scene')) throw e;
     console.error('posts.hero_scene missing — RUN scripts/migrate-hero.sql. Scheduled posts ship without cover photos until then.');
     const rows = await sql`
       INSERT INTO posts (user_id, scheduled_at, kind, style, slides, caption, accent, motifs, platforms)
-      VALUES (${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
-              ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])},
-              ${platforms || ['tiktok', 'instagram']})
+      SELECT ${userId}, ${scheduledAt}, ${kind}, ${style}, ${JSON.stringify(slides)},
+             ${caption}, ${accent || ''}, ${JSON.stringify(motifs || [])},
+             ${platforms || ['tiktok', 'instagram']}
+      WHERE NOT EXISTS (
+        SELECT 1 FROM posts
+        WHERE user_id = ${userId} AND scheduled_at = ${scheduledAt}
+          AND status IN ('queued', 'publishing', 'submitted', 'verifying', 'blocked', 'posted')
+      )
       RETURNING id
     `;
-    return rows[0];
+    return rows[0] || null;
   }
 }
 
-// Joins users only for the two columns rendering/publishing need
-// (upload_post_username, profile) plus tier for a defensive re-check.
-// Neither name collides with a posts column, so no shadowing risk.
-export async function getDuePosts(limit = 5) {
+// Claims are atomic: overlapping primary/recovery/manual runs can never render
+// and submit the same row at the same time. A stable provider request id then
+// covers the crash window between upload-post accepting a request and this
+// process recording its response.
+export async function claimDuePosts(runId, limit = 5) {
   const sql = getSQL();
   return sql`
-    SELECT p.*, u.upload_post_username, u.profile, u.tier
-    FROM posts p JOIN users u ON u.id = p.user_id
-    WHERE p.status = 'queued' AND p.scheduled_at <= NOW()
-    ORDER BY p.scheduled_at ASC
-    LIMIT ${limit}
+    WITH candidates AS (
+      SELECT p.id
+      FROM posts p
+      WHERE p.status IN ('queued', 'blocked') AND p.scheduled_at <= NOW()
+      ORDER BY p.scheduled_at ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT ${limit}
+    ), claimed AS (
+      UPDATE posts p
+      SET status = 'publishing', publish_claimed_at = NOW(), publish_run_id = ${runId}
+      FROM candidates c
+      WHERE p.id = c.id
+      RETURNING p.*
+    )
+    SELECT claimed.*, u.upload_post_username, u.profile, u.tier
+    FROM claimed JOIN users u ON u.id = claimed.user_id
+    ORDER BY claimed.scheduled_at ASC
   `;
 }
 
-export async function setPostStatus(id, status, { error = '', externalIds = null, retries } = {}) {
+export async function getPostQueueSummary(userId) {
   const sql = getSQL();
+  const rows = await sql`
+    SELECT
+      COUNT(*) FILTER (
+        WHERE status IN ('queued', 'blocked') AND scheduled_at <= NOW()
+      )::int AS due,
+      COUNT(*) FILTER (
+        WHERE status IN ('queued', 'publishing', 'submitted', 'verifying', 'blocked')
+          AND scheduled_at > NOW()
+      )::int AS future,
+      COUNT(*) FILTER (WHERE status IN ('submitted', 'verifying'))::int AS submitted,
+      COUNT(*) FILTER (WHERE status = 'blocked')::int AS blocked,
+      COUNT(*) FILTER (WHERE status = 'failed')::int AS failed,
+      MIN(scheduled_at) FILTER (
+        WHERE status IN ('queued', 'publishing', 'submitted', 'verifying', 'blocked')
+          AND scheduled_at > NOW()
+      ) AS next_at
+    FROM posts
+    WHERE user_id = ${userId}
+  `;
+  return rows[0] || { due: 0, future: 0, submitted: 0, blocked: 0, failed: 0, next_at: null };
+}
+
+export async function claimSubmittedPosts(runId, limit = 20) {
+  const sql = getSQL();
+  return sql`
+    WITH candidates AS (
+      SELECT id FROM posts
+      WHERE status = 'submitted'
+      ORDER BY scheduled_at ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT ${limit}
+    ), claimed AS (
+      UPDATE posts p
+      SET status = 'verifying', publish_claimed_at = NOW(), publish_run_id = ${runId}
+      FROM candidates c
+      WHERE p.id = c.id
+      RETURNING p.*
+    )
+    SELECT * FROM claimed ORDER BY scheduled_at ASC
+  `;
+}
+
+export async function recoverStalePostClaims(staleMinutes = 15) {
+  const sql = getSQL();
+  return sql`
+    UPDATE posts
+    SET status = CASE WHEN status = 'verifying' THEN 'submitted' ELSE 'queued' END,
+        error = CASE
+          WHEN status = 'publishing' THEN 'Recovered after an interrupted publishing run; retrying safely.'
+          ELSE error
+        END,
+        publish_claimed_at = NULL,
+        publish_run_id = NULL
+    WHERE status IN ('publishing', 'verifying')
+      AND publish_claimed_at < NOW() - (${staleMinutes} * INTERVAL '1 minute')
+    RETURNING id, status
+  `;
+}
+
+export async function setPostStatus(id, status, { error = '', externalIds, retries } = {}) {
+  const sql = getSQL();
+  const writeExternalIds = externalIds !== undefined;
+  const externalJson = writeExternalIds && externalIds !== null ? JSON.stringify(externalIds) : null;
   await sql`
     UPDATE posts SET status = ${status}, error = ${error},
-      external_ids = ${externalIds ? JSON.stringify(externalIds) : null},
-      retries = COALESCE(${retries ?? null}, retries)
+      external_ids = CASE WHEN ${writeExternalIds} THEN ${externalJson}::jsonb ELSE external_ids END,
+      retries = COALESCE(${retries ?? null}, retries),
+      publish_claimed_at = NULL,
+      publish_run_id = NULL
     WHERE id = ${id}
   `;
+}
+
+let autopilotSchemaPromise;
+
+// A deploy and its SQL migration cannot land atomically on Vercel. Workers
+// bootstrap this small idempotent schema before doing work; the checked-in
+// migration remains the source of truth for fresh environments.
+export async function ensureAutopilotReliabilitySchema() {
+  if (!autopilotSchemaPromise) {
+    autopilotSchemaPromise = (async () => {
+      const sql = getSQL();
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS publish_claimed_at TIMESTAMPTZ`;
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS publish_run_id UUID`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS autopilot_runs (
+          id UUID PRIMARY KEY,
+          job VARCHAR(20) NOT NULL,
+          trigger VARCHAR(30) NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'running',
+          started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          finished_at TIMESTAMPTZ,
+          stats JSONB NOT NULL DEFAULT '{}',
+          errors JSONB NOT NULL DEFAULT '[]',
+          duration_ms INTEGER
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS idx_autopilot_runs_job_started
+        ON autopilot_runs(job, started_at DESC)
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS autopilot_locks (
+          job VARCHAR(40) PRIMARY KEY,
+          owner UUID NOT NULL,
+          locked_until TIMESTAMPTZ NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS idx_posts_claimed
+        ON posts(status, publish_claimed_at)
+        WHERE publish_claimed_at IS NOT NULL
+      `;
+    })().catch((e) => {
+      autopilotSchemaPromise = null;
+      throw e;
+    });
+  }
+  return autopilotSchemaPromise;
+}
+
+export async function startAutopilotRun({ id, job, trigger }) {
+  const sql = getSQL();
+  await sql`
+    INSERT INTO autopilot_runs (id, job, trigger)
+    VALUES (${id}, ${job}, ${trigger})
+  `;
+}
+
+export async function finishAutopilotRun(id, { status, stats, errors, durationMs }) {
+  const sql = getSQL();
+  await sql`
+    UPDATE autopilot_runs
+    SET status = ${status}, finished_at = NOW(), stats = ${JSON.stringify(stats)}::jsonb,
+        errors = ${JSON.stringify(errors)}::jsonb, duration_ms = ${durationMs}
+    WHERE id = ${id}
+  `;
+}
+
+export async function getLatestAutopilotRuns() {
+  const sql = getSQL();
+  return sql`
+    SELECT DISTINCT ON (job) job, trigger, status, started_at, finished_at, duration_ms
+    FROM autopilot_runs
+    ORDER BY job, started_at DESC
+  `;
+}
+
+export async function acquireAutopilotLock(job, owner, ttlMinutes = 10) {
+  const sql = getSQL();
+  const rows = await sql`
+    INSERT INTO autopilot_locks (job, owner, locked_until)
+    VALUES (${job}, ${owner}, NOW() + (${ttlMinutes} * INTERVAL '1 minute'))
+    ON CONFLICT (job) DO UPDATE
+    SET owner = EXCLUDED.owner, locked_until = EXCLUDED.locked_until, updated_at = NOW()
+    WHERE autopilot_locks.locked_until < NOW() OR autopilot_locks.owner = EXCLUDED.owner
+    RETURNING owner
+  `;
+  return rows.length > 0;
+}
+
+export async function releaseAutopilotLock(job, owner) {
+  const sql = getSQL();
+  await sql`DELETE FROM autopilot_locks WHERE job = ${job} AND owner = ${owner}`;
 }
 
 // ============================================

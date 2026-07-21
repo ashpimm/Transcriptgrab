@@ -13,9 +13,9 @@ test('accepts documented Vercel cron auth: Bearer CRON_SECRET', () => {
   assert.equal(cronAuthOk(req({ authorization: 'Bearer cs-test' })), true);
 });
 
-test('accepts legacy x-vercel-cron header', () => {
+test('does not trust a spoofable x-vercel-cron header', () => {
   process.env.CRON_SECRET = 'cs-test';
-  assert.equal(cronAuthOk(req({ 'x-vercel-cron': '1' })), true);
+  assert.equal(cronAuthOk(req({ 'x-vercel-cron': '1' })), false);
 });
 
 test('accepts admin secret query for manual runs', () => {
