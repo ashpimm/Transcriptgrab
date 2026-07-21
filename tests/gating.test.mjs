@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { canGenerateCarousel, FREE_CAROUSELS, CAROUSELS_PER_MONTH } from '../api/_db.js';
+import fs from 'node:fs';
+import {
+  canGenerateCarousel, FREE_CAROUSELS, CAROUSELS_PER_MONTH, monthlyUsageNeedsReset,
+} from '../api/_db.js';
 
 test('constants', () => {
   assert.equal(FREE_CAROUSELS, 3);
@@ -40,4 +43,17 @@ test('credits consumed after pro quota, before free', () => {
 
 test('null user blocked', () => {
   assert.equal(canGenerateCarousel(null).allowed, false);
+});
+
+test('monthly usage resets legacy missing dates and expired dates', () => {
+  const now = new Date('2026-07-21T08:00:00Z');
+  assert.equal(monthlyUsageNeedsReset({ usage_reset_at: null }, now), true);
+  assert.equal(monthlyUsageNeedsReset({ usage_reset_at: '2026-07-01T00:00:00Z' }, now), true);
+  assert.equal(monthlyUsageNeedsReset({ usage_reset_at: '2026-08-01T00:00:00Z' }, now), false);
+});
+
+test('starting or restarting Pro clears stale carousel usage', () => {
+  const source = fs.readFileSync(new URL('../api/_db.js', import.meta.url), 'utf8');
+  const setPro = source.match(/export async function setProStatus[\s\S]*?\n}/)?.[0] || '';
+  assert.match(setPro, /carousels_used = 0/);
 });

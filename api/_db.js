@@ -8,6 +8,12 @@ function getSQL() {
   return neon(process.env.POSTGRES_URL);
 }
 
+export function monthlyUsageNeedsReset(user, now = new Date()) {
+  if (!user?.usage_reset_at) return true;
+  const resetAt = new Date(user.usage_reset_at).getTime();
+  return !Number.isFinite(resetAt) || resetAt <= new Date(now).getTime();
+}
+
 // ============================================
 // COOKIE HELPERS
 // ============================================
@@ -53,7 +59,7 @@ export async function getSession(req) {
   const user = rows[0];
 
   // Auto-reset monthly usage if past reset date
-  if (user.usage_reset_at && new Date(user.usage_reset_at) <= new Date()) {
+  if (monthlyUsageNeedsReset(user)) {
     await sql`
       UPDATE users
       SET monthly_usage = 0,
@@ -64,6 +70,7 @@ export async function getSession(req) {
     `;
     user.monthly_usage = 0;
     user.carousels_used = 0;
+    user.usage_reset_at = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
   }
 
   return user;
@@ -137,6 +144,7 @@ export async function setProStatus(userId, stripeCustomerId, stripeSubscriptionI
       stripe_customer_id = ${stripeCustomerId},
       stripe_subscription_id = ${stripeSubscriptionId},
       monthly_usage = 0,
+      carousels_used = 0,
       usage_reset_at = date_trunc('month', NOW()) + INTERVAL '1 month',
       updated_at = NOW()
     WHERE id = ${userId}
@@ -178,7 +186,7 @@ export async function claimCheckoutSession(stripeSessionId, userId) {
 // USAGE REFRESH (reusable monthly reset check)
 // ============================================
 export async function refreshUsage(user) {
-  if (user.usage_reset_at && new Date(user.usage_reset_at) <= new Date()) {
+  if (monthlyUsageNeedsReset(user)) {
     const sql = getSQL();
     await sql`
       UPDATE users
@@ -190,6 +198,7 @@ export async function refreshUsage(user) {
     `;
     user.monthly_usage = 0;
     user.carousels_used = 0;
+    user.usage_reset_at = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
   }
   return user;
 }
