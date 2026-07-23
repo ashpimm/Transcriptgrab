@@ -447,7 +447,7 @@
           <li>Evidence-backed hook selection</li>
           <li class="no">Small watermark on the last slide</li>
         </ul>
-        <a class="btn btn-ghost" href="/api/auth/google">Create my first free post</a>
+        <a class="btn btn-ghost" href="/create">Create my first free post</a>
       </div>
       <div class="plan featured" data-reveal="1">
         <div class="name">Pro</div>
@@ -515,7 +515,7 @@
 <!-- ============ FINAL CTA ============ -->
 <section class="final wrap" data-reveal>
   <h2>Your next customer can’t choose an app they never see.</h2>
-  <a class="btn btn-signal" href="/api/auth/google">Create my first free post</a>
+  <a class="btn btn-signal" href="/create">Create my first free post</a>
   <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:14px;">no card · no filming · complete post included</div>
 </section>
 
@@ -554,13 +554,15 @@
 <script src="/pro.js" defer></script>
 <script src="/vanta-background.js" defer></script>
 <script>
-// hero paste → stash URL, then auth (or straight to create when signed in)
+// hero paste → stash URL, then straight to the studio. Taste-first: a
+// logged-out visitor generates their first post there before signing in (the
+// create page mints the anon session and auto-imports this URL). If anon is
+// disabled server-side, the studio shows the sign-in gate instead.
 document.getElementById('hero-paste').addEventListener('submit', function (e) {
   e.preventDefault();
   var url = document.getElementById('hero-url').value.trim();
   if (url) { try { localStorage.setItem('tg_pending_url', url); } catch (err) {} }
-  var signedIn = window.TGUser && TGUser.isSignedIn();
-  window.location.href = signedIn ? '/create' : '/api/auth/google';
+  window.location.href = '/create';
 });
 </script>
 </body>

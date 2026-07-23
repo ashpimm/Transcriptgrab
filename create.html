@@ -1039,6 +1039,26 @@
   }
 }
 
+/* ============ OUTPUT-FIRST ============ */
+/* Once a real post has been generated, the page stops pre-selling what the
+   visitor is now looking at: the illustrative deck, the deliverables grid, the
+   proof chip and the "here's what we'll do" hint all retire, and the output
+   zone becomes the focus. The build panel collapses to a lean restart control.
+   Editing the product (which re-shows the setup form) does not undo this — the
+   explanation has served its purpose. */
+.post-made .deck-preview,
+.post-made .deliverables,
+.post-made .gen-card .proof-chip,
+.post-made .gen-card .hint-line,
+.post-made .head-proof,
+.post-made #customize-toggle,
+.post-made #customize { display: none; }
+
+.post-made .gen-layout { padding: 22px 0 6px; }
+.post-made .gen-card h2 { margin-top: 0; font-size: clamp(20px, 2.4vw, 26px); }
+.post-made .output-zone { margin-top: clamp(32px, 4vw, 48px); }
+.post-made .page-head .sub { display: none; }
+
 </style>
 </head>
 <body>
@@ -1214,20 +1234,38 @@ function growAll() {
 }
 
 // ============ AUTH GATE ============
+// Taste-first: a logged-out visitor may make ONE full post before signing in.
+// The client can't see the ANON_IP_SALT flag, so it probes GET /api/profile —
+// 200 means anon is enabled (and mints the tg_anon cookie); 401 means anon is
+// off and we fall back to the classic sign-in gate.
+function goSignIn() { window.location.href = '/api/auth/google'; }
+
+function startApp(u) {
+  el('app').style.display = 'block';
+  loadProfile().then(loadHooks, loadHooks);
+  loadHistory();
+  updateGenNote(u);
+}
+
 window.addEventListener('load', function () {
   var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
   ready.then(function (u) {
-    if (!u) { el('gate').style.display = 'block'; return; }
-    el('app').style.display = 'block';
-    loadProfile().then(loadHooks, loadHooks);
-    loadHistory();
-    updateGenNote(u);
+    if (u) { ST.isAnon = false; startApp(u); return; }
+    fetch('/api/profile', { credentials: 'same-origin' })
+      .then(function (r) { return r.status === 200 ? r.json() : Promise.reject(); })
+      .then(function () { ST.isAnon = true; startApp(null); })
+      .catch(function () { el('gate').style.display = 'block'; });
   });
 });
 
 function updateGenNote(u) {
   u = u || (window.TGUser && TGUser.get());
-  if (!u) return;
+  if (!u) {
+    if (ST.isAnon) {
+      el('gen-note').textContent = 'Your first post is free — sign in after to download and keep it.';
+    }
+    return;
+  }
   var note;
   if (u.tier === 'pro') {
     note = (u.carouselsLimit - u.carouselsUsed) + ' of ' + u.carouselsLimit + ' posts left this month';
@@ -1418,6 +1456,12 @@ function runImport(url) {
     .then(function (res) {
       if (!finishImport()) return;
       el('profile-form').classList.add('show');
+      if (res.s === 403) {
+        // Anon taste already used (this IP or the daily cap) — invite sign-in.
+        showMsg('You’ve used your free preview. Sign in free to keep creating.', false);
+        goSignIn();
+        return;
+      }
       if (res.s === 200 && res.j.prefill) {
         fillForm(res.j.prefill);
         ST.pendingAppUrl = res.j.prefill.app_url || url;
@@ -1490,7 +1534,7 @@ el('save-profile').addEventListener('click', function () {
         el('pick-list').innerHTML = '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Matching hooks to this product…</div>';
         loadHooks();
         el('gen-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (res.s === 401) {
+      } else if (res.s === 401 || res.s === 403) {
         window.location.href = '/api/auth/google';
       } else {
         showMsg(res.j.error || 'Could not save.', false);
@@ -1630,6 +1674,7 @@ function runGenerate() {
         ST.reelUpgradeRequired = !!res.j.reelUpgradeRequired;
         ST.carousel = res.j;
         ST.watermark = !!res.j.watermark;
+        document.body.classList.add('post-made'); // output-first: retire the pre-sell chrome
         updateGenNote();
         renderCarousel();
         setOutputState(
@@ -1645,6 +1690,13 @@ function runGenerate() {
       else if (res.s === 401) {
         setGenerationBusy(false);
         window.location.href = '/api/auth/google';
+      }
+      else if (res.s === 403) {
+        // Anon's single taste is spent — sign in to keep it and make more.
+        setGenerationBusy(false);
+        setOutputState('Sign in free to keep creating.', 'Your free preview is done. Sign in to download it and make 2 more.', false);
+        el('gen-note').textContent = 'Sign in free to download this and make 2 more.';
+        goSignIn();
       }
       else if (res.j.needsProfile) {
         setGenerationBusy(false);
@@ -1682,28 +1734,42 @@ el('gen-btn').addEventListener('click', runGenerate);
 function renderCarousel() {
   stopReelPoll();
   var c = ST.carousel;
+  var anon = !!ST.isAnon;
   el('caro-out').innerHTML =
     '<div class="slide-grid">' + c.slides.map(function (s) {
       return '<div class="slide-box" id="slide-' + s.index + '"><div class="status">' + esc(s.heading) + '<br><br>queued…</div></div>';
     }).join('') + '</div>' +
     '<div class="caption-card"><div class="lbl">READY-TO-POST CAPTION</div><div id="cap-text">' + esc(c.caption) + '</div></div>' +
     '<div class="dl-row">' +
-      '<button class="btn btn-primary" id="dl-all" disabled>Download complete post</button>' +
-      '<button class="mini-btn" id="dl-reel" disabled>Turn this into a Reel</button>' +
+      '<button class="btn btn-primary" id="dl-all" disabled>' + (anon ? 'Sign in free to download &amp; keep' : 'Download complete post') + '</button>' +
+      (anon
+        ? '<button class="mini-btn" id="regen-all">Sign in free to make another</button>'
+        : '<button class="mini-btn" id="dl-reel" disabled>Turn this into a Reel</button>') +
       '<button class="mini-btn" id="copy-cap">Copy ready-to-post caption</button>' +
-      '<button class="mini-btn" id="redo-bg" disabled>Try a new visual direction</button>' +
-      '<button class="mini-btn" id="regen-all" disabled>Create a fresh version</button>' +
-      '<div class="reel-note" id="reel-note">Create a silent 9:16 video, then choose your song in Instagram.</div>' +
+      (anon
+        ? ''
+        : '<button class="mini-btn" id="redo-bg" disabled>Try a new visual direction</button>' +
+          '<button class="mini-btn" id="regen-all" disabled>Create a fresh version</button>') +
+      '<div class="reel-note" id="reel-note">' + (anon
+        ? 'This is your free preview. Sign in free to download it and make 2 more.'
+        : 'Create a silent 9:16 video, then choose your song in Instagram.') + '</div>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
     navigator.clipboard.writeText(c.caption);
     this.textContent = 'Caption copied'; var b = this; setTimeout(function () { b.textContent = 'Copy ready-to-post caption'; }, 1500);
   });
-  el('dl-all').addEventListener('click', downloadZip);
-  el('dl-reel').addEventListener('click', startReel);
-  el('redo-bg').addEventListener('click', function () { generateSlides(true); });
-  el('regen-all').addEventListener('click', runGenerate);
-  setReelUi(c.reel || reelFromRow(c));
+  if (anon) {
+    // Anon can watch the post render, but keeping/downloading/continuing all
+    // route through a free sign-in (which claims this exact post).
+    el('dl-all').addEventListener('click', goSignIn);
+    el('regen-all').addEventListener('click', goSignIn);
+  } else {
+    el('dl-all').addEventListener('click', downloadZip);
+    el('dl-reel').addEventListener('click', startReel);
+    el('redo-bg').addEventListener('click', function () { generateSlides(true); });
+    el('regen-all').addEventListener('click', runGenerate);
+    setReelUi(c.reel || reelFromRow(c));
+  }
 }
 
 // ============ REEL RENDER + DOWNLOAD ============
@@ -2135,6 +2201,7 @@ el('hist-list').addEventListener('click', function (e) {
     reel_finished_at: c.reel_finished_at, reel_url_expires_at: c.reel_url_expires_at,
   };
   ST.watermark = !!c.watermark;
+  document.body.classList.add('post-made'); // output-first: focus on the post
   renderCarousel();
   generateSlides(); // redraws the text over the carousel's saved background
   el('caro-out').scrollIntoView({ behavior: 'smooth' });
