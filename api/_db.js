@@ -976,9 +976,10 @@ export async function ensureAnonSchema() {
 }
 
 // Reserve a generation slot at import-start (the first money-costing step).
-// Per-IP gate counts only COMPLETED tastes (1 ever). The daily gate counts
-// reserved + complete so a burst of in-flight generations still respects the
-// cap; released (failed) slots free their count back up.
+// Both gates count only COMPLETED tastes: per-IP (1 ever) and the daily cap
+// ("N posts/day" = N finished posts). Counting completions — not in-flight
+// reservations — means abandoned imports can never starve the daily cap, and
+// keeps the cap's meaning aligned with real image-generation spend.
 export async function reserveAnonSlot({ anonId, ipHash, cap = anonDailyCap() }) {
   await ensureAnonSchema();
   const sql = getSQL();
@@ -1004,7 +1005,7 @@ export async function reserveAnonSlot({ anonId, ipHash, cap = anonDailyCap() }) 
 
   const d = await sql`
     SELECT COUNT(*)::int AS n FROM anon_slots
-    WHERE status IN ('reserved', 'complete') AND created_at::date = CURRENT_DATE
+    WHERE status = 'complete' AND created_at::date = CURRENT_DATE
   `;
 
   const verdict = evaluateAnonThrottle({
