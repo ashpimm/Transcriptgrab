@@ -17,7 +17,11 @@ import {
   saveCarouselBg, saveCarouselHero, canGenerateCarousel, consumeCarousel,
   getRecentHookIds, ensureReelSchema, getCarouselByIdForRender,
   claimReelRender, saveReelSubmission, saveReelState, getReelState,
+  getAnonProfile, getCarouselAnon, getCarouselsAnon,
+  saveCarouselBgAnon, saveCarouselHeroAnon,
+  reserveAnonSlot, completeAnonSlot, releaseAnonSlot,
 } from './_db.js';
+import { resolveActor, clientIp, hashIp } from './_anon.js';
 import { callGeminiImageRetry } from './_shared.js';
 import {
   generateCarouselPlan, backgroundPrompt, heroPrompt, cleanMotifs, STYLES, resolveAccent,
@@ -100,10 +104,30 @@ export default async function handler(req, res) {
       return await serveReelSlide(req, res);
     }
 
-    const user = await getSession(req).catch(() => null);
-    if (!user) return res.status(401).json({ error: 'Sign in required.' });
+    // Actor = signed-in user OR a taste-first anon (tg_anon cookie, only when
+    // ANON_IP_SALT is set). Anon may run plan/background/hero/slide exactly
+    // once (its throttle slot, reserved during profile import/save); Pro-only
+    // actions (reel) still require a real account.
+    const actor = await resolveActor(req, res, { getSession: (r) => getSession(r).catch(() => null) });
+    if (actor.kind === 'none') return res.status(401).json({ error: 'Sign in required.' });
+    const user = actor.kind === 'user' ? actor.user : null;
+    const anonId = actor.kind === 'anon' ? actor.anonId : null;
+    const profileGet = () => (user ? getProfile(user.id) : getAnonProfile(anonId));
+    const carouselGet = (id) => (user ? getCarousel(user.id, id) : getCarouselAnon(anonId, id));
+    const bgSave = (id, b64) => (user ? saveCarouselBg(user.id, id, b64) : saveCarouselBgAnon(anonId, id, b64));
+    const heroSave = (id, b64) => (user ? saveCarouselHero(user.id, id, b64) : saveCarouselHeroAnon(anonId, id, b64));
+    async function anonReserveGate() {
+      if (user) return true;
+      const r = await reserveAnonSlot({ anonId, ipHash: hashIp(clientIp(req)) });
+      if (!r.allowed) { res.status(403).json({ error: 'gate', reason: r.reason }); return false; }
+      return true;
+    }
 
     if (req.method === 'GET') {
+      if (!user) {
+        const carousels = await getCarouselsAnon(anonId);
+        return res.status(200).json({ carousels, reelEnabled: false, reelUpgradeRequired: true });
+      }
       await ensureReelSchema();
       const carousels = await getCarousels(user.id);
       return res.status(200).json({ carousels, ...reelAccess(user) });
@@ -117,15 +141,24 @@ export default async function handler(req, res) {
 
     // ===== PLAN: hook -> slide copy + caption + hashtags =====
     if (action === 'plan') {
-      const gate = canGenerateCarousel(user);
-      if (!gate.allowed) {
-        const msg = gate.reason === 'monthly_limit'
-          ? 'You have used all 30 posts this month. They reset on your billing date.'
-          : 'You have used your 3 free posts. Pro is $19/month for 30 posts, Reel exports, and daily Instagram publishing.';
-        return res.status(402).json({ error: msg, reason: gate.reason, upgrade: gate.reason === 'upgrade' });
+      let gate;
+      if (user) {
+        gate = canGenerateCarousel(user);
+        if (!gate.allowed) {
+          const msg = gate.reason === 'monthly_limit'
+            ? 'You have used all 30 posts this month. They reset on your billing date.'
+            : 'You have used your 3 free posts. Pro is $19/month for 30 posts, Reel exports, and daily Instagram publishing.';
+          return res.status(402).json({ error: msg, reason: gate.reason, upgrade: gate.reason === 'upgrade' });
+        }
+      } else {
+        // Anon: the throttle slot (reserved at import/save) is the allowance.
+        // Reserve here too in case they reached plan without it; always
+        // watermarked.
+        if (!(await anonReserveGate())) return;
+        gate = { allowed: true, source: 'anon', watermark: true };
       }
 
-      const profile = await getProfile(user.id);
+      const profile = await profileGet();
       if (!profile || !profile.what) {
         return res.status(400).json({ error: 'Set up your app profile first.', needsProfile: true });
       }
@@ -142,7 +175,7 @@ export default async function handler(req, res) {
       // hookId + style are optional — the done-for-you default picks a
       // best-fit hook from the audience niche's top performers + a random
       // style, avoiding hooks this user's recent carousels already used.
-      const recentHookIds = await getRecentHookIds(user.id).catch(() => []);
+      const recentHookIds = user ? await getRecentHookIds(user.id).catch(() => []) : [];
       let plan;
       try {
         plan = await generateCarouselPlan({
@@ -153,6 +186,8 @@ export default async function handler(req, res) {
           excludeHookIds: recentHookIds,
         });
       } catch (e) {
+        // Our failure must not burn the anon's one taste.
+        if (anonId) await releaseAnonSlot(anonId).catch(() => {});
         if (String(e.message).startsWith('No hooks')) {
           return res.status(503).json({ error: e.message });
         }
@@ -160,9 +195,11 @@ export default async function handler(req, res) {
       }
 
       const saved = await saveCarousel(
-        user.id, plan.hook.id, plan.style, plan.slides, plan.caption, gate.watermark, plan.heroScene,
+        user ? user.id : null, plan.hook.id, plan.style, plan.slides, plan.caption, gate.watermark, plan.heroScene,
+        anonId,
       );
-      await consumeCarousel(user, gate.source);
+      if (user) await consumeCarousel(user, gate.source);
+      else await completeAnonSlot({ anonId, carouselId: saved.id });
 
       return res.status(200).json({
         carouselId: saved.id, style: plan.style, slides: plan.slides, caption: plan.caption,
@@ -176,13 +213,14 @@ export default async function handler(req, res) {
             : (plan.hook.video_url || ''),
           curated: !!plan.hook.curated || String(plan.hook.video_url || '').startsWith('curated://'),
         },
-        watermark: !!gate.watermark, source: gate.source, ...reelAccess(user),
+        watermark: !!gate.watermark, source: gate.source,
+        ...(user ? reelAccess(user) : { reelEnabled: false, reelUpgradeRequired: true }),
       });
     }
 
     // ===== REEL: submit/poll a silent 9:16 MP4 render for download =====
     if (action === 'reel') {
-      if (user.tier !== 'pro') {
+      if (!user || user.tier !== 'pro') {
         return res.status(402).json({ error: 'Reel downloads are included with Pro.', upgrade: true });
       }
       if (!shotstackEnabled()) {
@@ -221,6 +259,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'reel-status') {
+      if (!user) return res.status(401).json({ error: 'Sign in required.' });
       await ensureReelSchema();
       const carouselId = parseInt(body.carouselId, 10);
       const state = await getReelState(user.id, carouselId);
@@ -255,7 +294,7 @@ export default async function handler(req, res) {
 
     // ===== BACKGROUND: the textless art every TEXT slide sits on =====
     if (action === 'background') {
-      const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
+      const carousel = await carouselGet(parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Post not found.' });
 
       // Cached on the carousel — revisiting history is free. Only body.fresh
@@ -268,11 +307,11 @@ export default async function handler(req, res) {
         });
       }
 
-      const profile = await getProfile(user.id).catch(() => null);
+      const profile = await profileGet().catch(() => null);
       const b64 = await callGeminiImageRetry(
         backgroundPrompt(carousel.style, profile, cleanMotifs(body.motifs), body.accent),
       );
-      await saveCarouselBg(user.id, carousel.id, b64)
+      await bgSave(carousel.id, b64)
         .catch((e) => console.error('bg cache failed:', e.message));
 
       return res.status(200).json({
@@ -286,7 +325,7 @@ export default async function handler(req, res) {
     // hero means slide 0 falls back to the background, which is what every
     // carousel looked like before this existed. Never a 500. =====
     if (action === 'hero') {
-      const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
+      const carousel = await carouselGet(parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Post not found.' });
 
       if (carousel.hero && !body.fresh) {
@@ -296,7 +335,7 @@ export default async function handler(req, res) {
       // The scene is read from the row, NEVER from the client — it lands inside
       // an image prompt. Carousels made before this shipped have no scene, and
       // heroPrompt returns '' for them: no call, no spend, no cover photo.
-      const profile = await getProfile(user.id).catch(() => null);
+      const profile = await profileGet().catch(() => null);
       const prompt = heroPrompt(carousel.hero_scene, profile, body.accent);
       if (!prompt) return res.status(200).json({ hero: null, reason: 'no_scene' });
 
@@ -307,7 +346,7 @@ export default async function handler(req, res) {
         console.error('hero image failed:', e.message);
         return res.status(200).json({ hero: null, reason: 'failed' });
       }
-      await saveCarouselHero(user.id, carousel.id, b64)
+      await heroSave(carousel.id, b64)
         .catch((e) => console.error('hero cache failed:', e.message));
 
       return res.status(200).json({ hero: `data:image/png;base64,${b64}` });
@@ -315,14 +354,14 @@ export default async function handler(req, res) {
 
     // ===== SLIDE: render one image (legacy path for cached clients) =====
     if (action === 'slide') {
-      const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
+      const carousel = await carouselGet(parseInt(body.carouselId, 10));
       if (!carousel) return res.status(404).json({ error: 'Post not found.' });
       const slides = carousel.slides;
       const idx = parseInt(body.index, 10);
       const slide = Array.isArray(slides) ? slides.find((s) => s.index === idx) : null;
       if (!slide) return res.status(400).json({ error: 'Slide not found.' });
 
-      const legacyProfile = await getProfile(user.id).catch(() => null);
+      const legacyProfile = await profileGet().catch(() => null);
       const b64 = await callGeminiImageRetry(slidePrompt(carousel.style, slide, slides.length, legacyProfile));
       // Free-tier watermark is drawn client-side on the last slide (canvas
       // overlay) — image models can't render small text reliably.

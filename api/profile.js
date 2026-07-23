@@ -9,8 +9,9 @@
 import {
   getSession, getProfile, saveProfile, updateProfileIcon, slugifyNiche, ensureNiche,
   getAutoHookPool, getNicheBySlug, getNiches, mergeKeywords, setNicheKeywords,
-  claimNicheLightMine,
+  claimNicheLightMine, reserveAnonSlot, attachAnonProfile, getAnonProfile,
 } from './_db.js';
+import { resolveActor, clientIp, hashIp } from './_anon.js';
 import { callGemini } from './_shared.js';
 import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
 import { mineNiche } from './_miner.js';
@@ -591,12 +592,26 @@ export default async function handler(req, res) {
   corsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const user = await getSession(req).catch(() => null);
-  if (!user) return res.status(401).json({ error: 'Sign in required.' });
+  // Actor = a signed-in user OR (when ANON_IP_SALT is set) a taste-first
+  // anonymous visitor identified by the tg_anon cookie. profileGet/profilePut
+  // route reads and writes to the right store; anonReserveGate enforces the
+  // throttle at the first money-costing step (import or manual save).
+  const actor = await resolveActor(req, res, { getSession: (r) => getSession(r).catch(() => null) });
+  if (actor.kind === 'none') return res.status(401).json({ error: 'Sign in required.' });
+  const user = actor.kind === 'user' ? actor.user : null;
+  const anonId = actor.kind === 'anon' ? actor.anonId : null;
+  const profileGet = () => (user ? getProfile(user.id) : getAnonProfile(anonId));
+  const profilePut = (p) => (user ? saveProfile(user.id, p) : attachAnonProfile(anonId, p));
+  async function anonReserveGate() {
+    if (user) return true;
+    const r = await reserveAnonSlot({ anonId, ipHash: hashIp(clientIp(req)) });
+    if (!r.allowed) { res.status(403).json({ error: 'gate', reason: r.reason }); return false; }
+    return true;
+  }
 
   if (req.method === 'GET') {
     try {
-      const profile = await getProfile(user.id);
+      const profile = await profileGet();
       return res.status(200).json({ profile });
     } catch (e) {
       console.error('profile get error:', e);
@@ -614,6 +629,9 @@ export default async function handler(req, res) {
   // their existing product URL. The Create page renders immediately with its
   // monogram fallback, then swaps in the icon when this lightweight pass lands.
   if (action === 'refresh_icon') {
+    // Legacy icon backfill is an authed-only upgrade; anon imports already
+    // carry a fresh icon, so nothing to do.
+    if (!user) return res.status(200).json({ ok: true, icon_url: '', icon_checked: false });
     const current = await getProfile(user.id).catch(() => null);
     if (!current?.app_url || current.icon_url || current.icon_checked) {
       return res.status(200).json({
@@ -655,6 +673,9 @@ export default async function handler(req, res) {
     if (!cleaned || !cleaned.what) {
       return res.status(400).json({ error: 'Describe what your product helps people do — that field is required.' });
     }
+    // Manual-entry anon path reserves here (import reserves earlier and this
+    // reuses that slot). A refused throttle returns the sign-in gate.
+    if (!(await anonReserveGate())) return;
     // Every profile gets a brand color: it is the accent on every slide, and
     // without one the renderer would have nothing but neutral grays.
     if (!cleaned.color) {
@@ -672,7 +693,7 @@ export default async function handler(req, res) {
     let activeNiches;
     try {
       [currentProfile, activeNiches] = await Promise.all([
-        getProfile(user.id),
+        profileGet(),
         getNiches(),
       ]);
     } catch (e) {
@@ -740,7 +761,7 @@ export default async function handler(req, res) {
     // Persist first: the user's edits must never be lost to a light-mine
     // timeout below (mineNiche can eat most of maxDuration on a cold niche).
     try {
-      await saveProfile(user.id, cleaned);
+      await profilePut(cleaned);
     } catch (e) {
       console.error('profile save error:', e);
       return res.status(500).json({ error: 'Could not save your profile.' });
@@ -771,6 +792,9 @@ export default async function handler(req, res) {
   if (action === 'import') {
     const { url } = body || {};
     if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Paste a URL first.' });
+    // Import is the first money-costing step (scrape + LLM): reserve the anon
+    // slot here so bots cannot spam it for free.
+    if (!(await anonReserveGate())) return;
     const trimmed = url.trim();
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
     if (!isSafeUrl(normalized)) return res.status(400).json({ error: 'That URL isn\u2019t allowed.' });

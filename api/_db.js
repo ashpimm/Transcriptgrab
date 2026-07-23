@@ -983,6 +983,16 @@ export async function reserveAnonSlot({ anonId, ipHash, cap = anonDailyCap() }) 
   await ensureAnonSchema();
   const sql = getSQL();
 
+  // Idempotent per anon id: a multi-step generation (import then save then
+  // plan) reserves once. If this anon already holds an active reserved slot,
+  // reuse it — the throttle was already paid for on the first step.
+  const existing = await sql`
+    SELECT id FROM anon_slots
+    WHERE anon_id = ${anonId} AND status = 'reserved'
+    ORDER BY created_at DESC LIMIT 1
+  `;
+  if (existing[0]) return { allowed: true, reason: null, slotId: existing[0].id, reused: true };
+
   let ipHasComplete = false;
   if (ipHash) {
     const r = await sql`
