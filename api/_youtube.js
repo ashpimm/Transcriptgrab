@@ -1,8 +1,8 @@
-// api/_youtube.js — YouTube Data API helpers + outlier scoring.
+// api/_youtube.js — YouTube Data API helpers + reach scoring.
 // Vercel ignores _-prefixed files in api/ as endpoints.
 //
-// The 5x rule: a video is a viral outlier when its views are at least
-// 5x the account's follower count.
+// Discovery is reach-first. Subscriber ratio is retained as context for old
+// rows and receipts, but it is no longer a qualification gate or rank signal.
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
 
@@ -15,17 +15,20 @@ export function computeOutlierScore(views, followers) {
   return Math.min(score, 9999.99);
 }
 
-// Floors under the 5x rule. A 1-follower channel makes every upload a 100x
-// "outlier" on ratio alone — the views floor demands proof of real reach, the
-// follower floor keeps the denominator (and the score leaderboard) sane.
-export const MIN_OUTLIER_VIEWS = 10_000;
-export const MIN_OUTLIER_FOLLOWERS = 50;
+// A source must have meaningful absolute reach regardless of how large its
+// creator already is. This admits a two-million-view post from a large account
+// and rejects tiny-channel denominator tricks.
+export const MIN_CANDIDATE_VIEWS = 250_000;
 
-export function isOutlier(views, followers) {
-  if (!followers || followers < MIN_OUTLIER_FOLLOWERS) return false;
-  if (!views || views < MIN_OUTLIER_VIEWS) return false;
-  // Raw ratio, not the rounded display score — 4.9999x must not round up to qualify.
-  return views / followers >= 5;
+export function isHighReachCandidate(views) {
+  return Number.isFinite(Number(views)) && Number(views) >= MIN_CANDIDATE_VIEWS;
+}
+
+// Highest absolute reach first. Ratio is only a stable tie-breaker.
+export function compareCandidateReach(a, b) {
+  const viewDiff = Number(b?.views || 0) - Number(a?.views || 0);
+  if (viewDiff !== 0) return viewDiff;
+  return Number(b?.score || 0) - Number(a?.score || 0);
 }
 
 // "Proven hook" must mean proven RECENTLY — what went viral 18 months ago is
@@ -62,7 +65,7 @@ async function ytFetch(path, params, apiKey) {
 }
 
 /**
- * Search Shorts for a keyword, ordered by view count, last 18 months.
+ * Search recent Shorts for a keyword, ordered by view count.
  * @returns {Promise<Array<{videoId, title, channelId}>>}
  */
 export async function searchShorts(keyword, apiKey) {

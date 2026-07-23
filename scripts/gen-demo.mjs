@@ -10,7 +10,7 @@
 //   rm .env.gemini                                              # it holds prod secrets
 //
 // Costs ~$0.08 per non-dry run (one hero photo + one background).
-// Prints the caption/hashtags and the hook's outlier score — paste both into
+// Prints the caption/hashtags and the source hook's view count — paste both into
 // index.html, they are claims the page makes.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -44,7 +44,7 @@ const hookId = arg('hook') ? Number(arg('hook')) : null;
 const dry = process.argv.includes('--dry');
 
 const plan = await generateCarouselPlan({ profile: PROFILE, kind: 'value', hookId, styleOverride: STYLE });
-console.log(`hook #${plan.hook.id} (${plan.hook.outlier_score}x): ${plan.hook.hook_verbatim || plan.hook.hook_template}`);
+console.log(`hook #${plan.hook.id} (${Number(plan.hook.views || 0).toLocaleString()} views): ${plan.hook.hook_verbatim || plan.hook.hook_template}`);
 console.log(`style ${plan.style} · accent ${plan.accent}`);
 for (const s of plan.slides) console.log(`  [${s.index}] ${s.heading}${s.body ? ' — ' + s.body : ''}${s.cta ? ' | ' + s.cta : ''}`);
 console.log(`\ncaption:\n${plan.caption}\n`);

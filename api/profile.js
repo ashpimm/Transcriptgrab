@@ -4,14 +4,19 @@
 // POST /api/profile {action:'save', profile} -> save reviewed profile
 // POST /api/profile {action:'import', url}   -> scrape URL, return AI-prefilled
 //                                               profile fields (NOT saved)
+// POST /api/profile {action:'refresh_icon'}  -> backfill an older saved profile
 
 import {
-  getSession, getProfile, saveProfile, slugifyNiche, ensureNiche,
+  getSession, getProfile, saveProfile, updateProfileIcon, slugifyNiche, ensureNiche,
   getAutoHookPool, getNicheBySlug, mergeKeywords, setNicheKeywords,
 } from './_db.js';
 import { callGemini } from './_shared.js';
 import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
 import { mineNiche } from './_miner.js';
+import http from 'node:http';
+import https from 'node:https';
+import dns from 'node:dns/promises';
+import net from 'node:net';
 
 export const maxDuration = 60;
 
@@ -19,6 +24,43 @@ const MAX_TEXT_LEN = 3000;
 const MAX_URL_LEN = 512;
 const FETCH_TIMEOUT_MS = 8000;
 const FETCH_MAX_BYTES = 3 * 1024 * 1024; // 3MB — Play Store pages are big
+const FETCH_MAX_REDIRECTS = 4;
+
+const BLOCKED_ADDRESSES = new net.BlockList();
+[
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.0.0.0', 24],
+  ['192.0.2.0', 24],
+  ['192.88.99.0', 24],
+  ['192.168.0.0', 16],
+  ['198.18.0.0', 15],
+  ['198.51.100.0', 24],
+  ['203.0.113.0', 24],
+  ['224.0.0.0', 4],
+  ['240.0.0.0', 4],
+].forEach(([address, prefix]) => BLOCKED_ADDRESSES.addSubnet(address, prefix, 'ipv4'));
+[
+  ['::', 96],
+  ['::1', 128],
+  ['64:ff9b::', 96],
+  ['64:ff9b:1::', 48],
+  ['100::', 64],
+  ['2001::', 32],
+  ['2001:2::', 48],
+  ['2001:10::', 28],
+  ['2001:20::', 28],
+  ['2001:db8::', 32],
+  ['2002::', 16],
+  ['fc00::', 7],
+  ['fe80::', 10],
+  ['fec0::', 10],
+  ['ff00::', 8],
+].forEach(([address, prefix]) => BLOCKED_ADDRESSES.addSubnet(address, prefix, 'ipv6'));
 
 function corsHeaders(req, res) {
   const origin = req.headers.origin || '';
@@ -38,60 +80,147 @@ function clipText(s, n) {
   return t.length > n ? t.slice(0, n) : t;
 }
 
-function isSafeUrl(rawUrl) {
+export function isPrivateAddress(address) {
+  const clean = String(address || '').replace(/^\[|\]$/g, '').split('%')[0].toLowerCase();
+  const family = net.isIP(clean);
+  if (!family) return true;
+  if (family === 6 && clean.startsWith('::ffff:')) return true;
+  return BLOCKED_ADDRESSES.check(clean, family === 4 ? 'ipv4' : 'ipv6');
+}
+
+export function isSafeUrl(rawUrl) {
   let u;
   try { u = new URL(rawUrl); } catch { return false; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-  const host = u.hostname.toLowerCase();
-  if (!host.includes('.')) return false; // blocks "localhost", bare hosts
-  if (host === 'localhost' || host.endsWith('.localhost')) return false;
-  // IPv4 literal checks
-  if (/^127\./.test(host)) return false;
-  if (/^10\./.test(host)) return false;
-  if (/^192\.168\./.test(host)) return false;
-  if (/^169\.254\./.test(host)) return false;
-  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
-  if (host === '0.0.0.0') return false;
-  // IPv6 / bracketed
-  if (host.includes('[') || host === '::1') return false;
+  if (u.username || u.password) return false;
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const family = net.isIP(host);
+  if (family) return !isPrivateAddress(host);
+  if (!host.includes('.')) return false; // blocks localhost and bare intranet hosts
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host === 'home.arpa' ||
+    host.endsWith('.home.arpa')
+  ) return false;
   return true;
 }
 
-async function fetchHtml(url) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const r = await fetch(url, {
+async function resolvePublicAddress(hostname, deadline) {
+  const clean = hostname.replace(/^\[|\]$/g, '');
+  const family = net.isIP(clean);
+  if (family) {
+    if (isPrivateAddress(clean)) throw new Error('private address blocked');
+    return { address: clean, family };
+  }
+
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error('fetch timed out');
+  let timer;
+  const records = await new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('DNS lookup timed out')), remaining);
+    dns.lookup(clean, { all: true, verbatim: true }).then(resolve, reject);
+  }).finally(() => clearTimeout(timer));
+  if (!records.length || records.some((record) => isPrivateAddress(record.address))) {
+    throw new Error('private or unresolved host blocked');
+  }
+  records.sort((a, b) => a.family - b.family); // IPv4 first when both are public.
+  return records[0];
+}
+
+function requestHtmlOnce(target, resolved, deadline) {
+  return new Promise((resolve, reject) => {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return reject(new Error('fetch timed out'));
+
+    const transport = target.protocol === 'https:' ? https : http;
+    let settled = false;
+    let timer;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(value);
+    };
+    const req = transport.request(target, {
       method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
+      family: resolved.family,
+      lookup: (_hostname, _options, callback) =>
+        callback(null, resolved.address, resolved.family),
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; PromoteDevBot/1.0; +https://transcriptgrab.vercel.app)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity',
       },
+    }, (response) => {
+      const status = response.statusCode || 0;
+      const location = response.headers.location;
+      if ([301, 302, 303, 307, 308].includes(status) && location) {
+        response.resume();
+        try {
+          return finish(resolve, { redirect: new URL(location, target).href });
+        } catch {
+          return finish(reject, new Error('invalid redirect'));
+        }
+      }
+      if (status < 200 || status >= 300) {
+        response.resume();
+        return finish(reject, new Error('status ' + status));
+      }
+
+      const type = String(response.headers['content-type'] || '');
+      if (type && !/(?:text\/html|application\/xhtml\+xml)/i.test(type)) {
+        response.resume();
+        return finish(reject, new Error('response was not HTML'));
+      }
+      const declared = Number(response.headers['content-length'] || 0);
+      if (declared > FETCH_MAX_BYTES) {
+        response.resume();
+        return finish(reject, new Error('page too large'));
+      }
+
+      const chunks = [];
+      let total = 0;
+      response.on('data', (chunk) => {
+        if (settled) return;
+        total += chunk.length;
+        if (total > FETCH_MAX_BYTES) {
+          response.destroy();
+          return finish(reject, new Error('page too large'));
+        }
+        chunks.push(chunk);
+      });
+      response.on('end', () => finish(resolve, { body: Buffer.concat(chunks, total) }));
+      response.on('error', (error) => finish(reject, error));
     });
-    if (!r.ok) throw new Error('status ' + r.status);
+    req.setTimeout(remaining, () => req.destroy(new Error('fetch timed out')));
+    timer = setTimeout(() => req.destroy(new Error('fetch timed out')), remaining);
+    req.on('error', (error) => finish(reject, error));
+    req.end();
+  });
+}
 
-    const reader = r.body && r.body.getReader ? r.body.getReader() : null;
-    if (!reader) return await r.text();
-
-    const chunks = [];
-    let total = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.length;
-      if (total > FETCH_MAX_BYTES) { try { reader.cancel(); } catch {} break; }
-      chunks.push(value);
+async function fetchHtml(url) {
+  const deadline = Date.now() + FETCH_TIMEOUT_MS;
+  let current = new URL(url);
+  for (let redirects = 0; redirects <= FETCH_MAX_REDIRECTS; redirects += 1) {
+    if (!isSafeUrl(current.href)) throw new Error('unsafe URL blocked');
+    const resolved = await resolvePublicAddress(current.hostname, deadline);
+    const result = await requestHtmlOnce(current, resolved, deadline);
+    if (result.redirect) {
+      if (redirects === FETCH_MAX_REDIRECTS) throw new Error('too many redirects');
+      current = new URL(result.redirect);
+      continue;
     }
-    const buf = new Uint8Array(total);
-    let off = 0;
-    for (const c of chunks) { buf.set(c, off); off += c.length; }
-    return new TextDecoder('utf-8').decode(buf);
-  } finally {
-    clearTimeout(timer);
+    return {
+      html: new TextDecoder('utf-8').decode(result.body),
+      finalUrl: current.href,
+    };
   }
+  throw new Error('too many redirects');
 }
 
 function extractMeta(html, attr, name) {
@@ -112,6 +241,153 @@ function decodeEntities(s) {
     .replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+}
+
+function tagAttribute(tag, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = tag.match(new RegExp(
+    '\\b' + escaped + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
+    'i',
+  ));
+  return match ? decodeEntities(match[1] || match[2] || match[3] || '') : '';
+}
+
+function publicHttpUrl(raw, baseUrl = undefined) {
+  if (!raw || typeof raw !== 'string') return '';
+  try {
+    const url = new URL(raw.trim(), baseUrl);
+    if (url.protocol !== 'https:' || url.username || url.password) return '';
+    if (!isSafeUrl(url.href)) return '';
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+function squareAppleArtwork(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    const host = url.hostname.toLowerCase();
+    if (host === 'mzstatic.com' || host.endsWith('.mzstatic.com')) {
+      url.pathname = url.pathname.replace(
+        /\/\d+x\d+[a-z]*\.(png|jpe?g|webp)$/i,
+        '/512x512bb.$1',
+      );
+    }
+    return url.href;
+  } catch {
+    return rawUrl;
+  }
+}
+
+function imageValue(value) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = imageValue(item);
+      if (found) return found;
+    }
+    return '';
+  }
+  if (value && typeof value === 'object') {
+    return imageValue(value.url || value.contentUrl || value.src || '');
+  }
+  return '';
+}
+
+function findJsonLdArtwork(node, storesOnly = false) {
+  if (!node) return '';
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findJsonLdArtwork(item, storesOnly);
+      if (found) return found;
+    }
+    return '';
+  }
+  if (typeof node !== 'object') return '';
+
+  const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+  const isAppOrProduct = types.some((type) =>
+    /^(?:SoftwareApplication|MobileApplication|WebApplication|Product)$/i.test(String(type || '')),
+  );
+  const direct = isAppOrProduct
+    ? (imageValue(node.image) || imageValue(node.logo))
+    : (storesOnly ? '' : imageValue(node.logo));
+  if (direct) return direct;
+
+  for (const key of Object.keys(node)) {
+    if (node[key] && typeof node[key] === 'object') {
+      const found = findJsonLdArtwork(node[key], storesOnly);
+      if (found) return found;
+    }
+  }
+  return '';
+}
+
+function extractJsonLdArtwork(html, storesOnly = false) {
+  const blocks = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const block of blocks) {
+    const inner = block.replace(/^<script[^>]*>/i, '').replace(/<\/script>$/i, '').trim();
+    let data;
+    try { data = JSON.parse(inner); } catch { continue; }
+    const found = findJsonLdArtwork(data, storesOnly);
+    if (found) return found;
+  }
+  return '';
+}
+
+function extractLinkedIcons(html) {
+  const links = html.match(/<link\b[^>]*>/gi) || [];
+  const choices = [];
+  for (const link of links) {
+    const rel = tagAttribute(link, 'rel').toLowerCase();
+    if (!/(?:^|\s)(?:apple-touch-icon(?:-precomposed)?|shortcut\s+icon|icon)(?:\s|$)/.test(rel)) continue;
+    const href = tagAttribute(link, 'href');
+    if (!href) continue;
+    const sizes = tagAttribute(link, 'sizes');
+    const size = Math.max(...(sizes.match(/\d+/g) || ['0']).map(Number));
+    const priority = rel.includes('apple-touch-icon') ? 3000 : (rel.includes('shortcut') ? 1000 : 2000);
+    choices.push({ href, score: priority + Math.min(size, 999) });
+  }
+  choices.sort((a, b) => b.score - a.score);
+  return choices.map((choice) => choice.href);
+}
+
+function extractItempropImage(html) {
+  const tags = html.match(/<(?:meta|img|link)\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    if (tagAttribute(tag, 'itemprop').toLowerCase() !== 'image') continue;
+    const value = tagAttribute(tag, 'content') || tagAttribute(tag, 'src') || tagAttribute(tag, 'href');
+    if (value) return value;
+  }
+  return '';
+}
+
+export function extractProductIcon(html, pageUrl) {
+  if (!html || !pageUrl) return '';
+  let host = '';
+  try { host = new URL(pageUrl).hostname.toLowerCase(); } catch { return ''; }
+
+  const isPlayStore = host === 'play.google.com';
+  const isAppStore = host === 'apps.apple.com' || host.endsWith('.apps.apple.com');
+  const isStore = isPlayStore || isAppStore;
+  const candidates = isStore
+    ? [
+        extractItempropImage(html),
+        extractJsonLdArtwork(html, true),
+        extractMeta(html, 'property', 'og:image'),
+        extractMeta(html, 'name', 'twitter:image'),
+      ]
+    : [
+        ...extractLinkedIcons(html),
+        extractJsonLdArtwork(html),
+      ];
+
+  for (const candidate of candidates) {
+    const resolved = publicHttpUrl(candidate, pageUrl);
+    if (resolved) return isAppStore ? squareAppleArtwork(resolved) : resolved;
+  }
+  return '';
 }
 
 function stripHtmlToText(html) {
@@ -178,15 +454,16 @@ function findDescriptionInJsonLd(node) {
 
 function parseScrapedContent(html, url) {
   const host = (() => { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } })();
+  const iconUrl = extractProductIcon(html, url);
 
   // Known hostile targets — bail early with a friendly message.
   const blocked = ['x.com', 'twitter.com', 'instagram.com', 'facebook.com', 'tiktok.com'];
   if (blocked.some(b => host === b || host.endsWith('.' + b))) {
-    return { text: '', source: 'blocked' };
+    return { text: '', source: 'blocked', icon_url: '' };
   }
 
-  const isPlayStore = host.includes('play.google.com');
-  const isAppStore = host.endsWith('apps.apple.com');
+  const isPlayStore = host === 'play.google.com';
+  const isAppStore = host === 'apps.apple.com' || host.endsWith('.apps.apple.com');
 
   const og = extractMeta(html, 'property', 'og:description');
   const metaDesc = extractMeta(html, 'name', 'description');
@@ -230,43 +507,43 @@ function parseScrapedContent(html, url) {
 
     if (best) {
       const combined = title ? (title + ' \u2014 ' + best) : best;
-      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store' };
+      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store' : 'app_store', icon_url: iconUrl };
     }
 
     // Fall back to og/meta for these stores if nothing better worked.
     const desc = og || metaDesc || '';
     if (desc && desc.length >= 40) {
       const combined = [title, desc].filter(Boolean).join(' \u2014 ');
-      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store_short' : 'app_store_short' };
+      return { text: clipText(combined, MAX_TEXT_LEN), source: isPlayStore ? 'play_store_short' : 'app_store_short', icon_url: iconUrl };
     }
     // Don't fall through to body stripping for these SPAs — it's noisy.
-    return { text: '', source: 'empty' };
+    return { text: '', source: 'empty', icon_url: iconUrl };
   }
 
   if (og && og.length >= 40) {
     const combined = title ? (title + ' \u2014 ' + og) : og;
-    return { text: clipText(combined, MAX_TEXT_LEN), source: 'og' };
+    return { text: clipText(combined, MAX_TEXT_LEN), source: 'og', icon_url: iconUrl };
   }
   if (metaDesc && metaDesc.length >= 40) {
     const combined = title ? (title + ' \u2014 ' + metaDesc) : metaDesc;
-    return { text: clipText(combined, MAX_TEXT_LEN), source: 'meta' };
+    return { text: clipText(combined, MAX_TEXT_LEN), source: 'meta', icon_url: iconUrl };
   }
 
   // Also try JSON-LD on generic sites (blogs, product pages).
   const ldGeneric = extractJsonLdDescription(html);
   if (ldGeneric) {
     const combined = title ? (title + ' \u2014 ' + ldGeneric) : ldGeneric;
-    return { text: clipText(combined, MAX_TEXT_LEN), source: 'jsonld' };
+    return { text: clipText(combined, MAX_TEXT_LEN), source: 'jsonld', icon_url: iconUrl };
   }
 
   // Fallback: strip HTML and take the first chunk of visible text.
   const body = stripHtmlToText(html);
   if (body.length >= 80) {
     const combined = title ? (title + ' \u2014 ' + body) : body;
-    return { text: clipText(combined, MAX_TEXT_LEN), source: 'body' };
+    return { text: clipText(combined, MAX_TEXT_LEN), source: 'body', icon_url: iconUrl };
   }
 
-  return { text: '', source: 'empty' };
+  return { text: '', source: 'empty', icon_url: iconUrl };
 }
 
 // No tone here on purpose: it is picked fresh on every generation (pickTone in
@@ -281,6 +558,8 @@ function cleanProfile(p) {
     what: clipText(p.what, 1000),
     who: clipText(p.who, 600),
     benefit: clipText(p.benefit, 300),
+    icon_url: publicHttpUrl(clipText(p.icon_url, 1000)),
+    icon_checked: p.icon_checked === true,
     // Concrete product claims from the store listing/site — the substance
     // slides get written from. Without them the copy model only has three
     // thin sentences and every "value" post collapses into a generic pitch.
@@ -318,6 +597,46 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   const action = (body && body.action) || (req.query && req.query.action) || '';
+
+  // Profiles saved before app icons were supported are upgraded lazily from
+  // their existing product URL. The Create page renders immediately with its
+  // monogram fallback, then swaps in the icon when this lightweight pass lands.
+  if (action === 'refresh_icon') {
+    const current = await getProfile(user.id).catch(() => null);
+    if (!current?.app_url || current.icon_url || current.icon_checked) {
+      return res.status(200).json({
+        ok: true,
+        icon_url: current?.icon_url || '',
+        icon_checked: !!current?.icon_checked,
+      });
+    }
+
+    if (!isSafeUrl(current.app_url)) {
+      const updated = await updateProfileIcon(user.id, current.app_url, '').catch(() => null);
+      if (!updated) return res.status(409).json({ error: 'Your product changed while its icon was loading.' });
+      return res.status(200).json({ ok: true, icon_url: '', icon_checked: true });
+    }
+
+    let page;
+    try {
+      page = await fetchHtml(current.app_url);
+    } catch (e) {
+      console.error('profile icon refresh error:', e.message);
+      return res.status(502).json({ error: 'Could not check the product icon yet.' });
+    }
+    const iconUrl = extractProductIcon(page.html, page.finalUrl || current.app_url);
+
+    try {
+      const updated = await updateProfileIcon(user.id, current.app_url, iconUrl);
+      if (!updated) {
+        return res.status(409).json({ error: 'Your product changed while its icon was loading.' });
+      }
+      return res.status(200).json({ ok: true, icon_url: updated.icon_url || '', icon_checked: true });
+    } catch (e) {
+      console.error('profile icon refresh save error:', e);
+      return res.status(500).json({ error: 'Could not save the product icon.' });
+    }
+  }
 
   if (action === 'save') {
     const cleaned = cleanProfile(body.profile);
@@ -432,8 +751,8 @@ export default async function handler(req, res) {
     if (!isSafeUrl(normalized)) return res.status(400).json({ error: 'That URL isn\u2019t allowed.' });
 
     try {
-      const html = await fetchHtml(normalized);
-      const parsed = parseScrapedContent(html, normalized);
+      const page = await fetchHtml(normalized);
+      const parsed = parseScrapedContent(page.html, page.finalUrl || normalized);
       if (parsed.source === 'blocked' || !parsed.text) {
         return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please fill the form manually.' });
       }
@@ -445,6 +764,8 @@ export default async function handler(req, res) {
         what: structured.what,
         who: structured.who,
         benefit: structured.benefit,
+        icon_url: parsed.icon_url,
+        icon_checked: true,
         facts: structured.facts,
         color: structured.color,
         audience_niche: structured.audience_niche && structured.audience_niche.name

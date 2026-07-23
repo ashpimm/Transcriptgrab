@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import {
-  computeOutlierScore, isOutlier, isMostlyLatin, publishedAfterISO,
+  computeOutlierScore, isHighReachCandidate, compareCandidateReach,
+  isMostlyLatin, publishedAfterISO,
 } from '../api/_youtube.js';
 
 test('score = views/followers to 2dp', () => {
@@ -21,21 +22,19 @@ test('caps at 9999.99', () => {
   assert.equal(computeOutlierScore(10_000_000, 1), 9999.99);
 });
 
-test('outlier at >=5x', () => {
-  assert.equal(isOutlier(400000, 80000), true); // exactly 5.0
-  assert.equal(isOutlier(399999, 80000), false);
-  assert.equal(isOutlier(1, 0), false);
+test('high-reach qualification ignores creator size', () => {
+  assert.equal(isHighReachCandidate(250000), true);
+  assert.equal(isHighReachCandidate(249999), false);
+  assert.equal(isHighReachCandidate(2_000_000), true);
 });
 
-// Micro-account noise: a 1-follower channel makes every upload a 100x "outlier"
-// on ratio alone, but nobody actually watched it. Views floor = proof of real
-// reach; follower floor = sane denominator.
-test('isOutlier floors reject micro-noise, keep real reach', () => {
-  assert.equal(isOutlier(142, 1), false);        // real case: 142x ratio, 142 views
-  assert.equal(isOutlier(1240, 8), false);       // real case: 5-sec silent short
-  assert.equal(isOutlier(12000, 30), false);     // views fine, denominator too small
-  assert.equal(isOutlier(12000, 60), true);      // small real account, real reach
-  assert.equal(isOutlier(9379973, 57700), true); // 9.3M views at 162x
+test('reach ranking puts mass views ahead of a tiny-account ratio', () => {
+  const candidates = [
+    { views: 300_000, score: 3000 },
+    { views: 10_000_000, score: 2 },
+    { views: 2_000_000, score: 20 },
+  ].sort(compareCandidateReach);
+  assert.deepEqual(candidates.map((c) => c.views), [10_000_000, 2_000_000, 300_000]);
 });
 
 test('publishedAfterISO returns an ISO date the given days back', () => {

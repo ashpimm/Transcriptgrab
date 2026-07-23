@@ -4,7 +4,7 @@ Last updated: 23 July 2026
 
 ## One sentence
 
-Promote.dev turns one product link into complete, faceless social posts built from hook patterns already outperforming in the product's buyers' niche, with downloads, Reel exports, and daily Instagram publishing.
+Promote.dev turns one product link into complete, faceless social posts built from high-reach hook patterns in the product's buyers' niche, with downloads, Reel exports, and daily Instagram publishing.
 
 ## Platform
 
@@ -48,28 +48,27 @@ Generic AI tools remove typing. Promote.dev removes the workflow.
 
 Promote.dev combines evidence-backed creative research with buyer-niche adaptation and finished production.
 
-Most AI content tools begin with a prompt and produce plausible ideas. Promote.dev begins with recent spoken openings that measurably outperformed their source accounts, determines what the product's actual buyers watch, transfers the winning structure to the product, and produces the complete post.
+Most AI content tools begin with a prompt and produce plausible ideas. Promote.dev begins with recent spoken openings from high-reach short-form videos, determines what the product's actual buyers watch, transfers the winning structure to the product, and produces the complete post.
 
 The unfair advantage is the combination:
 
-1. **Evidence:** every public source carries inspectable view, follower, and outlier receipts.
+1. **Evidence:** mined sources must clear absolute-reach and spoken-hook quality gates.
 2. **Buyer relevance:** content is generated in the customer's niche, not automatically in the founder or app-development niche.
 3. **Finished output:** six designed slides, caption, hashtags, CTA, downloads, and optional Reel.
 4. **Distribution:** Pro can prepare, queue, and publish a fresh Instagram post every day.
 
 ## What “proven” means
 
-`Proven` applies to the source opening's ability to earn disproportionate attention. It does not mean the generated adaptation is guaranteed to achieve views, installs, revenue, or any other marketing outcome.
+`Proven` means the source opening appeared in a recent video with substantial demonstrated reach. It does not mean the generated adaptation is guaranteed to achieve views, installs, revenue, or any other marketing outcome.
 
-A public mined source must meet all current quality gates:
+A mined source must meet all current quality gates:
 
 - Published within approximately 120 days
-- At least 10,000 views
-- At least 50 followers on the source account
-- Views equal to at least 5x the account's followers
+- At least 250,000 views regardless of source-account size
 - A usable spoken transcript
-- Relevant to the audience niche
-- Suitable for the current English-language feed
+- The hook is grounded near the beginning of that transcript
+- Explicit English-language, niche-relevance, non-ad, quality, and transferability checks
+- A reusable template derived from the spoken opening
 
 The product preserves the source opening's structural mechanism—such as tension, contrast, specificity, stakes, or curiosity—while leaving the original creator's subject behind.
 
@@ -80,6 +79,7 @@ The product preserves the source opening's structural mechanism—such as tensio
 The user pastes an App Store, Play Store, SaaS, or product-page URL. Promote.dev extracts a draft profile:
 
 - Product name
+- Product icon
 - What the product helps people do
 - Who needs it most
 - Clearest customer outcome
@@ -132,8 +132,7 @@ Pro members can:
 
 - Three complete posts in total
 - Six slides, caption, hashtags, and download files
-- Public hook feed
-- Up to 25 saved hooks
+- Evidence-backed automatic hook selection
 - Small `made with promote.dev` watermark on the final slide
 - Manual publishing
 
@@ -160,19 +159,11 @@ The acquisition page leads with the finished outcome, then establishes trust wit
 4. Content matched to the app's buyers
 5. Download now or publish daily with Pro
 
-### Proven hook feed
+### Hook research
 
-The feed is a public proof surface and discovery tool. Each non-curated card shows:
-
-- Reusable hook
-- Source video
-- Views
-- Followers
-- Outlier multiple
-- Format
-- Audience niche
-
-The feed is evidence for the generation engine, not the entire paid product.
+The public feed is temporarily withdrawn while source quality is retuned. Hook
+research continues to power automatic and optional manual selection inside
+Create; `/feed` redirects there.
 
 ### Create
 
@@ -205,12 +196,12 @@ Evidence-backed social content for apps and SaaS products.
 
 ### One-sentence pitch
 
-> Paste your product link. Promote.dev finds hook patterns already outperforming in your buyers' niche, then builds the slides, caption, and hashtags—ready to download or publish for you every day.
+> Paste your product link. Promote.dev finds hook patterns from high-reach videos in your buyers' niche, then builds the slides, caption, and hashtags—ready to download or publish for you every day.
 
 ### Reasons to believe
 
-- Specific 5x qualification rule with quality floors
-- Source link and performance receipts on every public hook
+- Specific absolute-reach and spoken-hook quality floors
+- Transcript-grounded source research
 - Buyer-niche targeting
 - Product-fact safeguards
 - Real generated output shown before pricing
@@ -234,8 +225,8 @@ Desired emotional response:
 
 1. **Lead with the finished outcome.** Say `post` before `carousel generation`.
 2. **Translate features into removed work.** Research, writing, design, filming, editing, and routine publishing are the jobs being eliminated.
-3. **Use receipts instead of hype.** Explain the 5x rule and source quality floors.
-4. **Separate evidence from guarantees.** Source hooks outperformed; future results are not promised.
+3. **Use receipts instead of hype.** Explain the source-view and spoken-hook quality floors.
+4. **Separate evidence from guarantees.** Source videos earned meaningful reach; future results are not promised.
 5. **Make CTAs describe the result.** Prefer `Create my first free post` over `Start free`.
 6. **Keep the audience narrow.** Speak to app and SaaS founders first.
 7. **Name the buyer-niche advantage.** A product should receive content for its customers, not content for other builders.
@@ -246,7 +237,7 @@ Desired emotional response:
 | Prefer | Use only when needed | Avoid in customer copy |
 |---|---|---|
 | Post | Carousel, when describing the 4:5 format | Generation event |
-| Proven hook | Outlier score, when explaining the metric | Viral guarantee |
+| Proven hook | Source views, when explaining the evidence | Viral guarantee |
 | Buyers' niche | Audience-niche engine, in technical docs | Appdev niche |
 | Daily Instagram publishing | Autopilot, only in internal code/docs | Social automation solution |
 | Complete post | Assets or deliverables, in detailed help | Content output |
@@ -256,8 +247,8 @@ Desired emotional response:
 
 Safe claims:
 
-- Source hooks earned at least 5x as many views as the creator had followers.
-- Public mined hooks meet the documented freshness, view, follower, transcript, and relevance gates.
+- Mined source videos earned at least 250,000 views.
+- Mined hooks meet the documented freshness, transcript-grounding, language, relevance, non-ad, quality, and transferability gates.
 - Each post includes six slides, caption, hashtags, and CTA.
 - The first three posts are free.
 - Pro includes 30 posts per month, Reel exports, and daily Instagram publishing.

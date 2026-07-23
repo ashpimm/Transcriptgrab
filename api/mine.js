@@ -1,11 +1,13 @@
 // api/mine.js — Niche research pipeline (cron + admin trigger).
 //
 // GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1]
+// dry=1 re-evaluates both new and saved candidates and makes no database writes.
 // Also runs via Vercel cron (Bearer CRON_SECRET), one niche per run
 // (the one mined longest ago).
 //
 // Pipeline: search Shorts per keyword + seed channels -> batch video/channel
-// stats -> 5x outlier filter -> Gemini hook extraction -> upsert hooks table.
+// stats -> absolute-reach filter -> Gemini hook extraction -> strict transcript
+// grounding and quality gate -> upsert hooks table.
 // Pipeline body lives in ./_miner.js so profile-save can also call it.
 
 import { getNicheBySlug, getStalestNiches } from './_db.js';

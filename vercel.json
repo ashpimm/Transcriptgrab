@@ -6,7 +6,7 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://img.youtube.com https://i.ytimg.com https://*.googleusercontent.com data:; connect-src 'self' https://vitals.vercel-insights.com https://*.shotstack.io https://*.amazonaws.com; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://vitals.vercel-insights.com https://*.shotstack.io https://*.amazonaws.com; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'" }
       ]
     }
   ],
@@ -18,7 +18,9 @@
     { "path": "/api/autopilot-recovery", "schedule": "0 22 * * *" }
   ],
   "redirects": [
-    { "source": "/library", "destination": "/feed", "permanent": true },
+    { "source": "/feed", "destination": "/create", "permanent": false },
+    { "source": "/feed.html", "destination": "/create", "permanent": false },
+    { "source": "/library", "destination": "/create", "permanent": true },
     { "source": "/studio", "destination": "/create", "permanent": true },
     { "source": "/profile", "destination": "/account", "permanent": true }
   ],
@@ -39,7 +41,6 @@
     { "source": "/api/autopilot-topup", "destination": "/api/autopilot?mode=topup&scheduledTrigger=primary" },
     { "source": "/api/autopilot-topup-recovery", "destination": "/api/autopilot?mode=topup&scheduledTrigger=recovery" },
     { "source": "/api/health", "destination": "/api/health" },
-    { "source": "/feed", "destination": "/feed.html" },
     { "source": "/create", "destination": "/create.html" },
     { "source": "/account", "destination": "/account.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

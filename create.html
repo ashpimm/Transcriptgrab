@@ -166,6 +166,879 @@
   .hist-row .stat { font-size: 13px; }
 }
 
+/* ============ CREATE STUDIO REDESIGN ============ */
+.page {
+  padding: clamp(42px, 6vw, 72px) 0 104px;
+}
+
+.page-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 44px;
+  margin-bottom: 28px;
+}
+
+.page-eyebrow,
+.workspace-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.page-eyebrow {
+  margin-bottom: 14px;
+}
+
+.page-eyebrow > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 5px var(--signal-soft);
+}
+
+.workspace-label > span {
+  display: inline-grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-2);
+  letter-spacing: 0;
+  font-size: 10px;
+}
+
+.page-head h1 {
+  max-width: 760px;
+  font-size: clamp(36px, 5vw, 60px);
+}
+
+.page-head h1 #head-product {
+  color: var(--ink-2);
+}
+
+.page-head .sub {
+  max-width: 66ch;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.head-proof {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(88px, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255,255,255,.025);
+  overflow: hidden;
+}
+
+.head-proof > div {
+  min-width: 104px;
+  padding: 14px 16px;
+  border-left: 1px solid var(--line);
+}
+
+.head-proof > div:first-child {
+  border-left: 0;
+}
+
+.head-proof strong,
+.head-proof span {
+  display: block;
+}
+
+.head-proof strong {
+  font-family: var(--mono);
+  color: var(--signal);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.head-proof span {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.create-workspace {
+  --product-accent: #6D7480;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(300px, .72fr) minmax(0, 1.28fr);
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 76% 2%, rgba(255,255,255,.075), transparent 34%),
+    var(--surface);
+  box-shadow: 0 34px 90px -55px rgba(255,255,255,.28);
+}
+
+.create-workspace::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 42%;
+  height: 280px;
+  pointer-events: none;
+  opacity: .26;
+  background-image: radial-gradient(rgba(255,255,255,.18) .7px, transparent .7px);
+  background-size: 15px 15px;
+  mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
+.profile-zone,
+.gen-zone {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.profile-zone {
+  border-right: 1px solid var(--line);
+  background: rgba(0,0,0,.2);
+}
+
+.profile-card,
+.gen-card {
+  height: 100%;
+  padding: clamp(26px, 3vw, 36px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card h2,
+.gen-card h2 {
+  margin: 22px 0 8px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+
+.profile-card .hint-line,
+.gen-card .hint-line {
+  margin-bottom: 22px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.profile-card .pastebar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  max-width: none;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.25);
+}
+
+.profile-card .pastebar input {
+  min-height: 50px;
+  padding: 0 10px;
+  font-size: 15.5px;
+}
+
+.profile-card .pastebar .btn,
+.profile-form > .btn {
+  width: 100%;
+}
+
+.setup-foot {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.manual-toggle {
+  min-height: 42px;
+  margin-top: 7px;
+  padding: 0;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.manual-toggle:hover {
+  color: var(--ink);
+}
+
+.profile-form {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-form .field {
+  margin-bottom: 17px;
+}
+
+.profile-form textarea {
+  min-height: 54px;
+}
+
+.profile-form input[type="color"] {
+  width: 100%;
+  height: 50px;
+  padding: 6px;
+  border-radius: 13px;
+}
+
+.profile-summary {
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 280px;
+  margin-top: 26px;
+}
+
+.product-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.app-icon-shell {
+  position: relative;
+  display: grid;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 16px;
+  background: var(--product-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    0 16px 36px -18px var(--product-accent);
+}
+
+.app-icon-shell img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-icon-shell span {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+.profile-summary .ps-main {
+  min-width: 0;
+}
+
+.promoting-label {
+  margin-bottom: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.profile-summary .ps-name {
+  font-size: 23px;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+
+.profile-summary .ps-what {
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.profile-summary .ps-meta {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.profile-summary .btn {
+  align-self: flex-start;
+}
+
+.ps-meta .swatch {
+  width: 9px;
+  height: 9px;
+  margin-right: 7px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.06);
+}
+
+.gen-card {
+  padding-left: clamp(28px, 4vw, 46px);
+  padding-right: clamp(28px, 4vw, 46px);
+}
+
+.gen-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.auto-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.auto-badge > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.gen-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 205px;
+  align-items: center;
+  gap: clamp(26px, 4vw, 46px);
+  padding: 28px 0 30px;
+}
+
+.proof-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border: 1px solid var(--signal-line);
+  border-radius: 999px;
+  background: var(--signal-soft);
+  color: var(--signal);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.gen-card h2 {
+  max-width: 500px;
+  margin-top: 16px;
+}
+
+.gen-card .hint-line {
+  max-width: 54ch;
+}
+
+.deliverables {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 20px 0 0;
+}
+
+.deliverables > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,255,255,.025);
+}
+
+.deliverables strong,
+.deliverables span {
+  display: block;
+}
+
+.deliverables strong {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.deliverables span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.gen-card #gen-btn {
+  width: 100%;
+  max-width: none;
+  min-height: 54px;
+  font-size: 16px;
+}
+
+.gen-note {
+  min-height: 18px;
+  margin-top: 11px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.deck-preview {
+  position: relative;
+  min-width: 0;
+  padding: 15px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: rgba(0,0,0,.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.deck-kicker {
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.deck-stack {
+  position: relative;
+  height: 208px;
+}
+
+.deck-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 128px;
+  aspect-ratio: 4 / 5;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 13px;
+  background: #15171A;
+  box-shadow: 0 18px 40px rgba(0,0,0,.38);
+  transform-origin: 50% 90%;
+}
+
+.deck-card-back {
+  transform: translate(-63%, -51%) rotate(-8deg);
+}
+
+.deck-card-mid {
+  background: color-mix(in srgb, var(--product-accent) 44%, #111 56%);
+  transform: translate(-36%, -48%) rotate(8deg);
+}
+
+.deck-card-front {
+  display: flex;
+  flex-direction: column;
+  transform: translate(-50%, -54%);
+  background: #F3F3F0;
+  color: #0A0A0A;
+}
+
+.deck-card span,
+.deck-card b {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.deck-card-front b {
+  margin-bottom: auto;
+  color: #0A0A0A;
+  font-size: 23px;
+  letter-spacing: -.04em;
+}
+
+.deck-card i {
+  display: block;
+  width: 78%;
+  height: 5px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: currentColor;
+  opacity: .18;
+}
+
+.deck-card i:nth-of-type(2) {
+  width: 56%;
+}
+
+.deck-card em {
+  margin-top: 14px;
+  color: rgba(0,0,0,.55);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.deck-footer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.deck-footer span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+
+.deck-footer span:first-child {
+  width: 18px;
+  border-radius: 999px;
+  background: var(--signal);
+}
+
+.customize-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0;
+  padding: 17px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  text-align: left;
+  text-decoration: none;
+}
+
+.customize-toggle::after {
+  content: '+';
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.customize-toggle[aria-expanded="true"]::after {
+  content: '−';
+}
+
+.customize-toggle span,
+.customize-toggle small {
+  display: block;
+}
+
+.customize-toggle span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.customize-toggle small {
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.customize {
+  margin-top: 17px;
+  padding-top: 22px;
+  gap: 28px;
+}
+
+.pick-item,
+.style-tile {
+  width: 100%;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.pick-item {
+  min-height: 48px;
+  background: rgba(255,255,255,.025);
+  text-align: left;
+}
+
+.pick-item.sel,
+.style-tile.sel {
+  border-color: var(--signal-line);
+  background: var(--signal-soft);
+}
+
+.style-tile {
+  background: transparent;
+}
+
+.output-zone {
+  margin-top: clamp(54px, 7vw, 82px);
+}
+
+.output-head {
+  max-width: 720px;
+  margin-bottom: 23px;
+}
+
+.output-head h2 {
+  margin-top: 13px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+
+.output-head p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.empty-state {
+  overflow: hidden;
+  padding: clamp(48px, 7vw, 72px) 24px;
+  border: 1px dashed var(--line-2);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.025), transparent),
+    rgba(255,255,255,.012);
+}
+
+.empty-deck {
+  display: flex;
+  max-width: 430px;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 24px;
+}
+
+.empty-deck span {
+  width: 52px;
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+}
+
+.empty-deck span:first-child {
+  border-color: var(--signal-line);
+  background: var(--signal-soft);
+}
+
+.empty-state h3 {
+  font-size: 21px;
+}
+
+.empty-state p {
+  max-width: 48ch;
+  margin: 6px auto 0;
+}
+
+.caption-card {
+  border-radius: 18px;
+}
+
+.history {
+  margin-top: 48px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.history h2 {
+  font-size: 21px;
+}
+
+.hist-row {
+  width: 100%;
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+}
+
+@media (max-width: 1080px) {
+  .page-head {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .head-proof {
+    width: 100%;
+  }
+
+  .head-proof > div {
+    min-width: 0;
+  }
+
+  .create-workspace {
+    grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr);
+  }
+
+  .gen-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-preview {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 34px 0 72px;
+  }
+
+  .page-head {
+    margin-bottom: 22px;
+  }
+
+  .page-head h1 {
+    font-size: clamp(37px, 11vw, 50px);
+    letter-spacing: -.035em;
+  }
+
+  .page-head .sub {
+    font-size: 16px;
+  }
+
+  .head-proof {
+    display: none;
+  }
+
+  .create-workspace {
+    grid-template-columns: 1fr;
+    border-radius: 24px;
+  }
+
+  .create-workspace::before {
+    inset: 36% 0 auto;
+  }
+
+  .profile-zone {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .profile-card,
+  .gen-card {
+    padding: 25px 21px;
+  }
+
+  .profile-summary {
+    gap: 18px;
+    min-height: 0;
+    margin-top: 19px;
+  }
+
+  .profile-summary .btn {
+    width: auto;
+  }
+
+  .gen-card {
+    padding-top: 27px;
+  }
+
+  .gen-layout {
+    padding: 25px 0 24px;
+  }
+
+  .deliverables {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .customize-toggle {
+    min-height: 62px;
+    font-size: inherit;
+  }
+
+  .customize-toggle small {
+    display: none;
+  }
+
+  .output-zone {
+    margin-top: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .head-proof > div {
+    padding: 13px 10px;
+  }
+
+  .head-proof span {
+    font-size: 9.5px;
+  }
+
+  .product-identity {
+    gap: 13px;
+  }
+
+  .app-icon-shell {
+    flex-basis: 54px;
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+  }
+
+  .profile-summary .ps-name {
+    font-size: 21px;
+  }
+
+  .profile-summary .ps-what {
+    font-size: 15px;
+  }
+
+  .gen-topline {
+    align-items: flex-start;
+  }
+
+  .auto-badge {
+    padding: 6px 9px;
+  }
+
+  .deliverables {
+    gap: 5px;
+  }
+
+  .deliverables > div {
+    padding: 10px 8px;
+  }
+
+  .deliverables span {
+    font-size: 9.5px;
+  }
+
+  .empty-deck {
+    gap: 5px;
+  }
+
+  .empty-deck span {
+    width: 40px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -179,79 +1052,132 @@
 
   <div id="app" style="display:none">
     <div class="page-head">
-      <h1 class="display">Turn your product into a publishable post.</h1>
-      <p class="sub">One product profile powers six designed slides, a caption, and hashtags built from an evidence-backed hook.</p>
+      <div class="head-copy">
+        <div class="page-eyebrow"><span></span>Create studio</div>
+        <h1 class="display">Make the next post for <span id="head-product">your app</span>.</h1>
+        <p class="sub" id="head-sub">We’ll match a strong opening pattern to your buyers, then build the complete post around what your product really does.</p>
+      </div>
+      <div class="head-proof" aria-label="Every post includes">
+        <div><strong>6</strong><span>designed slides</span></div>
+        <div><strong>1</strong><span>ready caption</span></div>
+        <div><strong>Buyer-fit</strong><span>hook selection</span></div>
+      </div>
     </div>
 
-    <!-- ============ PRODUCT PROFILE ============ -->
-    <section class="profile-zone" id="profile-zone">
-      <div class="profile-card" id="profile-card">
-        <div id="profile-setup">
-          <h2>Set up your product once.</h2>
-          <div class="hint-line">Paste your store listing or product page. We’ll pull out the audience, strongest benefit, product facts, and brand color that should shape every post.</div>
-          <form class="pastebar" id="import-form">
-            <input type="url" id="import-url" placeholder="https://yourproduct.com">
-            <button class="btn btn-primary" type="submit" id="import-btn">Build my product profile</button>
-          </form>
-          <button class="manual-toggle" id="manual-toggle" type="button">Enter the details myself</button>
-        </div>
+    <div class="create-workspace" id="create-workspace">
+      <!-- ============ PRODUCT PROFILE ============ -->
+      <section class="profile-zone" id="profile-zone">
+        <div class="profile-card" id="profile-card">
+          <div class="workspace-label"><span>01</span> Your product</div>
 
-        <div class="profile-form" id="profile-form">
-          <div class="msg" id="p-msg" role="status"></div>
-          <div class="field"><label for="f-name">Product name</label><input type="text" id="f-name" placeholder="GainLock"></div>
-          <div class="field"><label for="f-what">What does your product help people do?</label><div class="hint">Use plain, specific language. We use this to keep every post accurate.</div><textarea id="f-what" rows="2" placeholder="Locks your phone until you finish your workout."></textarea></div>
-          <div class="field"><label for="f-who">Who needs it most?</label><textarea id="f-who" rows="1" placeholder="Gym-goers who lose consistency after the first month."></textarea></div>
-          <div class="field"><label for="f-benefit">What is the clearest customer outcome?</label><input type="text" id="f-benefit" placeholder="Never skip a workout again."></div>
-          <div class="field"><label for="f-color">Brand color</label><div class="hint">This becomes the accent color across your slides. Change it if our pick is off.</div><input type="color" id="f-color" value="#4F8BFF"></div>
-          <button class="btn btn-primary" id="save-profile">Use this product profile</button>
-        </div>
-
-        <div class="profile-summary" id="profile-summary" style="display:none">
-          <div class="ps-main">
-            <div class="ps-name" id="ps-name"></div>
-            <div class="ps-what" id="ps-what"></div>
-            <div class="ps-meta" id="ps-meta"></div>
+          <div id="profile-setup">
+            <h2>Your app starts with one link.</h2>
+            <div class="hint-line">Paste an App Store, Play Store, or product-page link. We’ll draft the name, app icon, buyers, strongest benefit, facts, and brand color for you to review.</div>
+            <form class="pastebar" id="import-form">
+              <input type="url" id="import-url" placeholder="https://yourproduct.com" aria-label="Product link">
+              <button class="btn btn-primary" type="submit" id="import-btn">Read my product link</button>
+            </form>
+            <div class="setup-foot">Set it once. Edit it anytime.</div>
+            <button class="manual-toggle" id="manual-toggle" type="button">Or enter the details myself</button>
           </div>
-          <button class="btn btn-ghost btn-sm" id="edit-profile">Edit</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- ============ GENERATE (done-for-you) ============ -->
-    <section class="gen-zone">
-      <div class="gen-card">
-        <h2>Your next post, done for you.</h2>
-        <div class="hint-line">We choose a strong fit from your buyers’ niche, preserve the opening pattern that earned attention, and build the complete post around your real product.</div>
-        <button class="btn btn-signal" id="gen-btn">Create my complete post</button>
-        <div class="gen-note" id="gen-note"></div>
-        <button class="customize-toggle" id="customize-toggle" type="button">Choose the hook and visual style myself</button>
-        <div class="customize" id="customize">
-          <div>
-            <h3>Hook</h3>
-            <p class="hint">Each opener links to its source and performance. Pick one, or let Promote.dev choose the strongest fit for your product.</p>
-            <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
+          <div class="profile-form" id="profile-form">
+            <div class="msg" id="p-msg" role="status"></div>
+            <div class="field"><label for="f-name">Product name</label><input type="text" id="f-name" placeholder="GainLock"></div>
+            <div class="field"><label for="f-what">What does your product help people do?</label><div class="hint">Use plain, specific language. We use this to keep every post accurate.</div><textarea id="f-what" rows="2" placeholder="Locks your phone until you finish your workout."></textarea></div>
+            <div class="field"><label for="f-who">Who needs it most?</label><textarea id="f-who" rows="1" placeholder="Gym-goers who lose consistency after the first month."></textarea></div>
+            <div class="field"><label for="f-benefit">What is the clearest customer outcome?</label><input type="text" id="f-benefit" placeholder="Never skip a workout again."></div>
+            <div class="field"><label for="f-color">Brand color</label><div class="hint">This becomes the accent color across your slides. Change it if our pick is off.</div><input type="color" id="f-color" value="#4F8BFF"></div>
+            <button class="btn btn-primary" id="save-profile">Save product &amp; continue</button>
           </div>
-          <div>
-            <h3>Style</h3>
-            <p class="hint">No pick = we choose one that fits.</p>
-            <div class="style-row">
-              <div class="style-tile" data-style="bold"><span class="sw sw-bold">Aa</span>Bold<small>high-contrast type</small></div>
-              <div class="style-tile" data-style="mono"><span class="sw sw-mono">Aa</span>Mono<small>black &amp; white</small></div>
-              <div class="style-tile" data-style="notebook"><span class="sw sw-notebook">Aa</span>Notebook<small>hand-drawn paper</small></div>
-              <div class="style-tile" data-style="stat"><span class="sw sw-stat">5.2×</span>Stat<small>dark data card</small></div>
+
+          <div class="profile-summary" id="profile-summary" style="display:none">
+            <div class="product-identity">
+              <div class="app-icon-shell" id="ps-icon-shell" aria-hidden="true">
+                <img id="ps-icon" alt="" referrerpolicy="no-referrer" hidden>
+                <span id="ps-icon-fallback">P</span>
+              </div>
+              <div class="ps-main">
+                <div class="promoting-label">Promoting</div>
+                <div class="ps-name" id="ps-name"></div>
+                <div class="ps-what" id="ps-what"></div>
+                <div class="ps-meta" id="ps-meta"></div>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="edit-profile">Edit product</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ GENERATE (done-for-you) ============ -->
+      <section class="gen-zone">
+        <div class="gen-card">
+          <div class="gen-topline">
+            <div class="workspace-label"><span>02</span> Build the post</div>
+            <div class="auto-badge"><span></span>Done for you</div>
+          </div>
+          <div class="gen-layout">
+            <div class="gen-copy">
+              <div class="proof-chip">Buyer-niche first</div>
+              <h2>One click. One complete post.</h2>
+              <div class="hint-line">We choose a strong-fit opening pattern for your buyers’ niche and build every slide around your real product.</div>
+              <button class="btn btn-signal" id="gen-btn">Create my complete post</button>
+              <div class="gen-note" id="gen-note" aria-live="polite"></div>
+              <div class="deliverables" aria-label="Post deliverables">
+                <div><strong>6</strong><span>designed slides</span></div>
+                <div><strong>1</strong><span>caption + hashtags</span></div>
+                <div><strong>0</strong><span>filming or editing</span></div>
+              </div>
+            </div>
+
+            <div class="deck-preview" aria-hidden="true">
+              <div class="deck-kicker">Six-slide story</div>
+              <div class="deck-stack">
+                <div class="deck-card deck-card-back"><span>PAYOFF</span><i></i><i></i><i></i></div>
+                <div class="deck-card deck-card-mid"><span>PROOF</span><i></i><i></i></div>
+                <div class="deck-card deck-card-front"><b>HOOK</b><i></i><i></i><em>01 / 06</em></div>
+              </div>
+              <div class="deck-footer"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+
+          <button class="customize-toggle" id="customize-toggle" type="button" aria-expanded="false" aria-controls="customize">
+            <span>Tune the hook or look</span><small>Optional · Auto works by default</small>
+          </button>
+          <div class="customize" id="customize">
+            <div>
+              <h3>Hook</h3>
+              <p class="hint">Pick an opener, or let Promote.dev choose the strongest fit for this product.</p>
+              <div class="pick-list" id="pick-list"><div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Loading hooks…</div></div>
+            </div>
+            <div>
+              <h3>Style</h3>
+              <p class="hint">Leave this on auto and we’ll choose a look that fits.</p>
+              <div class="style-row">
+                <button type="button" class="style-tile" data-style="bold" aria-pressed="false"><span class="sw sw-bold">Aa</span>Bold<small>high-contrast type</small></button>
+                <button type="button" class="style-tile" data-style="mono" aria-pressed="false"><span class="sw sw-mono">Aa</span>Mono<small>black &amp; white</small></button>
+                <button type="button" class="style-tile" data-style="notebook" aria-pressed="false"><span class="sw sw-notebook">Aa</span>Notebook<small>hand-drawn paper</small></button>
+                <button type="button" class="style-tile" data-style="stat" aria-pressed="false"><span class="sw sw-stat">5.2×</span>Stat<small>dark data card</small></button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <!-- ============ OUTPUT ============ -->
-    <section>
-      <div id="caro-out"><div class="empty-state">
-        <h3>Your next publishable post starts here.</h3>
-        <p>Complete your product profile once. Promote.dev will return the designed slides, caption, and hashtags together.</p>
+    <section class="output-zone" id="output-zone">
+      <div class="output-head">
+        <div class="workspace-label"><span>03</span> Ready to publish</div>
+        <h2 id="output-title">Your finished post lands here.</h2>
+        <p id="output-sub">Slides, caption, and hashtags arrive together—ready to download and publish today.</p>
+      </div>
+      <div id="caro-out" aria-live="polite"><div class="empty-state">
+        <div class="empty-deck" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <h3>Nothing else to assemble.</h3>
+        <p>Create once and the whole post will appear here as a finished set.</p>
       </div></div>
-      <div class="history" id="history" style="display:none"><h2>Past posts</h2><div id="hist-list"></div></div>
+      <div class="history" id="history" style="display:none"><h2>Recent posts</h2><div id="hist-list"></div></div>
     </section>
   </div>
 </main>
@@ -268,7 +1194,13 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function fmt(n) { if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'')+'M'; if (n >= 1000) return Math.round(n/1000)+'K'; return String(n); }
 function showMsg(text, ok) { var m = el('p-msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-var ST = { profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false, formColor: '', reelEnabled: false, reelUpgradeRequired: false, reelPoll: null };
+var ST = {
+  profile: null, hooks: [], hook: null, style: null, carousel: null, watermark: false,
+  formColor: '', pendingIconUrl: null, pendingIconChecked: null, iconRefreshStarted: false,
+  importRun: 0, importBusy: false, profileSaveBusy: false,
+  hookLoadToken: 0, generationBusy: false, planToken: 0, renderToken: 0,
+  reelEnabled: false, reelUpgradeRequired: false, reelPoll: null
+};
 
 function isHex(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
 
@@ -287,8 +1219,7 @@ window.addEventListener('load', function () {
   ready.then(function (u) {
     if (!u) { el('gate').style.display = 'block'; return; }
     el('app').style.display = 'block';
-    loadProfile();
-    loadHooks();
+    loadProfile().then(loadHooks, loadHooks);
     loadHistory();
     updateGenNote(u);
   });
@@ -313,7 +1244,7 @@ function updateGenNote(u) {
 
 // ============ PROFILE ============
 function loadProfile() {
-  fetch('/api/profile', { credentials: 'same-origin' })
+  return fetch('/api/profile', { credentials: 'same-origin' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
       ST.profile = d && d.profile;
@@ -332,6 +1263,82 @@ function loadProfile() {
     });
 }
 
+function initialFor(name) {
+  var clean = String(name || '').trim();
+  return clean ? clean.charAt(0).toUpperCase() : 'P';
+}
+
+function textColorFor(hex) {
+  if (!isHex(hex)) return '#FFFFFF';
+  var r = parseInt(hex.slice(1, 3), 16);
+  var g = parseInt(hex.slice(3, 5), 16);
+  var b = parseInt(hex.slice(5, 7), 16);
+  return ((r * 299 + g * 587 + b * 114) / 1000) > 150 ? '#070707' : '#FFFFFF';
+}
+
+function renderProductIcon(p) {
+  var shell = el('ps-icon-shell');
+  var img = el('ps-icon');
+  var fallback = el('ps-icon-fallback');
+  var accent = isHex(p.color) ? p.color : '#6D7480';
+  el('create-workspace').style.setProperty('--product-accent', accent);
+  shell.style.background = accent;
+  fallback.textContent = initialFor(p.name);
+  fallback.style.color = textColorFor(accent);
+  fallback.hidden = false;
+  img.hidden = true;
+  img.onload = null;
+  img.onerror = null;
+  img.removeAttribute('src');
+
+  if (!p.icon_url) return;
+  var url;
+  try { url = new URL(p.icon_url); } catch (e) { return; }
+  if (url.protocol !== 'https:' || url.username || url.password) return;
+
+  img.onload = function () {
+    var ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+    if (ratio < .65 || ratio > 1.55) {
+      img.hidden = true;
+      fallback.hidden = false;
+      return;
+    }
+    fallback.hidden = true;
+    img.hidden = false;
+  };
+  img.onerror = function () {
+    img.hidden = true;
+    fallback.hidden = false;
+  };
+  img.src = url.href;
+}
+
+function refreshLegacyProductIcon() {
+  var p = ST.profile;
+  if (!p || !p.app_url || p.icon_url || p.icon_checked || ST.iconRefreshStarted) return;
+  var requestedAppUrl = p.app_url;
+  ST.iconRefreshStarted = true;
+  fetch('/api/profile', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'refresh_icon' })
+  }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d) { ST.iconRefreshStarted = false; return; }
+      if (ST.profile !== p || ST.profile.app_url !== requestedAppUrl) {
+        ST.iconRefreshStarted = false;
+        refreshLegacyProductIcon();
+        return;
+      }
+      p.icon_url = d.icon_url || '';
+      p.icon_checked = !!d.icon_checked;
+      ST.iconRefreshStarted = false;
+      renderProductIcon(p);
+    })
+    .catch(function () { ST.iconRefreshStarted = false; });
+}
+
 function renderProfileSummary() {
   var p = ST.profile;
   el('profile-setup').style.display = 'none';
@@ -339,9 +1346,15 @@ function renderProfileSummary() {
   el('profile-summary').style.display = 'flex';
   el('ps-name').textContent = p.name || 'Your app';
   el('ps-what').textContent = p.what || '';
+  el('head-product').textContent = p.name || 'your app';
+  el('head-sub').textContent = (p.audience_niche && p.audience_niche.name)
+    ? 'We’ll match a strong opening pattern to buyers in ' + p.audience_niche.name + ', then build every slide around what your product really does.'
+    : 'We’ll match a strong opening pattern to your buyers, then build the complete post around what your product really does.';
   var meta = p.who || '';
   meta += (p.audience_niche && p.audience_niche.name) ? (meta ? ' · ' : '') + p.audience_niche.name : '';
   el('ps-meta').innerHTML = (isHex(p.color) ? '<span class="swatch" style="background:' + p.color + '"></span>' : '') + esc(meta);
+  renderProductIcon(p);
+  refreshLegacyProductIcon();
 }
 
 function fillForm(p) {
@@ -364,6 +1377,11 @@ el('edit-profile').addEventListener('click', function () {
   el('profile-summary').style.display = 'none';
   el('profile-setup').style.display = 'block';
   el('profile-form').classList.add('show');
+  ST.pendingIconUrl = null;
+  ST.pendingIconChecked = null;
+  ST.pendingAppUrl = null;
+  ST.prefillNiche = null;
+  ST.prefillFacts = null;
   if (ST.profile) { fillForm(ST.profile); el('import-url').value = ST.profile.app_url || ''; }
 });
 
@@ -375,58 +1393,109 @@ el('import-form').addEventListener('submit', function (e) {
 });
 
 function runImport(url) {
+  if (ST.profileSaveBusy) return;
   var btn = el('import-btn');
-  btn.disabled = true; btn.textContent = 'Building your profile…';
+  var importRun = ++ST.importRun;
+  ST.importBusy = true;
+  ST.pendingAppUrl = null;
+  ST.prefillNiche = null;
+  ST.prefillFacts = null;
+  ST.pendingIconUrl = '';
+  ST.pendingIconChecked = false;
+  el('save-profile').disabled = true;
+  btn.disabled = true; btn.textContent = 'Reading your product…';
+  function finishImport() {
+    if (importRun !== ST.importRun) return false;
+    ST.importBusy = false;
+    btn.disabled = false;
+    btn.textContent = 'Read my product link';
+    el('save-profile').disabled = false;
+    return true;
+  }
   fetch('/api/profile', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'import', url: url })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
-      btn.disabled = false; btn.textContent = 'Build my product profile';
+      if (!finishImport()) return;
       el('profile-form').classList.add('show');
       if (res.s === 200 && res.j.prefill) {
         fillForm(res.j.prefill);
         ST.pendingAppUrl = res.j.prefill.app_url || url;
+        el('import-url').value = ST.pendingAppUrl;
+        ST.pendingIconUrl = res.j.prefill.icon_url || '';
+        ST.pendingIconChecked = true;
         ST.prefillNiche = res.j.prefill.audience_niche || null;
         ST.prefillFacts = res.j.prefill.facts || null;
-        showMsg('Here’s what we read. Fix anything that’s off, then save.', true);
+        showMsg('Here’s what we found. Check the details, then save your product.', true);
       } else {
         ST.pendingAppUrl = url;
         showMsg(res.j.error || 'Couldn’t read that page — fill the form in and save.', false);
       }
     })
     .catch(function () {
-      btn.disabled = false; btn.textContent = 'Build my product profile';
+      if (!finishImport()) return;
       el('profile-form').classList.add('show');
       showMsg('Couldn’t read that page — fill the form in and save.', false);
     });
 }
 
 el('save-profile').addEventListener('click', function () {
+  if (ST.importBusy || ST.profileSaveBusy) return;
+  ST.profileSaveBusy = true;
+  var enteredAppUrl = el('import-url').value.trim();
+  var appUrl = enteredAppUrl || ST.pendingAppUrl || (ST.profile && ST.profile.app_url) || '';
+  var usesImportedProfile = !!ST.pendingAppUrl && appUrl === ST.pendingAppUrl;
+  var keepsSavedSource = !!ST.profile && appUrl === (ST.profile.app_url || '');
   var profile = {
-    app_url: ST.pendingAppUrl || el('import-url').value.trim() || (ST.profile && ST.profile.app_url) || '',
+    app_url: appUrl,
     name: el('f-name').value,
     what: el('f-what').value,
     who: el('f-who').value,
     benefit: el('f-benefit').value,
+    icon_url: usesImportedProfile
+      ? (ST.pendingIconUrl || '')
+      : (keepsSavedSource ? ((ST.profile && ST.profile.icon_url) || '') : ''),
+    icon_checked: usesImportedProfile
+      ? !!ST.pendingIconChecked
+      : (keepsSavedSource ? !!(ST.profile && ST.profile.icon_checked) : false),
     color: ST.formColor || (ST.profile && ST.profile.color) || '',
-    audience_niche: ST.prefillNiche || (ST.profile && ST.profile.audience_niche) || null,
-    facts: ST.prefillFacts || (ST.profile && ST.profile.facts) || []
+    audience_niche: usesImportedProfile
+      ? (ST.prefillNiche || null)
+      : (keepsSavedSource ? ((ST.profile && ST.profile.audience_niche) || null) : null),
+    facts: usesImportedProfile
+      ? (ST.prefillFacts || [])
+      : (keepsSavedSource ? ((ST.profile && ST.profile.facts) || []) : [])
   };
   var btn = el('save-profile');
+  var importBtn = el('import-btn');
+  importBtn.disabled = true;
   btn.disabled = true; btn.textContent = 'Saving…';
+  function finishProfileSave() {
+    ST.profileSaveBusy = false;
+    importBtn.disabled = false;
+    btn.disabled = false;
+    btn.textContent = 'Save product & continue';
+  }
   fetch('/api/profile', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'save', profile: profile })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
-      btn.disabled = false; btn.textContent = 'Use this product profile';
+      finishProfileSave();
       if (res.s === 200) {
         ST.profile = res.j.profile;
         ST.prefillNiche = null;
+        ST.prefillFacts = null;
+        ST.pendingAppUrl = null;
+        ST.pendingIconUrl = null;
+        ST.pendingIconChecked = null;
         renderProfileSummary();
+        ST.hook = null;
+        el('pick-list').innerHTML = '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">Matching hooks to this product…</div>';
+        loadHooks();
         el('gen-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (res.s === 401) {
         window.location.href = '/api/auth/google';
@@ -436,7 +1505,7 @@ el('save-profile').addEventListener('click', function () {
       }
     })
     .catch(function () {
-      btn.disabled = false; btn.textContent = 'Use this product profile';
+      finishProfileSave();
       showMsg('Network error — check your connection and try again.', false);
       el('p-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
@@ -444,6 +1513,7 @@ el('save-profile').addEventListener('click', function () {
 
 // ============ HOOK PICKER ============
 function loadHooks() {
+  var hookLoadToken = ++ST.hookLoadToken;
   var nicheSlug = ST.profile && ST.profile.audience_niche && ST.profile.audience_niche.slug;
   var hookUrl = nicheSlug
     ? '/api/hooks?niche=' + encodeURIComponent(nicheSlug) + '&curated=1'
@@ -452,9 +1522,11 @@ function loadHooks() {
     fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
     fetch(hookUrl, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
   ]).then(function (both) {
+    if (hookLoadToken !== ST.hookLoadToken) return;
     var swipe = both[0].hooks || [];
     var lib = (both[1].hooks || []).filter(function (h) { return !swipe.some(function (s) { return s.id === h.id; }); });
     ST.hooks = swipe.map(function (h) { h.fromSwipe = true; return h; }).concat(lib);
+    if (ST.hook && !ST.hooks.some(function (h) { return h.id === ST.hook; })) ST.hook = null;
     renderPicker();
   });
 }
@@ -465,11 +1537,12 @@ function renderPicker() {
     // show the line that actually went viral, never the ___ template skeleton
     var line = h.hook_verbatim || h.hook_template;
     var st = h.fromSwipe ? '★ saved · ' : '';
-    if (h.views > 0) st += fmt(h.views) + ' views · ' + Number(h.outlier_score).toFixed(1) + '× their followers';
+    if (h.views > 0) st += fmt(h.views) + ' source views';
     else if (h.curated) st += 'hand-picked pattern';
-    return '<div class="pick-item' + (sel ? ' sel' : '') + '" data-id="' + h.id + '">' + esc(line) +
-      '<span class="st">' + st + '</span></div>';
-  }).join('') || '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">No hooks yet — browse the <a href="/feed" style="color:var(--ink)">feed</a>.</div>';
+    return '<button type="button" class="pick-item' + (sel ? ' sel' : '') + '" data-id="' + h.id +
+      '" aria-pressed="' + (sel ? 'true' : 'false') + '">' + esc(line) +
+      '<span class="st">' + st + '</span></button>';
+  }).join('') || '<div class="status" style="font-family:var(--mono);font-size:12px;color:var(--muted)">No hook choices are ready yet. Leave this on automatic or check back soon.</div>';
 }
 
 el('pick-list').addEventListener('click', function (e) {
@@ -477,14 +1550,20 @@ el('pick-list').addEventListener('click', function (e) {
   var id = parseInt(it.getAttribute('data-id'), 10);
   ST.hook = (ST.hook === id) ? null : id; // tap again to go back to auto
   renderPicker();
+  var replacement = el('pick-list').querySelector('[data-id="' + id + '"]');
+  if (replacement) replacement.focus();
 });
 
 document.querySelectorAll('.style-tile').forEach(function (t) {
   t.addEventListener('click', function () {
     var was = t.classList.contains('sel');
-    document.querySelectorAll('.style-tile').forEach(function (x) { x.classList.remove('sel'); });
+    document.querySelectorAll('.style-tile').forEach(function (x) {
+      x.classList.remove('sel');
+      x.setAttribute('aria-pressed', 'false');
+    });
     if (was) { ST.style = null; return; } // tap again to go back to auto
     t.classList.add('sel');
+    t.setAttribute('aria-pressed', 'true');
     ST.style = t.getAttribute('data-style');
   });
 });
@@ -492,14 +1571,39 @@ document.querySelectorAll('.style-tile').forEach(function (t) {
 el('customize-toggle').addEventListener('click', function () {
   var c = el('customize');
   c.classList.toggle('show');
-  this.textContent = c.classList.contains('show')
-    ? 'Hide choices — let Promote.dev pick for me'
-    : 'Choose the hook and visual style myself';
+  var expanded = c.classList.contains('show');
+  this.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  this.querySelector('span').textContent = expanded ? 'Hide hook & style choices' : 'Tune the hook or look';
+  this.querySelector('small').textContent = expanded ? 'Your selections stay active' : 'Optional · Auto works by default';
 });
 if (location.hash === '#customize') el('customize-toggle').click();
 
 // ============ GENERATE ============
+function setOutputState(title, sub, busy) {
+  el('output-title').textContent = title;
+  el('output-sub').textContent = sub;
+  el('caro-out').setAttribute('aria-busy', busy ? 'true' : 'false');
+}
+
+function setGenerationBusy(busy) {
+  ST.generationBusy = busy;
+  var gen = el('gen-btn');
+  if (gen) {
+    gen.disabled = busy;
+    if (!busy) gen.textContent = 'Create my complete post';
+  }
+  ['redo-bg', 'regen-all'].forEach(function (id) {
+    var control = el(id);
+    if (control) control.disabled = busy;
+  });
+}
+
+function isCurrentRender(token, carouselId) {
+  return token === ST.renderToken && ST.carousel && ST.carousel.carouselId === carouselId;
+}
+
 function runGenerate() {
+  if (ST.generationBusy) return;
   if (!ST.profile || !ST.profile.what) {
     el('profile-zone').scrollIntoView({ behavior: 'smooth' });
     showMsg('Set up your product profile first — it takes one paste.', false);
@@ -507,9 +1611,17 @@ function runGenerate() {
     el('gen-note').textContent = 'finish your product profile above first';
     return;
   }
+  var planToken = ++ST.planToken;
+  ST.renderToken += 1;
+  setGenerationBusy(true);
   var btn = el('gen-btn');
-  btn.disabled = true; btn.textContent = 'Finding your strongest angle…';
+  btn.textContent = 'Finding your strongest angle…';
   el('gen-note').textContent = 'building the six-slide story, caption, and hashtags — about 15 seconds';
+  setOutputState(
+    'Finding the angle for your post…',
+    'First the hook, then the story, then the finished slide design.',
+    true
+  );
   fetch('/api/carousel', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
@@ -517,7 +1629,7 @@ function runGenerate() {
     body: JSON.stringify({ action: 'plan', hookId: ST.hook || undefined, style: ST.style || undefined })
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
-      btn.disabled = false; btn.textContent = 'Create my complete post';
+      if (planToken !== ST.planToken) return;
       if (res.s === 200) {
         ST.reelEnabled = !!res.j.reelEnabled;
         ST.reelUpgradeRequired = !!res.j.reelUpgradeRequired;
@@ -525,30 +1637,45 @@ function runGenerate() {
         ST.watermark = !!res.j.watermark;
         updateGenNote();
         renderCarousel();
+        setOutputState(
+          'Your story is written. Now we’re designing it.',
+          'The six finished slides will appear below as soon as the visual pass is ready.',
+          true
+        );
+        btn.textContent = 'Designing your six slides…';
         generateSlides();
         el('caro-out').scrollIntoView({ behavior: 'smooth' });
         if (window.TGUser) TGUser.refresh().then(updateGenNote);
       }
-      else if (res.s === 401) window.location.href = '/api/auth/google';
+      else if (res.s === 401) {
+        setGenerationBusy(false);
+        window.location.href = '/api/auth/google';
+      }
       else if (res.s === 400 && res.j.needsProfile) {
+        setGenerationBusy(false);
+        setOutputState('Your finished post lands here.', 'Save your product first, then create the complete post.', false);
         el('profile-zone').scrollIntoView({ behavior: 'smooth' });
         el('profile-form').classList.add('show');
         el('gen-note').textContent = 'finish your product profile above first';
       }
       else if (res.s === 402) {
+        setGenerationBusy(false);
+        setOutputState('Your next post is ready when you are.', res.j.error || 'Your current plan limit has been reached.', false);
         el('gen-note').textContent = res.j.error || 'Plan limit reached.';
         if (window.TGPro) TGPro.showUpgradeModal({ variant: res.j.reason === 'monthly_limit' ? 'limit' : '' });
         else alert(res.j.error || 'Plan limit reached.');
       }
       else {
+        setGenerationBusy(false);
+        setOutputState('That post needs another try.', res.j.error || 'Nothing was charged. Try creating it again.', false);
         el('gen-note').textContent = res.j.error || 'Something went wrong — try again.';
-        alert(res.j.error || 'Failed. Try again.');
       }
     })
     .catch(function () {
-      btn.disabled = false; btn.textContent = 'Create my complete post';
+      if (planToken !== ST.planToken) return;
+      setGenerationBusy(false);
       el('gen-note').textContent = 'network error — try again';
-      alert('Network error. Try again.');
+      setOutputState('We lost the connection.', 'Your product is safe. Check your connection and try the post again.', false);
     });
 }
 el('gen-btn').addEventListener('click', runGenerate);
@@ -565,8 +1692,8 @@ function renderCarousel() {
       '<button class="btn btn-primary" id="dl-all" disabled>Download complete post</button>' +
       '<button class="mini-btn" id="dl-reel" disabled>Turn this into a Reel</button>' +
       '<button class="mini-btn" id="copy-cap">Copy ready-to-post caption</button>' +
-      '<button class="mini-btn" id="redo-bg">Try a new visual direction</button>' +
-      '<button class="mini-btn" id="regen-all">Create a fresh version</button>' +
+      '<button class="mini-btn" id="redo-bg" disabled>Try a new visual direction</button>' +
+      '<button class="mini-btn" id="regen-all" disabled>Create a fresh version</button>' +
       '<div class="reel-note" id="reel-note">Create a silent 9:16 video, then choose your song in Instagram.</div>' +
     '</div>';
   el('copy-cap').addEventListener('click', function () {
@@ -772,14 +1899,23 @@ function apiPost(payload) {
 // the photo arrives. A cover that fails or was never possible (older carousels
 // have no scene) just leaves slide 0 on the background — no error, no wait.
 function generateSlides(freshBg) {
+  if (!ST.carousel) return;
+  setGenerationBusy(true);
+  var renderToken = ++ST.renderToken;
+  setOutputState(
+    freshBg ? 'Trying a new visual direction…' : 'Designing your six slides…',
+    'The written post is safe while the visuals are prepared.',
+    true
+  );
   SLIDE_IMAGES = {};
   var slides = ST.carousel.slides;
   var style = ST.carousel.style || 'bold';
   var cid = ST.carousel.carouselId;
   var dl = el('dl-all'); if (dl) dl.disabled = true;
+  var reel = el('dl-reel'); if (reel) reel.disabled = true;
 
   if (!freshBg && BG_CACHE[cid]) {
-    paintSlides(BG_CACHE[cid], slides, style, ST.watermark);
+    paintSlides(BG_CACHE[cid], slides, style, ST.watermark, renderToken, cid);
     return;
   }
 
@@ -801,33 +1937,42 @@ function generateSlides(freshBg) {
     .catch(function () { return null; });
 
   bgJob.then(function (res) {
+    if (!isCurrentRender(renderToken, cid)) return;
     BG_CACHE[cid] = { bg: res.j.image, hero: null };
     ST.carousel.hasBg = true;
-    paintSlides(BG_CACHE[cid], slides, style, !!res.j.watermark);
+    var basePaint = paintSlides(BG_CACHE[cid], slides, style, !!res.j.watermark, renderToken, cid);
 
     heroJob.then(function (hero) {
-      if (!hero) return;
-      BG_CACHE[cid].hero = hero;
-      paintSlides(BG_CACHE[cid], slides, style, ST.watermark);
+      if (!hero || !isCurrentRender(renderToken, cid)) return;
+      return Promise.resolve(basePaint).then(function () {
+        if (!isCurrentRender(renderToken, cid)) return;
+        BG_CACHE[cid].hero = hero;
+        return paintSlides(BG_CACHE[cid], slides, style, ST.watermark, renderToken, cid);
+      });
     });
   }).catch(function (e) {
+    if (!isCurrentRender(renderToken, cid)) return;
     slides.forEach(function (s) { renderSlideStatus(s.index, e.message || 'network error — hit “New visuals” to retry'); });
-    var d2 = el('dl-all'); if (d2) d2.disabled = false;
+    setGenerationBusy(false);
+    setOutputState('The copy is ready, but the visuals need another try.', 'Choose “Try a new visual direction” below to finish the slides.', false);
   });
 }
 
 // Draw the slides from whatever images we have (fresh or cached — same path).
 // A hero that won't decode is not fatal: slide 0 falls back to the background.
-function paintSlides(images, slides, style, watermark) {
+function paintSlides(images, slides, style, watermark, renderToken, carouselId) {
+  if (!isCurrentRender(renderToken, carouselId)) return Promise.resolve(false);
   var jobs = [
     loadImg(images.bg),
     images.hero ? loadImg(images.hero).catch(function () { return null; }) : Promise.resolve(null),
   ];
   var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
 
-  Promise.all(jobs).then(function (imgs) {
+  return Promise.all(jobs).then(function (imgs) {
+    if (!isCurrentRender(renderToken, carouselId)) return;
     var bg = imgs[0], hero = imgs[1];
     return fonts.then(function () {
+      if (!isCurrentRender(renderToken, carouselId)) return;
       ST.watermark = !!watermark;
       slides.forEach(function (s) {
         var isLast = s.index === slides.length - 1;
@@ -838,15 +1983,35 @@ function paintSlides(images, slides, style, watermark) {
           var box = el('slide-' + s.index);
           if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Slide ' + (s.index + 1) + '">';
         } catch (e) {
-          renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
+          if (!SLIDE_IMAGES[s.index]) {
+            renderSlideStatus(s.index, 'renderer failed to load — refresh and try again');
+          }
         }
       });
-      var d = el('dl-all'); if (d) d.disabled = false;
-      ST.carousel.hasBg = true;
-      setReelUi(ST.carousel.reel || reelFromRow(ST.carousel));
+      var complete = slides.length > 0 && slides.every(function (s) { return !!SLIDE_IMAGES[s.index]; });
+      var d = el('dl-all'); if (d) d.disabled = !complete;
+      if (complete) {
+        ST.carousel.hasBg = true;
+        setReelUi(ST.carousel.reel || reelFromRow(ST.carousel));
+        setOutputState(
+          'Your post is ready to publish.',
+          'Download the complete set, copy the caption, or turn it into a Reel.',
+          false
+        );
+      } else {
+        setOutputState(
+          'The copy is ready, but one or more slides need another try.',
+          'Choose “Try a new visual direction” below to finish the complete set.',
+          false
+        );
+      }
+      setGenerationBusy(false);
     });
   }).catch(function () {
+    if (!isCurrentRender(renderToken, carouselId)) return;
     slides.forEach(function (s) { renderSlideStatus(s.index, 'images failed — hit “New visuals” to retry'); });
+    setGenerationBusy(false);
+    setOutputState('The copy is ready, but the visuals need another try.', 'Choose “Try a new visual direction” below to finish the slides.', false);
   });
 }
 
@@ -914,7 +2079,7 @@ function downloadZip() {
   var files = Object.keys(SLIDE_IMAGES).sort(function (a, b) { return a - b; }).map(function (idx) {
     return { name: 'promote-dev-slide-' + (parseInt(idx, 10) + 1) + '.png', bytes: b64ToBytes(SLIDE_IMAGES[idx]) };
   });
-  if (!files.length) return;
+  if (!ST.carousel || files.length !== (ST.carousel.slides || []).length) return;
   var caption = (ST.carousel && ST.carousel.caption) ? String(ST.carousel.caption) : '';
   if (caption) {
     // Windows Notepad only honours CRLF.
@@ -944,12 +2109,13 @@ function loadHistory() {
         var rs = reelFromRow(c).status;
         var reelLabel = rs === 'ready' ? ' · Reel ready' : ((rs === 'rendering' || rs === 'submitting') ? ' · Reel rendering' : '');
         var reelClass = rs === 'ready' ? ' ready' : ((rs === 'rendering' || rs === 'submitting') ? ' active' : '');
-        return '<div class="hist-row" data-c="' + c.id + '"><span class="t">' + esc(first) + '</span><span class="stat">' + esc(c.style) + ' · ' + new Date(c.created_at).toLocaleDateString() + '<span class="reel-badge' + reelClass + '">' + reelLabel + '</span></span></div>';
+        return '<button type="button" class="hist-row" data-c="' + c.id + '"><span class="t">' + esc(first) + '</span><span class="stat">' + esc(c.style) + ' · ' + new Date(c.created_at).toLocaleDateString() + '<span class="reel-badge' + reelClass + '">' + reelLabel + '</span></span></button>';
       }).join('');
       ST.history = d.carousels;
     });
 }
 el('hist-list').addEventListener('click', function (e) {
+  if (ST.generationBusy) return;
   var row = e.target.closest('[data-c]'); if (!row) return;
   var c = (ST.history || []).find(function (x) { return x.id === parseInt(row.getAttribute('data-c'), 10); });
   if (!c) return;

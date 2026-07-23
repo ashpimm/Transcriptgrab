@@ -166,7 +166,6 @@
     }
 
     var linksHtml =
-      '<a href="/feed" class="suite-nav-link' + (path === '/feed' ? ' active' : '') + '">Feed</a>' +
       '<a href="/create" class="suite-nav-link' + (path === '/create' ? ' active' : '') + '">Create</a>';
 
     nav.innerHTML =

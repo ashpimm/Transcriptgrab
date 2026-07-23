@@ -1,4 +1,4 @@
-// api/hooks.js — Hook library + swipe file.
+// api/hooks.js — Internal hook catalogue + swipe file.
 //
 // GET  /api/hooks?niche=slug&format=&platform=&offset=0  -> library (tiered depth)
 // GET  /api/hooks?swipe=1                                -> user's swipe file (auth)
@@ -37,7 +37,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ hooks: saved, cap: user.tier === 'pro' ? null : FREE_SWIPE_CAP });
       }
 
-      // Feed — fully public, same depth for everyone
+      // The public feed page is withdrawn, but Create still uses this catalogue
+      // to choose source-backed and curated fallback hooks.
       const tier = user ? user.tier : 'anon';
       const offset = parseInt(req.query.offset || '0', 10) || 0;
 
@@ -48,8 +49,8 @@ export default async function handler(req, res) {
           platform: req.query.platform || null,
           limit: 50,
           offset,
-          // create-page picker wants the hand-curated patterns too; the
-          // public feed (no flag) keeps its receipts-only promise
+          // Create can request hand-curated fallback patterns too. Calls
+          // without the flag continue to return source-backed rows only.
           includeCurated: req.query.curated === '1',
         }),
         getNiches(),

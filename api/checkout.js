@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const baseUrl = `${protocol}://${req.headers.host}`;
 
-      // ?plan=pro|credits|autopilot: send straight into checkout (used by landing/feed CTAs)
+      // ?plan=pro|credits|autopilot: send straight into checkout (used by landing/Create CTAs)
       const plan = req.query.plan;
       if (plan === 'pro' || plan === 'credits' || plan === 'autopilot') {
         if (!user) {

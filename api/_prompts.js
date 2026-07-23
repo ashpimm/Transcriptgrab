@@ -6,24 +6,33 @@
 // ============================================
 export const HOOK_EXTRACTION_PROMPT = `You are a short-form content researcher. You receive a JSON object: { niche: "<the creator audience being researched>", videos: [...] }. Each video has: i (index), title, views, followers, and transcript (the spoken words).
 
-For EACH video, extract its hook and metadata. The hook is the attention-grabbing opening: the first 1-2 spoken sentences of the transcript, cleaned of filler ("um", "hey guys", "welcome back"). The title is context only — a hook is something a person SAYS to camera, never an SEO title. If the transcript opens with music, noise, a fragment, or has no clear spoken opening line, mark the video relevant: false.
+For EACH video, assess and extract its hook. The hook is the attention-grabbing opening: the first 1-2 spoken sentences of the transcript, cleaned only of filler ("um", "hey guys", "welcome back"). The title is context only. Never copy, derive, repair, or invent a hook from the title. If the opening transcript has no complete, compelling spoken line, reject the video.
 
 Return ONLY a JSON array, one object per input video:
 [{
   "i": 0,
   "relevant": true,
-  "hook_verbatim": "the actual opening line or title-derived hook",
+  "language": "en",
+  "transferable": true,
+  "is_ad": false,
+  "quality_score": 4,
+  "rejection_reason": "",
+  "hook_verbatim": "the actual opening line from the transcript",
   "hook_template": "the same hook with specifics replaced by ___ slots",
   "topic": "3-8 word topic summary",
   "format": "talking_head"
 }]
 
 Rules:
-- relevant: true ONLY if a creator in the given niche could credibly post content in this video's pattern about their own work. Keyword search is noisy — a niche like "Productivity & Focus" can surface Minecraft builds, toy hauls, city-government clips, random vlogs. Those are relevant: false. When unsure, false.
-- If relevant is false, you may leave the other fields as empty strings.
-- hook_verbatim must be a complete, self-contained line someone would say to camera. Fragments like "Ah." or half-sentences are not hooks — mark those videos relevant: false.
+- relevant: true ONLY when the video genuinely serves the named niche. Keyword search is noisy. When unsure, false.
+- language: "en" ONLY when the spoken opening is English. Otherwise use its ISO language code and reject it.
+- transferable: true ONLY when the opening's tension, contrast, specificity, surprise, or curiosity can survive a subject swap. Brand slogans, direct-response ads, product names, keyword lists, generic labels, recipe names, exercise names, and plain video titles are not transferable hooks.
+- is_ad: true for sponsor reads, offers, discounts, sales pitches, lead-generation copy, calls to subscribe/follow/click, or other promotional openings. Ads are always rejected even when they have high reach.
+- quality_score: integer 1-5 for the spoken opening itself. A 4 or 5 is complete, specific, compelling, and immediately understandable. Generic statements, fragments, labels, and setup without a payoff score 1-3 and must be rejected.
+- If relevant or transferable is false, set rejection_reason briefly and leave hook fields empty.
+- hook_verbatim must preserve a complete, contiguous line actually present near the START of transcript. Filler may be skipped before the hook, but never delete, add, reorder, paraphrase, or repair words inside it. Never use the title to fill missing words.
 - hook_template: replace names, numbers, niches, and product-specifics with ___ slots. Example: "How I took my client from 150 to 130 lbs in 8 weeks" becomes "How I took my client from ___ to ___ in ___". Keep the sentence structure and emotional punch intact.
-- Keep templates under 20 words.
+- A reusable template has 1-4 ___ slots, at least 4 fixed words, and no more than 20 total words. Every fixed word must come from hook_verbatim in the same order.
 - format must be one of: talking_head, whiteboard, audio_broll, skit, other. Without visual evidence default to talking_head.
 - topic is plain lowercase, no hashtags.
 - Output raw JSON array only. No markdown fences, no commentary.`;
@@ -74,11 +83,13 @@ Rules:
 // ============================================
 // HOOK PICK (app profile + candidate hooks -> best-fit shortlist)
 // ============================================
-export const HOOK_PICK_PROMPT = `You receive JSON { product, audienceNiche, hooks }. hooks are the opening lines of short-form videos that already went viral in this audience's niche (score = how many times the video's views outran the creator's following). One of them will be transplanted onto this product: its sentence structure kept, its subject swapped for the product's job-to-be-done.
+export const HOOK_PICK_PROMPT = `You receive JSON { product, audienceNiche, hooks }. hooks are screened spoken openings from high-reach short-form videos in this audience's niche (views = the source video's public view count). One of them will be transplanted onto this product: its sentence structure kept, its subject swapped for the product's job-to-be-done.
 
 Pick the hooks that would transplant BEST onto THIS product.
 
 A hook transplants well when the thing that made it work — the surprise, the stakes, the concrete number, the curiosity gap — survives the subject swap. It transplants badly when its appeal is welded to its original subject: a recipe/meal-plan hook for a tracking app (the promise IS the recipes, which the product cannot deliver), a product-review hook for a habit app, a gym-culture joke for a meditation app. Being in the same broad niche is NOT fit — the test is whether the hook still works when its subject becomes THIS product's job-to-be-done.
+
+Apply a second quality check even if a candidate has many views. Reject SEO-style titles, fragments, labels, keyword lists, names without a claim, direct-response ads, calls to follow/subscribe, and generic lines with no tension or curiosity. A useful candidate must read like a complete spoken opening and remain compelling after its subject is swapped.
 
 Return ONLY this JSON object, best fit first, only ids that exist in the input:
 {"ids": [7, 12, 3]}
@@ -93,7 +104,7 @@ No markdown fences, no commentary.`;
 export const CAROUSEL_COPY_PROMPT = `You write faceless slideshow posts (TikTok photo-mode / Instagram carousels) that grow an audience for a product — a mobile app, a website, or a SaaS tool. You receive JSON:
 - product: { name, what, who, benefit, facts, url, tone } — facts are verified claims about the product; the ONLY product claims you may use
 - audienceNiche: the content niche of the product's TARGET USERS (write for THEM, in their language — never for software builders)
-- hook: { verbatim, template, topic } — verbatim is the EXACT opening line of a short-form video that already went viral (its views massively outran the creator's following). template is that same line with its swappable specifics marked as ___ slots. This line is your raw material, not a suggestion: it is proven to stop the scroll.
+- hook: { verbatim, template, topic } — verbatim is the exact screened spoken opening from a high-reach short-form video. template is that same line with its swappable specifics marked as ___ slots. This line is your raw material, not a suggestion.
 - kind: "value" or "showcase"
 - slideCount: total slides including hook slide and final slide
 

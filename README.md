@@ -27,15 +27,14 @@ Pro members can connect Instagram for daily post creation and publishing.
 
 ## Why the hook research is different
 
-Promote.dev does not label an idea "proven" because an AI model suggested it. Public hook sources must pass measurable quality gates:
+Promote.dev does not label an idea "proven" because an AI model suggested it. Mined hook sources must pass measurable quality gates:
 
 - Published within the most recent 120 days
-- At least 10,000 views
-- At least 50 followers on the source account
-- At least 5x as many views as the account has followers
+- At least 250,000 views, regardless of source-account size
 - A usable spoken transcript
-- Relevant to the audience niche
-- Predominantly Latin-script text for the current English-language product
+- The extracted line is grounded near the start of that transcript
+- Explicit English-language, niche-relevance, non-ad, quality, and transferability checks
+- A reusable template derived from the spoken hook rather than the video title
 
 The system preserves the source opening's reusable tension, contrast, specificity, or curiosity. It does not copy the source topic. Product claims are limited to facts extracted from or approved in the user's product profile.
 
@@ -45,8 +44,7 @@ The system preserves the source opening's reusable tension, contrast, specificit
 
 - Three complete posts in total
 - Six slides, caption, hashtags, and download files
-- Public hook feed
-- Up to 25 saved hooks
+- Evidence-backed automatic hook selection
 - Small `made with promote.dev` watermark on the final slide
 
 ### Pro — $19/month
@@ -65,7 +63,7 @@ Legacy purchased credits are still honored but are no longer sold.
 | Route | Purpose |
 |---|---|
 | `/` | Public acquisition page, real output, evidence method, pricing, and FAQs |
-| `/feed` | Public hook feed with source videos and performance receipts |
+| `/feed` | Temporarily redirects to Create while hook quality is retuned |
 | `/create` | Product-profile setup, post creation, downloads, Reels, and post history |
 | `/account` | Plan usage, billing, Instagram connection, queue, and publishing health |
 | `/privacy` | Privacy policy |
@@ -79,7 +77,7 @@ The legacy aliases `/library`, `/studio`, and `/profile` redirect to the current
 |---|---|
 | `/api/auth/google`, `/api/auth/callback`, `/api/auth/me` | Google OAuth and session management |
 | `/api/profile` | Product-page import and reusable product profile |
-| `/api/hooks` | Public hook feed and saved hooks |
+| `/api/hooks` | Internal hook picker and existing saved-hook records |
 | `/api/carousel` | Post planning, background/cover generation, history, and Reel jobs |
 | `/api/social` | Instagram connection and publishing queue |
 | `/api/autopilot` | Daily queue creation, publishing, verification, and recovery |
@@ -177,7 +175,7 @@ Review migrations before applying them and run them in chronological dependency 
 
 ## Tests
 
-The repository currently contains 91 Node tests covering:
+The Node test suite covers:
 
 - Usage gating and monthly resets
 - Hook scoring, freshness, and language gates

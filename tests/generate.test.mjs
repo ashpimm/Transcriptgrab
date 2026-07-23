@@ -63,9 +63,9 @@ test('pickTone returns a valid tone and does not always return the same one', ()
 // Best-fit hook selection: the model ranks the pool for THIS app, we random-
 // pick among its picks. Same niche pool, different apps -> different hooks.
 const POOL = [
-  { id: 7, hook_verbatim: 'WHY are people LIKE THIS in the gym??', hook_template: 'WHY are people LIKE THIS in the ___??', topic: 'gym etiquette', outlier_score: 689.79 },
-  { id: 9, hook_verbatim: 'Macros for Dummies Easy Macro Calculation!', hook_template: '___ for Dummies Easy ___ Calculation!', topic: 'macro calculation', outlier_score: 290.7 },
-  { id: 12, hook_verbatim: 'High Protein Burger Bowls -Crockpot Meal Prep (8 Meals)', hook_template: 'High Protein ___ Bowls -Crockpot Meal Prep (___ Meals)', topic: 'meal prep', outlier_score: 162.56 },
+  { id: 7, hook_verbatim: 'WHY are people LIKE THIS in the gym??', hook_template: 'WHY are people LIKE THIS in the ___??', topic: 'gym etiquette', views: 3_400_000 },
+  { id: 9, hook_verbatim: 'Macros for Dummies Easy Macro Calculation!', hook_template: '___ for Dummies Easy ___ Calculation!', topic: 'macro calculation', views: 920_000 },
+  { id: 12, hook_verbatim: 'High Protein Burger Bowls -Crockpot Meal Prep (8 Meals)', hook_template: 'High Protein ___ Bowls -Crockpot Meal Prep (___ Meals)', topic: 'meal prep', views: 12_000_000 },
 ];
 
 test('buildHookPickPayload sends the product + candidate hooks with ids', () => {
@@ -74,9 +74,10 @@ test('buildHookPickPayload sends the product + candidate hooks with ids', () => 
   assert.equal(p.product.what, 'AI calorie counter');
   assert.equal(p.audienceNiche, 'Fitness & Weight Loss');
   assert.equal(p.hooks.length, 3);
-  assert.deepEqual(Object.keys(p.hooks[0]).sort(), ['hook', 'id', 'score', 'topic']);
+  assert.deepEqual(Object.keys(p.hooks[0]).sort(), ['hook', 'id', 'topic', 'views']);
   assert.equal(p.hooks[0].id, 7);
   assert.equal(p.hooks[0].hook, 'WHY are people LIKE THIS in the gym??');
+  assert.equal(p.hooks[0].views, 3_400_000);
 });
 
 test('resolveHookPick keeps only pool ids, in the model\'s order, deduped', () => {

@@ -310,10 +310,9 @@ export async function getCuratedHookPool(poolSize = 12) {
 
 export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0, includeCurated = false }) {
   const sql = getSQL();
-  // Feed is fully public. Rows with curated:// placeholder URLs have no real
-  // source video (no receipts), so they never ship to the feed — but the
-  // create-page picker asks for them (includeCurated) since they're the
-  // hand-written high-quality patterns.
+  // Rows with curated:// placeholder URLs have no real source video. The
+  // create-page picker can request them as fallbacks; mined sources must meet
+  // the same absolute-reach floor as the current miner.
   const cappedLimit = Math.min(limit, 100);
   const curatedOk = !!includeCurated;
   const rows = await sql`
@@ -324,10 +323,11 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
       AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
+      AND (h.curated = TRUE OR h.views >= 250000)
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
-    ORDER BY h.curated DESC, h.outlier_score DESC, h.last_verified DESC
+    ORDER BY h.curated ASC, h.views DESC, h.outlier_score DESC, h.last_verified DESC
     LIMIT ${cappedLimit} OFFSET ${offset}
   `;
   const countRows = await sql`
@@ -335,6 +335,7 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     FROM hooks h JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
       AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
+      AND (h.curated = TRUE OR h.views >= 250000)
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
@@ -351,7 +352,8 @@ export async function getAutoHookPool(nicheSlug, poolSize = 10) {
     FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE AND n.slug = ${nicheSlug}
-    ORDER BY h.curated DESC, h.outlier_score DESC, h.last_verified DESC
+      AND (h.curated = TRUE OR h.views >= 250000)
+    ORDER BY h.curated ASC, h.views DESC, h.outlier_score DESC, h.last_verified DESC
     LIMIT ${poolSize}
   `;
 }
@@ -454,6 +456,24 @@ export async function saveProfile(userId, profileObj) {
     UPDATE users SET profile = ${JSON.stringify(profileObj)}, updated_at = NOW()
     WHERE id = ${userId}
   `;
+}
+
+export async function updateProfileIcon(userId, expectedAppUrl, iconUrl) {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE users
+    SET profile = COALESCE(profile, '{}'::jsonb) || jsonb_build_object(
+          'icon_url', ${iconUrl || ''}::text,
+          'icon_checked', TRUE
+        ),
+        updated_at = NOW()
+    WHERE id = ${userId}
+      AND profile->>'app_url' = ${expectedAppUrl}
+      AND COALESCE(profile->>'icon_url', '') = ''
+      AND COALESCE(profile->>'icon_checked', 'false') <> 'true'
+    RETURNING profile
+  `;
+  return rows[0]?.profile || null;
 }
 
 // ============================================

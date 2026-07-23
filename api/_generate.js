@@ -206,7 +206,7 @@ export function buildHookPickPayload(profile, pool) {
       id: h.id,
       hook: h.hook_verbatim || h.hook_template || '',
       topic: h.topic || '',
-      score: h.outlier_score,
+      views: Number(h.views || 0),
     })),
   };
 }
