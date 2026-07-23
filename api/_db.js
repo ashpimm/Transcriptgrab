@@ -7,6 +7,7 @@ import {
   CANONICAL_NICHES, NICHE_MERGES, RETIRED_NICHE_SLUGS, LEGACY_NICHE_SLUGS,
   NICHE_CLASSIFIER_VERSION, slugifyNiche, mergeNicheKeywords,
 } from './_niches.js';
+import { evaluateAnonThrottle, anonDailyCap, anonEnabled } from './_anon.js';
 
 function getSQL() {
   return neon(process.env.POSTGRES_URL);
@@ -818,8 +819,23 @@ function missingColumn(e, col) {
   return /does not exist/i.test(m) && m.includes(col);
 }
 
-export async function saveCarousel(userId, hookId, style, slides, caption, watermark, heroScene) {
+// anonId lets a logged-out taste-first generation own a carousel row with a
+// NULL user_id; claimAnonForUser later transfers it to the account created at
+// signup. Authed callers pass no anonId and behave exactly as before.
+export async function saveCarousel(userId, hookId, style, slides, caption, watermark, heroScene, anonId = null) {
   const sql = getSQL();
+  // Anon rows (user_id NULL, anon_id set). Isolated from the authed path so the
+  // authed INSERT never references anon_id — a column that may not exist until
+  // ensureAnonSchema() has run. ensureAnonSchema() is always awaited before an
+  // anon saveCarousel, so anon_id + hero_scene are present here.
+  if (anonId) {
+    const rows = await sql`
+      INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark, hero_scene, anon_id)
+      VALUES (NULL, ${hookId || null}, ${style}, ${JSON.stringify(slides)}, ${caption || ''}, ${!!watermark}, ${heroScene || ''}, ${anonId})
+      RETURNING id, created_at
+    `;
+    return rows[0];
+  }
   try {
     const rows = await sql`
       INSERT INTO carousels (user_id, hook_id, style, slides, caption, watermark, hero_scene)
@@ -918,6 +934,207 @@ export async function getCarouselByIdForRender(id) {
     WHERE c.id = ${id}
   `;
   return rows[0] || null;
+}
+
+// ============================================
+// HOOKLAB: ANONYMOUS TASTE-FIRST SLOTS
+// ============================================
+// A logged-out visitor may generate ONE full watermarked post for their own
+// product before signing in. anon_slots tracks the throttle (1 completed post
+// per IP, ever; ANON_DAILY_CAP completed posts per day) and holds the anon
+// profile until claimAnonForUser() transfers it + the carousel to a real
+// account at signup. All of this is inert unless ANON_IP_SALT is set.
+
+let anonSchemaPromise;
+
+export async function ensureAnonSchema() {
+  if (!anonSchemaPromise) {
+    anonSchemaPromise = (async () => {
+      const sql = getSQL();
+      await sql`
+        CREATE TABLE IF NOT EXISTS anon_slots (
+          id SERIAL PRIMARY KEY,
+          anon_id TEXT NOT NULL,
+          ip_hash TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'reserved',
+          profile JSONB,
+          carousel_id INT,
+          claimed_by INT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS anon_slots_ip ON anon_slots (ip_hash)`;
+      await sql`CREATE INDEX IF NOT EXISTS anon_slots_anon ON anon_slots (anon_id)`;
+      await sql`ALTER TABLE carousels ADD COLUMN IF NOT EXISTS anon_id TEXT`;
+      await sql`ALTER TABLE carousels ALTER COLUMN user_id DROP NOT NULL`;
+    })().catch((error) => {
+      anonSchemaPromise = null;
+      throw error;
+    });
+  }
+  return anonSchemaPromise;
+}
+
+// Reserve a generation slot at import-start (the first money-costing step).
+// Per-IP gate counts only COMPLETED tastes (1 ever). The daily gate counts
+// reserved + complete so a burst of in-flight generations still respects the
+// cap; released (failed) slots free their count back up.
+export async function reserveAnonSlot({ anonId, ipHash, cap = anonDailyCap() }) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+
+  let ipHasComplete = false;
+  if (ipHash) {
+    const r = await sql`
+      SELECT COUNT(*)::int AS n FROM anon_slots
+      WHERE ip_hash = ${ipHash} AND status = 'complete'
+    `;
+    ipHasComplete = r[0].n > 0;
+  }
+
+  const d = await sql`
+    SELECT COUNT(*)::int AS n FROM anon_slots
+    WHERE status IN ('reserved', 'complete') AND created_at::date = CURRENT_DATE
+  `;
+
+  const verdict = evaluateAnonThrottle({
+    enabled: anonEnabled(), ipHasComplete, dailyComplete: d[0].n, cap,
+  });
+  if (!verdict.allowed) return { allowed: false, reason: verdict.reason, slotId: null };
+
+  const ins = await sql`
+    INSERT INTO anon_slots (anon_id, ip_hash, status)
+    VALUES (${anonId}, ${ipHash || ''}, 'reserved')
+    RETURNING id
+  `;
+  return { allowed: true, reason: null, slotId: ins[0].id };
+}
+
+// Store the imported profile on the latest reserved slot for this anon id.
+export async function attachAnonProfile(anonId, profileObj) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+  await sql`
+    UPDATE anon_slots SET profile = ${JSON.stringify(profileObj)}
+    WHERE id = (
+      SELECT id FROM anon_slots
+      WHERE anon_id = ${anonId} AND status = 'reserved'
+      ORDER BY created_at DESC LIMIT 1
+    )
+  `;
+}
+
+export async function getAnonProfile(anonId) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT profile FROM anon_slots
+    WHERE anon_id = ${anonId} AND status IN ('reserved', 'complete')
+    ORDER BY created_at DESC LIMIT 1
+  `;
+  return rows[0]?.profile || null;
+}
+
+// The moment the IP's single lifetime taste is consumed: mark the reserved slot
+// complete and bind it to the carousel row just created.
+export async function completeAnonSlot({ anonId, carouselId }) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+  await sql`
+    UPDATE anon_slots SET status = 'complete', carousel_id = ${carouselId}
+    WHERE id = (
+      SELECT id FROM anon_slots
+      WHERE anon_id = ${anonId} AND status = 'reserved'
+      ORDER BY created_at DESC LIMIT 1
+    )
+  `;
+}
+
+// Failure path: hand the slot back so our own error does not burn the visitor's
+// one taste and does not count against the daily cap.
+export async function releaseAnonSlot(anonId) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+  await sql`
+    UPDATE anon_slots SET status = 'released'
+    WHERE id = (
+      SELECT id FROM anon_slots
+      WHERE anon_id = ${anonId} AND status = 'reserved'
+      ORDER BY created_at DESC LIMIT 1
+    )
+  `;
+}
+
+export async function getCarouselAnon(anonId, id) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT * FROM carousels WHERE anon_id = ${anonId} AND id = ${id}
+  `;
+  return rows[0] || null;
+}
+
+export async function getCarouselsAnon(anonId) {
+  const sql = getSQL();
+  return sql`
+    SELECT id, hook_id, style, slides, caption, watermark, created_at,
+           (bg IS NOT NULL) AS has_bg
+    FROM carousels WHERE anon_id = ${anonId}
+    ORDER BY created_at DESC LIMIT 5
+  `;
+}
+
+export async function saveCarouselBgAnon(anonId, id, bg) {
+  const sql = getSQL();
+  await sql`UPDATE carousels SET bg = ${bg} WHERE anon_id = ${anonId} AND id = ${id}`;
+}
+
+export async function saveCarouselHeroAnon(anonId, id, hero) {
+  const sql = getSQL();
+  try {
+    await sql`UPDATE carousels SET hero = ${hero} WHERE anon_id = ${anonId} AND id = ${id}`;
+  } catch (e) {
+    if (!missingColumn(e, 'hero')) throw e;
+    console.error('carousels.hero missing — RUN scripts/migrate-hero.sql.');
+  }
+}
+
+// Transfer a completed anon post to the account created at signup. Idempotent:
+// a stale/mismatched anon cookie finds no unclaimed complete slot and no-ops.
+// Sequential statements (Neon http has no interactive tx); ordering is
+// carousel-move first, then account bump, then slot mark, each independently
+// safe to re-run.
+export async function claimAnonForUser({ anonId, userId }) {
+  await ensureAnonSchema();
+  const sql = getSQL();
+  const slotRows = await sql`
+    SELECT id, carousel_id, profile FROM anon_slots
+    WHERE anon_id = ${anonId} AND status = 'complete' AND claimed_by IS NULL
+    ORDER BY created_at DESC LIMIT 1
+  `;
+  const slot = slotRows[0];
+  if (!slot) return { claimed: false, carouselId: null };
+
+  if (slot.carousel_id) {
+    await sql`
+      UPDATE carousels SET user_id = ${userId}, anon_id = NULL
+      WHERE id = ${slot.carousel_id} AND user_id IS NULL
+    `;
+  }
+  if (slot.profile) {
+    await sql`
+      UPDATE users SET profile = ${JSON.stringify(slot.profile)}, updated_at = NOW()
+      WHERE id = ${userId} AND profile IS NULL
+    `;
+  }
+  // Count the claimed post as free post #1 (cap at the free allowance).
+  await sql`
+    UPDATE users
+    SET free_carousels_used = LEAST(COALESCE(free_carousels_used, 0) + 1, ${FREE_CAROUSELS}),
+        free_carousel_used = TRUE, updated_at = NOW()
+    WHERE id = ${userId}
+  `;
+  await sql`UPDATE anon_slots SET claimed_by = ${userId} WHERE id = ${slot.id}`;
+  return { claimed: true, carouselId: slot.carousel_id };
 }
 
 export async function claimReelRender(userId, carouselId) {
