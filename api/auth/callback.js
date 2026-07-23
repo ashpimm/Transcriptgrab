@@ -1,6 +1,7 @@
 // api/auth/callback.js — Handle Google OAuth return + Stripe link redirect
 import Stripe from 'stripe';
-import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession, addCredits, updateUser } from '../_db.js';
+import { parseCookies, upsertGoogleUser, createSession, setSessionCookie, getSession, setProStatus, claimCheckoutSession, addCredits, updateUser, claimAnonForUser } from '../_db.js';
+import { parseAnonId, clearAnonCookie } from '../_anon.js';
 
 const CREDIT_PACK_SIZE = 8; // $5 pack — keep in sync with api/webhook.js
 
@@ -83,6 +84,18 @@ export default async function handler(req, res) {
     // Create session
     const token = await createSession(user.id);
 
+    // Claim a taste-first anonymous post made before signing in, so it (and the
+    // product profile it was built from) is already in the account on arrival.
+    // Best-effort: a claim failure must never block login.
+    const anonId = parseAnonId(req);
+    if (anonId) {
+      try {
+        await claimAnonForUser({ anonId, userId: user.id });
+      } catch (e) {
+        console.error('anon claim failed:', e.message);
+      }
+    }
+
     // Check if user came from a checkout flow (plan=pro|credits|autopilot)
     const checkoutPlan = cookies.tg_checkout_plan;
     const redirectTo = ['pro', 'credits', 'autopilot'].includes(checkoutPlan)
@@ -94,6 +107,7 @@ export default async function handler(req, res) {
       ...clearCookies,
       `tg_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`,
     ]);
+    if (anonId) clearAnonCookie(res); // consumed — retire the anon identity
 
     res.writeHead(302, { Location: redirectTo });
     res.end();

@@ -61,3 +61,16 @@ test('carousel.js releases the slot when plan generation fails', () => {
 test('carousel.js keeps reel Pro-only (guards null user)', () => {
   assert.match(carouselSrc, /if \(!user \|\| user\.tier !== 'pro'\)/);
 });
+
+// ---- auth/callback.js ----
+
+const callbackSrc = fs.readFileSync(new URL('../api/auth/callback.js', import.meta.url), 'utf8');
+
+test('callback claims the anon post best-effort and clears the cookie', () => {
+  assert.match(callbackSrc, /import \{ parseAnonId, clearAnonCookie \}/);
+  assert.match(callbackSrc, /claimAnonForUser\(\{ anonId, userId: user\.id \}\)/);
+  assert.match(callbackSrc, /clearAnonCookie\(res\)/);
+  // The claim is wrapped so a failure never blocks login.
+  const block = callbackSrc.match(/const anonId = parseAnonId\(req\);[\s\S]*?clearAnonCookie/)?.[0] || '';
+  assert.match(block, /try \{[\s\S]*?claimAnonForUser[\s\S]*?\} catch/);
+});
