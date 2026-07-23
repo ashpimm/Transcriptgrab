@@ -212,9 +212,14 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   let transcriptAttempts = 0;
   let transcriptFailures = 0;
   const transcriptCandidates = researchPool.slice(0, maxTranscripts);
-  const TRANSCRIPT_CONCURRENCY = 4;
+  // Keep the burst small and paced. Supadata's rate limit 429s a wide fan-out;
+  // fetchTranscript already retries a single 429 with backoff, and pausing
+  // between batches keeps the whole pass under the per-second ceiling.
+  const TRANSCRIPT_CONCURRENCY = 2;
+  const TRANSCRIPT_BATCH_PAUSE_MS = 300;
   for (let start = 0; start < transcriptCandidates.length; start += TRANSCRIPT_CONCURRENCY) {
     if (transcriptReady.length >= maxExtractions) break;
+    if (start > 0) await new Promise((resolve) => setTimeout(resolve, TRANSCRIPT_BATCH_PAUSE_MS));
     const batch = transcriptCandidates.slice(start, start + TRANSCRIPT_CONCURRENCY);
     transcriptAttempts += batch.length;
     const batchResults = await Promise.all(batch.map(async (candidate) => {
