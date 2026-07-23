@@ -94,13 +94,36 @@
 <link rel="stylesheet" href="/hooklab.css">
 <style>
 /* ---------- hero ---------- */
-.hero { padding: clamp(56px, 8vw, 104px) 0 clamp(24px, 3vw, 38px); text-align: center; position: relative; }
+.hero {
+  padding: clamp(56px, 8vw, 104px) 0 clamp(24px, 3vw, 38px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #070708;
+}
 .hero::before {
   content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
-  width: min(900px, 100vw); height: 480px; pointer-events: none;
+  width: min(900px, 100vw); height: 480px; pointer-events: none; z-index: 0;
   background: radial-gradient(closest-side, rgba(255,221,0,.10), transparent 70%);
 }
-.hero > * { position: relative; }
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(7,7,8,.72), rgba(7,7,8,.12) 34%, rgba(7,7,8,.12) 66%, rgba(7,7,8,.72)),
+    linear-gradient(180deg, rgba(7,7,8,.18), rgba(7,7,8,.06) 58%, #070708 100%);
+}
+.hero > :not(.vanta-canvas) { position: relative; z-index: 2; }
+.hero .vanta-canvas {
+  opacity: 0;
+  transition: opacity .8s ease;
+  pointer-events: none !important;
+}
+.hero.vanta-ready .vanta-canvas { opacity: .52; }
 .hero h1 { font-size: clamp(38px, 6.4vw, 82px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.03; max-width: 15ch; margin: 20px auto 0; }
 .hero .sub { color: var(--muted); font-size: clamp(15px, 2vw, 18px); max-width: 52ch; margin: 22px auto 0; }
 .hero .pastebar { margin: 36px auto 0; }
@@ -304,12 +327,16 @@
   .final .btn { width: 100%; margin-top: 26px; }
   .final > div { font-size: 13px !important; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .vanta-canvas { display: none !important; }
+}
 </style>
 </head>
 <body>
 
 <!-- ============ HERO ============ -->
-<header class="hero wrap">
+<header class="hero wrap" id="hero-vanta">
   <span class="kicker">Social content for apps, built from proven hooks</span>
   <h1>Turn your app into posts people stop for.</h1>
   <p class="sub">Paste your product link. Promote.dev finds hook patterns already outperforming in your buyers' niche, then builds the slides, caption, and hashtags — ready to download or publish for you every day.</p>
@@ -520,6 +547,7 @@
 </script>
 <script src="/nav.js" defer></script>
 <script src="/pro.js" defer></script>
+<script src="/vanta-background.js" defer></script>
 <script>
 // hero paste → stash URL, then auth (or straight to create when signed in)
 document.getElementById('hero-paste').addEventListener('submit', function (e) {
