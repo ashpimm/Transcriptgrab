@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateHookExtraction } from '../api/_miner.js';
+import {
+  MIN_FRESH_ACCEPTED_HOOKS, MIN_FRESH_TRANSCRIPT_ELIGIBLE,
+  assessFreshReadiness, excludeCrossNicheRows, selectResearchPool,
+  validateHookExtraction,
+} from '../api/_miner.js';
 
 const transcript = 'Hey guys, welcome back. I deleted three apps and finally got my mornings back. The first one was the worst offender.';
 const good = {
@@ -51,4 +55,60 @@ test('rejects templates invented from a different hook', () => {
     hook_template: 'The secret ___ that changed my whole morning.',
   };
   assert.equal(validateHookExtraction(invented, transcript).reason, 'template not derived from hook');
+});
+
+test('routine mines extract only unseen sources', () => {
+  const candidates = [{ url: 'https://example.com/saved' }, { url: 'https://example.com/new' }];
+  const existing = new Set(['https://example.com/saved']);
+  assert.deepEqual(
+    selectResearchPool(candidates, existing).map((candidate) => candidate.url),
+    ['https://example.com/new'],
+  );
+});
+
+test('dry and fresh mines re-evaluate the complete candidate pool', () => {
+  const candidates = [{ url: 'https://example.com/saved' }, { url: 'https://example.com/new' }];
+  const existing = new Set(['https://example.com/saved']);
+  assert.deepEqual(selectResearchPool(candidates, existing, { dry: true }), candidates);
+  assert.deepEqual(selectResearchPool(candidates, existing, { fresh: true }), candidates);
+});
+
+test('fresh rebuilds require a minimally useful accepted pool', () => {
+  assert.equal(MIN_FRESH_ACCEPTED_HOOKS, 3);
+  assert.equal(MIN_FRESH_TRANSCRIPT_ELIGIBLE, 6);
+  assert.deepEqual(assessFreshReadiness({
+    accepted: 3,
+    transcriptEligible: 6,
+    evaluated: 6,
+  }), { canApply: true, blockers: [] });
+});
+
+test('fresh rebuilds refuse partial discovery, upstream, and extraction runs', () => {
+  assert.equal(assessFreshReadiness({
+    accepted: 5,
+    transcriptEligible: 8,
+    evaluated: 8,
+    discoveryFailures: 1,
+  }).canApply, false);
+  assert.equal(assessFreshReadiness({
+    accepted: 5,
+    transcriptEligible: 8,
+    evaluated: 8,
+    upstreamFailures: 1,
+  }).canApply, false);
+  assert.equal(assessFreshReadiness({
+    accepted: 5,
+    transcriptEligible: 8,
+    evaluated: 7,
+  }).canApply, false);
+});
+
+test('fresh rebuilds do not steal a globally-owned video from another niche', () => {
+  const owned = excludeCrossNicheRows(
+    [{ videoUrl: 'same-niche' }, { videoUrl: 'other-niche' }, { videoUrl: 'new' }],
+    new Set(['same-niche', 'other-niche']),
+    new Set(['same-niche']),
+  );
+  assert.deepEqual(owned.rows.map((row) => row.videoUrl), ['same-niche', 'new']);
+  assert.deepEqual(owned.conflicts, ['other-niche']);
 });

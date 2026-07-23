@@ -173,6 +173,12 @@ node scripts/run-migration.mjs scripts/migrate-autopilot.sql
 
 Review migrations before applying them and run them in chronological dependency order.
 
+## Operations
+
+- [Hook mining dry runs and fresh niche rebuilds](docs/hook-mining-operations.md)
+- [Autopilot monitoring and recovery](docs/autopilot-operations.md)
+- [Reel rendering](docs/reel-operations.md)
+
 ## Tests
 
 The Node test suite covers:

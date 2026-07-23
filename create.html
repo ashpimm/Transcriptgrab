@@ -2086,6 +2086,15 @@ function downloadZip() {
     var txt = caption.replace(/\r?\n/g, '\r\n') + '\r\n';
     files.push({ name: 'caption.txt', bytes: new TextEncoder().encode(txt) });
   }
+  var source = ST.carousel && ST.carousel.hook;
+  if (source) {
+    var sourceLines = [
+      'Hook: ' + (source.text || ''),
+      source.curated ? 'Source: hand-picked fallback pattern' : 'Source video: ' + (source.videoUrl || ''),
+      source.curated ? '' : 'Source views at research time: ' + String(source.views || 0)
+    ].filter(Boolean).join('\r\n') + '\r\n';
+    files.push({ name: 'source.txt', bytes: new TextEncoder().encode(sourceLines) });
+  }
   var blob = makeZip(files);
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

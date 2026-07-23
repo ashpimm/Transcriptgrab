@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('../create.html', import.meta.url), 'utf8');
+const carouselApi = fs.readFileSync(new URL('../api/carousel.js', import.meta.url), 'utf8');
 
 test('Create keeps one generation/render flow active at a time', () => {
   assert.match(source, /if \(ST\.generationBusy\) return;/);
@@ -32,3 +33,8 @@ test('Create copy does not promise source performance for curated fallback hooks
   assert.doesNotMatch(source, /opening already outperforming|source-backed opener|5×\+ source-hook standard/);
 });
 
+test('downloaded posts include the selected hook source receipt', () => {
+  assert.match(carouselApi, /hook:\s*\{[\s\S]*views: Number\(plan\.hook\.views/);
+  assert.match(source, /name: 'source\.txt'/);
+  assert.match(source, /Source views at research time:/);
+});

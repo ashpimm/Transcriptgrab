@@ -3,7 +3,8 @@
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
 import {
-  markNicheMined, getExistingHookUrls, refreshHookStats, upsertHook,
+  markNicheMined, getExistingHookUrls, getMinedHookUrlsForNiche,
+  refreshHookStats, upsertHook, replaceMinedHooksForNiche,
 } from './_db.js';
 import {
   computeOutlierScore, isHighReachCandidate, compareCandidateReach, isMostlyLatin,
@@ -14,6 +15,8 @@ import { callGemini } from './_shared.js';
 import { HOOK_EXTRACTION_PROMPT } from './_prompts.js';
 
 const VALID_FORMATS = ['talking_head', 'whiteboard', 'audio_broll', 'skit', 'other'];
+export const MIN_FRESH_ACCEPTED_HOOKS = 3;
+export const MIN_FRESH_TRANSCRIPT_ELIGIBLE = 6;
 
 function videoUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
@@ -89,24 +92,68 @@ export function validateHookExtraction(ex, transcript) {
   return { ok: true, reason: '' };
 }
 
+export function selectResearchPool(candidates, existingUrls, { dry = false, fresh = false } = {}) {
+  if (dry || fresh) return candidates;
+  return candidates.filter((candidate) => !existingUrls.has(candidate.url));
+}
+
+export function assessFreshReadiness({
+  accepted = 0,
+  transcriptEligible = 0,
+  evaluated = 0,
+  discoveryFailures = 0,
+  upstreamFailures = 0,
+} = {}) {
+  const blockers = [];
+  if (discoveryFailures > 0) blockers.push('one or more discovery searches failed');
+  if (upstreamFailures > 0) blockers.push('one or more transcript or extraction services failed');
+  if (transcriptEligible < MIN_FRESH_TRANSCRIPT_ELIGIBLE) {
+    blockers.push(`fewer than ${MIN_FRESH_TRANSCRIPT_ELIGIBLE} candidates had usable transcripts`);
+  }
+  if (evaluated !== transcriptEligible) blockers.push('the extraction model did not evaluate every transcript');
+  if (accepted < MIN_FRESH_ACCEPTED_HOOKS) {
+    blockers.push(`fewer than ${MIN_FRESH_ACCEPTED_HOOKS} hooks passed the quality gate`);
+  }
+  return { canApply: blockers.length === 0, blockers };
+}
+
+export function excludeCrossNicheRows(rows, allExistingUrls, currentNicheUrls) {
+  const conflicts = rows
+    .filter((row) => allExistingUrls.has(row.videoUrl) && !currentNicheUrls.has(row.videoUrl))
+    .map((row) => row.videoUrl);
+  const conflictSet = new Set(conflicts);
+  return {
+    rows: rows.filter((row) => !conflictSet.has(row.videoUrl)),
+    conflicts: [...conflictSet],
+  };
+}
+
 export async function mineNiche(niche, apiKey, opts = {}) {
   const {
     maxKeywords = 6, maxSeedChannels = 3,
-    maxExtractions = 12, maxTranscripts = 18, dry = false,
+    maxExtractions = 12, maxTranscripts = 18, dry = false, fresh = false,
   } = opts;
   const errors = [];
+  let discoveryFailures = 0;
+  let upstreamFailures = 0;
 
   // 1. Gather candidate videos
   const candidates = new Map(); // videoId -> {videoId, title, channelId}
   for (const keyword of (niche.keywords || []).slice(0, maxKeywords)) {
     try {
       for (const v of await searchShorts(keyword, apiKey)) candidates.set(v.videoId, v);
-    } catch (e) { errors.push(`search "${keyword}": ${e.message}`); }
+    } catch (e) {
+      discoveryFailures++;
+      errors.push(`search "${keyword}": ${e.message}`);
+    }
   }
   for (const channelId of (niche.seed_channels || []).slice(0, maxSeedChannels)) {
     try {
       for (const v of await channelRecentShorts(channelId, apiKey)) candidates.set(v.videoId, v);
-    } catch (e) { errors.push(`channel ${channelId}: ${e.message}`); }
+    } catch (e) {
+      discoveryFailures++;
+      errors.push(`channel ${channelId}: ${e.message}`);
+    }
   }
 
   // 2. Batch stats
@@ -134,38 +181,44 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   }
   outliers.sort(compareCandidateReach);
 
-  // 4. Split into refresh (already known) vs new. A dry run deliberately
-  // rechecks both groups so a policy change can be judged against the current
-  // catalogue without writing to it.
+  // 4. Split into refresh (already known) vs new. Dry and fresh rebuilds
+  // deliberately recheck both groups under the current extraction policy.
   const existing = await getExistingHookUrls(outliers.map((o) => o.url));
-  const newOutliers = outliers.filter((o) => !existing.has(o.url));
+  const currentMined = (dry || fresh)
+    ? await getMinedHookUrlsForNiche(niche.id)
+    : new Set();
   const refresh = outliers.filter((o) => existing.has(o.url));
-  const researchPool = dry ? outliers : newOutliers;
+  const researchPool = selectResearchPool(outliers, existing, { dry, fresh });
 
   // 5. Transcript gate: a hook is something a person SAYS — no transcript, no
   // hook. Title-only extraction shipped SEO titles as "hooks" (a 5-second
   // silent short's title is not a hook). Walk candidates best-score-first,
   // keep only those with real spoken words, cap the Supadata spend.
-  const fresh = [];
+  const transcriptReady = [];
   let transcriptAttempts = 0;
+  let transcriptFailures = 0;
   for (const o of researchPool) {
-    if (fresh.length >= maxExtractions || transcriptAttempts >= maxTranscripts) break;
+    if (transcriptReady.length >= maxExtractions || transcriptAttempts >= maxTranscripts) break;
     transcriptAttempts++;
     try {
       const text = (await fetchTranscript(o.url)).text.substring(0, 2000);
       if (normalizedWords(text).length >= 8) {
         o.transcript = text;
-        fresh.push(o);
+        transcriptReady.push(o);
       }
-    } catch { /* no captions -> not eligible */ }
+    } catch (e) {
+      transcriptFailures++;
+      if (e.message !== 'No captions available.') upstreamFailures++;
+      errors.push(`transcript ${o.url}: ${e.message}`);
+    }
   }
 
   // 6. Gemini extraction (one batched call)
   let extracted = [];
-  if (fresh.length > 0) {
+  if (transcriptReady.length > 0) {
     const payload = {
       niche: niche.name,
-      videos: fresh.map((o, i) => ({
+      videos: transcriptReady.map((o, i) => ({
         i, title: o.title, views: o.views, followers: o.followers,
         ...(o.transcript ? { transcript: o.transcript } : {}),
       })),
@@ -173,8 +226,14 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     try {
       const result = await callGemini(HOOK_EXTRACTION_PROMPT, JSON.stringify(payload), 0.1);
       if (Array.isArray(result)) extracted = result;
-      else errors.push('extraction returned non-array');
-    } catch (e) { errors.push(`extraction: ${e.message}`); }
+      else {
+        upstreamFailures++;
+        errors.push('extraction returned non-array');
+      }
+    } catch (e) {
+      upstreamFailures++;
+      errors.push(`extraction: ${e.message}`);
+    }
   }
 
   // 7. Build rows
@@ -185,9 +244,9 @@ export async function mineNiche(niche, apiKey, opts = {}) {
       errors.push('skipped malformed or duplicate extraction index');
       continue;
     }
-    seenExtractionIndexes.add(ex.i);
-    const src = fresh[ex.i];
+    const src = transcriptReady[ex.i];
     if (!src) continue;
+    seenExtractionIndexes.add(ex.i);
     const validation = validateHookExtraction(ex, src.transcript);
     if (!validation.ok) {
       errors.push(`skipped ${validation.reason}: ${src.url}`);
@@ -214,19 +273,71 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     });
   }
 
+  if (dry || fresh) {
+    const owned = excludeCrossNicheRows(rows, existing, currentMined);
+    if (owned.conflicts.length > 0) {
+      for (const url of owned.conflicts) errors.push(`skipped source owned by another niche: ${url}`);
+      rows.splice(0, rows.length, ...owned.rows);
+    }
+  }
+
+  const freshReadiness = assessFreshReadiness({
+    accepted: rows.length,
+    transcriptEligible: transcriptReady.length,
+    evaluated: seenExtractionIndexes.size,
+    discoveryFailures,
+    upstreamFailures,
+  });
+
   if (dry) {
-    const wouldInsert = rows.filter((row) => !existing.has(row.videoUrl));
-    const wouldReplace = rows.filter((row) => existing.has(row.videoUrl));
+    const acceptedUrls = new Set(rows.map((row) => row.videoUrl));
+    const wouldInsert = rows.filter((row) => !currentMined.has(row.videoUrl));
+    const wouldReplace = rows.filter((row) => currentMined.has(row.videoUrl));
+    const wouldDelete = [...currentMined].filter((url) => !acceptedUrls.has(url));
     return {
-      dry: true, niche: niche.slug,
+      dry: true, fresh, niche: niche.slug,
       scanned: videoIds.length, outliers: outliers.length,
-      transcriptAttempts, transcriptEligible: fresh.length,
-      accepted: rows.length, rejected: Math.max(0, fresh.length - rows.length),
-      wouldRefresh: refresh.length, wouldInsert, wouldReplace, errors,
+      transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
+      accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
+      currentMined: currentMined.size, finalMined: rows.length,
+      minimumAccepted: MIN_FRESH_ACCEPTED_HOOKS,
+      minimumTranscriptEligible: MIN_FRESH_TRANSCRIPT_ELIGIBLE,
+      canApplyFresh: freshReadiness.canApply,
+      freshBlockers: freshReadiness.blockers,
+      wouldRefresh: refresh.length, wouldInsert, wouldReplace, wouldDelete, errors,
     };
   }
 
   // 8. Write
+  if (fresh) {
+    if (!freshReadiness.canApply) {
+      return {
+        fresh: true, applied: false, niche: niche.slug,
+        scanned: videoIds.length, outliers: outliers.length,
+        transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
+        accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
+        currentMined: currentMined.size, finalMined: currentMined.size,
+        minimumAccepted: MIN_FRESH_ACCEPTED_HOOKS,
+        minimumTranscriptEligible: MIN_FRESH_TRANSCRIPT_ELIGIBLE,
+        freshBlockers: freshReadiness.blockers,
+        removed: 0, upserted: 0,
+        errors: [
+          ...errors,
+          'Fresh rebuild was not healthy enough to replace the niche; existing hooks were kept.',
+        ],
+      };
+    }
+    const replaced = await replaceMinedHooksForNiche(niche.id, rows);
+    return {
+      fresh: true, applied: true, niche: niche.slug,
+      scanned: videoIds.length, outliers: outliers.length,
+      transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
+      accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
+      currentMined: currentMined.size, finalMined: rows.length,
+      removed: replaced.removed, upserted: replaced.upserted, errors,
+    };
+  }
+
   let inserted = 0;
   for (const row of rows) {
     try { await upsertHook(niche.id, row); inserted++; }

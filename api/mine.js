@@ -1,7 +1,9 @@
 // api/mine.js — Niche research pipeline (cron + admin trigger).
 //
-// GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1]
+// GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1][&fresh=1]
 // dry=1 re-evaluates both new and saved candidates and makes no database writes.
+// fresh=1 atomically replaces one explicit niche's mined rows with accepted
+// results from the current policy; curated fallbacks are preserved.
 // Also runs via Vercel cron (Bearer CRON_SECRET), one niche per run
 // (the one mined longest ago).
 //
@@ -12,7 +14,7 @@
 
 import { getNicheBySlug, getStalestNiches } from './_db.js';
 import { mineNiche } from './_miner.js';
-import { cronAuthOk } from './_shared.js';
+import { adminSecretOk, cronAuthOk } from './_shared.js';
 
 export const maxDuration = 60;
 
@@ -33,12 +35,20 @@ export default async function handler(req, res) {
 
   try {
     const dry = req.query.dry === '1';
+    const fresh = req.query.fresh === '1';
+    if (fresh && !req.query.niche) {
+      return res.status(400).json({ error: 'fresh=1 requires an explicit niche slug' });
+    }
+    if (fresh && !dry && !adminSecretOk(req)) {
+      return res.status(403).json({ error: 'A real fresh rebuild requires ADMIN_SECRET' });
+    }
 
     // Explicit niche: single targeted mine (admin use).
     if (req.query.niche) {
       const niche = await getNicheBySlug(req.query.niche);
       if (!niche) return res.status(404).json({ error: 'No active niche found' });
-      return res.status(200).json(await mineNiche(niche, apiKey, { dry }));
+      const result = await mineNiche(niche, apiKey, { dry, fresh });
+      return res.status(fresh && !dry && result.applied === false ? 409 : 200).json(result);
     }
 
     // Cron / no niche: sweep the stalest few within the time budget.

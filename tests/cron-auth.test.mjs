@@ -3,7 +3,7 @@
 // only gate. Manual runs use ?secret=$ADMIN_SECRET.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cronAuthOk } from '../api/_shared.js';
+import { adminSecretOk, cronAuthOk } from '../api/_shared.js';
 
 const req = (headers = {}, query = {}) => ({ headers, query });
 
@@ -21,6 +21,20 @@ test('does not trust a spoofable x-vercel-cron header', () => {
 test('accepts admin secret query for manual runs', () => {
   process.env.ADMIN_SECRET = 'as-test';
   assert.equal(cronAuthOk(req({}, { secret: 'as-test' })), true);
+  assert.equal(adminSecretOk(req({}, { secret: 'as-test' })), true);
+});
+
+test('accepts ADMIN_SECRET as a bearer token for safer manual runs', () => {
+  process.env.ADMIN_SECRET = 'as-test';
+  assert.equal(cronAuthOk(req({ authorization: 'Bearer as-test' })), true);
+  assert.equal(adminSecretOk(req({ authorization: 'Bearer as-test' })), true);
+});
+
+test('admin-only actions do not accept the cron bearer', () => {
+  process.env.CRON_SECRET = 'cs-test';
+  process.env.ADMIN_SECRET = 'as-test';
+  assert.equal(cronAuthOk(req({ authorization: 'Bearer cs-test' })), true);
+  assert.equal(adminSecretOk(req({ authorization: 'Bearer cs-test' })), false);
 });
 
 test('rejects wrong bearer, wrong query secret, and bare requests', () => {

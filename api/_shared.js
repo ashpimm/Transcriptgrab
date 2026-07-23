@@ -24,12 +24,19 @@ export function handleCors(req, res) {
  * Auth gate for cron endpoints (/api/mine, /api/autopilot).
  * Vercel's documented cron auth is `Authorization: Bearer ${CRON_SECRET}`.
  * Never trust a caller-supplied marker header; manual runs use the separate
- * ADMIN_SECRET query value.
+ * ADMIN_SECRET as a bearer token (or the legacy query value).
  */
 export function cronAuthOk(req) {
   const cron = process.env.CRON_SECRET;
   if (cron && req.headers['authorization'] === `Bearer ${cron}`) return true;
-  return !!(process.env.ADMIN_SECRET && req.query && req.query.secret === process.env.ADMIN_SECRET);
+  return adminSecretOk(req);
+}
+
+export function adminSecretOk(req) {
+  const admin = process.env.ADMIN_SECRET;
+  if (!admin) return false;
+  if (req.headers?.authorization === `Bearer ${admin}`) return true;
+  return !!(req.query && req.query.secret === admin);
 }
 
 /**

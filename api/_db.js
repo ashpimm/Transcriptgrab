@@ -368,9 +368,8 @@ export async function getHooksByIds(ids) {
   `;
 }
 
-export async function upsertHook(nicheId, h) {
-  const sql = getSQL();
-  const rows = await sql`
+function upsertHookQuery(sql, nicheId, h) {
+  return sql`
     INSERT INTO hooks (niche_id, hook_template, hook_verbatim, topic, format, platform,
                        video_url, video_title, views, followers, outlier_score, curated)
     VALUES (${nicheId}, ${h.hookTemplate}, ${h.hookVerbatim || ''}, ${h.topic || ''},
@@ -378,13 +377,82 @@ export async function upsertHook(nicheId, h) {
             ${h.videoTitle || ''}, ${h.views || 0}, ${h.followers || 0},
             ${h.outlierScore || 0}, ${h.curated || false})
     ON CONFLICT (video_url) DO UPDATE SET
+      hook_template = EXCLUDED.hook_template,
+      hook_verbatim = EXCLUDED.hook_verbatim,
+      topic = EXCLUDED.topic,
+      format = EXCLUDED.format,
+      platform = EXCLUDED.platform,
+      video_title = EXCLUDED.video_title,
       views = EXCLUDED.views,
       followers = EXCLUDED.followers,
       outlier_score = EXCLUDED.outlier_score,
       last_verified = NOW()
+    WHERE hooks.niche_id = EXCLUDED.niche_id
+      AND hooks.curated = FALSE
     RETURNING id
   `;
+}
+
+export async function upsertHook(nicheId, h) {
+  const sql = getSQL();
+  const rows = await upsertHookQuery(sql, nicheId, h);
   return rows[0];
+}
+
+// Atomically replace one niche's YouTube-mined inventory after a full policy
+// recheck. Accepted URLs are upserted first so retained rows keep their ids;
+// obsolete YouTube rows are then removed. Curated and future non-YouTube rows
+// are deliberately preserved. Any query failure rolls the whole transaction
+// back, including the deletion.
+export async function replaceMinedHooksForNiche(nicheId, hooks) {
+  if (!Array.isArray(hooks) || hooks.length === 0) {
+    throw new Error('Fresh rebuild produced no accepted hooks; existing hooks were kept.');
+  }
+  const sql = getSQL();
+  const acceptedUrls = hooks.map((hook) => hook.videoUrl);
+  const ownershipConflicts = await sql`
+    SELECT video_url
+    FROM hooks
+    WHERE video_url = ANY(${acceptedUrls})
+      AND (niche_id <> ${nicheId} OR curated = TRUE)
+  `;
+  if (ownershipConflicts.length > 0) {
+    throw new Error('Fresh rebuild found source URLs owned by another niche; existing hooks were kept.');
+  }
+  const results = await sql.transaction((tx) => [
+    tx`SELECT pg_advisory_xact_lock(87001, ${nicheId})`,
+    ...hooks.map((hook) => upsertHookQuery(tx, nicheId, hook)),
+    // Division by zero deliberately aborts and rolls back the transaction if a
+    // concurrent mine claimed one of these globally-unique video URLs.
+    tx`
+      SELECT 1 / CASE WHEN COUNT(*) = ${hooks.length} THEN 1 ELSE 0 END AS ownership_complete
+      FROM hooks
+      WHERE niche_id = ${nicheId}
+        AND curated = FALSE
+        AND platform = 'youtube'
+        AND video_url = ANY(${acceptedUrls})
+    `,
+    tx`
+      DELETE FROM hooks
+      WHERE niche_id = ${nicheId}
+        AND curated = FALSE
+        AND platform = 'youtube'
+        AND NOT (video_url = ANY(${acceptedUrls}))
+      RETURNING id
+    `,
+    tx`
+      UPDATE niches
+      SET last_mined_at = NOW()
+      WHERE id = ${nicheId}
+      RETURNING id
+    `,
+  ]);
+  const deleteResult = results[hooks.length + 2] || [];
+  return {
+    removed: deleteResult.length,
+    upserted: results.slice(1, hooks.length + 1)
+      .reduce((count, rows) => count + (rows?.length || 0), 0),
+  };
 }
 
 export async function getExistingHookUrls(urls) {
@@ -392,6 +460,18 @@ export async function getExistingHookUrls(urls) {
   const sql = getSQL();
   const rows = await sql`SELECT video_url FROM hooks WHERE video_url = ANY(${urls})`;
   return new Set(rows.map((r) => r.video_url));
+}
+
+export async function getMinedHookUrlsForNiche(nicheId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT video_url
+    FROM hooks
+    WHERE niche_id = ${nicheId}
+      AND curated = FALSE
+      AND platform = 'youtube'
+  `;
+  return new Set(rows.map((row) => row.video_url));
 }
 
 export async function refreshHookStats(videoUrl, views, followers, outlierScore) {

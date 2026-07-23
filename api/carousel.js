@@ -157,6 +157,15 @@ export default async function handler(req, res) {
       return res.status(200).json({
         carouselId: saved.id, style: plan.style, slides: plan.slides, caption: plan.caption,
         motifs: plan.motifs, accent: plan.accent,
+        hook: {
+          id: plan.hook.id,
+          text: plan.hook.hook_verbatim || plan.hook.hook_template || '',
+          views: Number(plan.hook.views || 0),
+          videoUrl: String(plan.hook.video_url || '').startsWith('curated://')
+            ? ''
+            : (plan.hook.video_url || ''),
+          curated: !!plan.hook.curated || String(plan.hook.video_url || '').startsWith('curated://'),
+        },
         watermark: !!gate.watermark, source: gate.source, ...reelAccess(user),
       });
     }
