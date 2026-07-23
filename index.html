@@ -102,11 +102,6 @@
   isolation: isolate;
   background: #070708;
 }
-.hero::before {
-  content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
-  width: min(900px, 100vw); height: 480px; pointer-events: none; z-index: 0;
-  background: radial-gradient(closest-side, rgba(255,221,0,.10), transparent 70%);
-}
 .hero::after {
   content: '';
   position: absolute;
@@ -123,7 +118,7 @@
   transition: opacity .8s ease;
   pointer-events: none !important;
 }
-.hero.vanta-ready .vanta-canvas { opacity: .52; }
+.hero.vanta-ready .vanta-canvas { opacity: .68; }
 .hero h1 { font-size: clamp(38px, 6.4vw, 82px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.03; max-width: 15ch; margin: 20px auto 0; }
 .hero .sub { color: var(--muted); font-size: clamp(15px, 2vw, 18px); max-width: 52ch; margin: 22px auto 0; }
 .hero .pastebar { margin: 36px auto 0; }
@@ -236,6 +231,12 @@
 
 @media (max-width: 640px) {
   .hero { padding: 44px 0 26px; }
+  .hero::after {
+    background:
+      linear-gradient(90deg, rgba(7,7,8,.38), rgba(7,7,8,.08) 50%, rgba(7,7,8,.38)),
+      linear-gradient(180deg, rgba(7,7,8,.08), rgba(7,7,8,.12) 62%, #070708 100%);
+  }
+  .hero.vanta-ready .vanta-canvas { opacity: .56; }
   .hero .kicker {
     display: block;
     max-width: 32ch;
