@@ -2,9 +2,10 @@
 // endpoint (api/carousel.js) and the autopilot cron (api/autopilot.js).
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
-import { getAutoHookPool, getCuratedHookPool, getHooksByIds } from './_db.js';
+import { getAutoHookPool, getHooksByIds } from './_db.js';
 import { callGemini } from './_shared.js';
 import { CAROUSEL_COPY_PROMPT, HOOK_PICK_PROMPT } from './_prompts.js';
+import { NICHE_CLASSIFIER_VERSION } from './_niches.js';
 
 export const SLIDE_COUNT = 6;
 
@@ -235,40 +236,38 @@ export function excludeHooks(pool, usedIds) {
 }
 
 async function pickHook(profile, hookId, excludeHookIds) {
+  const nicheSlug = profile.audience_niche?.slug || '';
+  if (
+    !nicheSlug ||
+    Number(profile.audience_niche?.classifier_version) !== NICHE_CLASSIFIER_VERSION
+  ) {
+    return null;
+  }
   if (Number.isInteger(hookId) && hookId > 0) {
-    const found = (await getHooksByIds([hookId]))[0];
+    const found = (await getHooksByIds([hookId], nicheSlug))[0];
     if (found) return found;
   }
-  const nicheSlug = profile.audience_niche?.slug || '';
-  let pool = nicheSlug ? excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds) : [];
-  const mined = pool.length > 0;
-  if (!mined) pool = await getCuratedHookPool(12); // cold niche: portable curated patterns
+  const pool = excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds);
   if (pool.length === 0) return null;
-  // Let the model shortlist the mined hooks that transplant onto THIS product,
-  // then random-pick within the shortlist. Runs even on a 2-hook pool — a tiny
-  // pool is MORE likely to hold nothing that fits, not less. Three outcomes:
-  //   shortlist -> random-pick within it;
-  //   explicit all-rejected ({ids:[]}) -> curated patterns beat a bad-fit hook;
-  //   call failure/garbage -> plain random, generation never dies.
-  if (mined && pool.length >= 2) {
-    try {
-      const out = await callGemini(HOOK_PICK_PROMPT, JSON.stringify(buildHookPickPayload(profile, pool)), 0.2);
-      if (out && Array.isArray(out.ids)) {
-        const fit = resolveHookPick(pool, out);
-        if (fit.length > 0) return fit[Math.floor(Math.random() * fit.length)];
-        const curated = await getCuratedHookPool(12);
-        if (curated.length > 0) pool = curated;
-      }
-    } catch (e) {
-      console.error('hook pick failed, falling back to random:', e.message);
-    }
+  // Screen even a one-hook pool. An empty verdict, malformed response, or
+  // upstream failure stops generation; a random bad-fit hook is not a useful
+  // fallback for a customer-facing post.
+  try {
+    const out = await callGemini(HOOK_PICK_PROMPT, JSON.stringify(buildHookPickPayload(profile, pool)), 0.2);
+    if (!out || !Array.isArray(out.ids)) return null;
+    const fit = resolveHookPick(pool, out);
+    if (fit.length > 0) return fit[Math.floor(Math.random() * fit.length)];
+  } catch (e) {
+    console.error('hook pick failed closed:', e.message);
   }
-  return pool[Math.floor(Math.random() * pool.length)];
+  return null;
 }
 
 export async function generateCarouselPlan({ profile, kind = 'value', hookId = null, styleOverride = '', excludeHookIds = null }) {
   const hook = await pickHook(profile, hookId, excludeHookIds);
-  if (!hook) throw new Error('No hooks available yet — try again shortly.');
+  if (!hook) {
+    throw new Error('No hooks passed the source-and-fit checks for this product yet — try again after the next research run.');
+  }
 
   const styleKeys = Object.keys(STYLES);
   const style = STYLES[styleOverride] ? styleOverride : styleKeys[Math.floor(Math.random() * styleKeys.length)];

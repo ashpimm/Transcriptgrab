@@ -23,14 +23,25 @@ import { callGeminiImageRetry } from '../api/_shared.js';
 
 // The app we dogfood on. Same shape as users.profile.
 const PROFILE = {
-  app_url: 'https://gainlock.app',
-  name: 'GainLock',
-  what: 'A gym app that locks the apps you waste time on until you log your workout for the day.',
-  who: 'People who keep restarting the gym and quit by week three',
-  benefit: 'You actually show up, because skipping costs you your feed',
-  tone: 'casual',
-  color: '#00E07A',
-  audience_niche: { name: 'Fitness', slug: 'fitness' },
+  app_url: 'https://play.google.com/store/apps/details?id=com.hyperfixlabs.hudplus',
+  name: 'HUD+ AI Calorie Counter',
+  what: 'An AI meal planner, calorie tracker, macro counter, fitness trainer, and health coach in one connected Android app.',
+  who: 'People who want weight-loss or fitness results without juggling several tracking apps',
+  benefit: 'Plan the week and log meals in seconds while one coach adapts to your actual food, activity, and goals',
+  facts: [
+    'Scans meal photos and breaks down calories and macros',
+    'Imports recipes from TikTok, Reels, YouTube, URLs, and photos',
+    'Builds weekly meal plans around calorie targets and macros',
+    'Logs food by camera, barcode, voice, text, or quick log',
+    'Tracks fasting, water, sleep, steps, weight, and micronutrients',
+    'AI coaching uses the user’s meals, macros, activity, and goals',
+  ],
+  color: '#35C98B',
+  audience_niche: {
+    name: 'Fitness & Weight Loss',
+    slug: 'fitness-weight-loss',
+    classifier_version: 2,
+  },
 };
 const STYLE = 'bold';       // '' = let it roll one at random, as a real generate does
 const THUMB_W = 432;        // 2x the strip's max display width, 4:5

@@ -5,6 +5,7 @@
 // rows and receipts, but it is no longer a qualification gate or rank signal.
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
+const YOUTUBE_REQUEST_TIMEOUT_MS = 12_000;
 
 // ============================================
 // PURE SCORING FUNCTIONS (unit tested)
@@ -56,7 +57,9 @@ export function isMostlyLatin(text) {
 // ============================================
 async function ytFetch(path, params, apiKey) {
   const qs = new URLSearchParams({ ...params, key: apiKey });
-  const res = await fetch(`${API_BASE}/${path}?${qs}`);
+  const res = await fetch(`${API_BASE}/${path}?${qs}`, {
+    signal: AbortSignal.timeout(YOUTUBE_REQUEST_TIMEOUT_MS),
+  });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`YouTube API ${path} error ${res.status}: ${body.substring(0, 200)}`);

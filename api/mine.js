@@ -3,7 +3,7 @@
 // GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1][&fresh=1]
 // dry=1 re-evaluates both new and saved candidates and makes no database writes.
 // fresh=1 atomically replaces one explicit niche's mined rows with accepted
-// results from the current policy; curated fallbacks are preserved.
+// results from the current policy; historical rows are retained but hidden.
 // Also runs via Vercel cron (Bearer CRON_SECRET), one niche per run
 // (the one mined longest ago).
 //
@@ -12,9 +12,10 @@
 // grounding and quality gate -> upsert hooks table.
 // Pipeline body lives in ./_miner.js so profile-save can also call it.
 
-import { getNicheBySlug, getStalestNiches } from './_db.js';
+import { getNicheBySlug, getStalestNiches, reconcileNicheCatalogue } from './_db.js';
 import { mineNiche } from './_miner.js';
 import { adminSecretOk, cronAuthOk } from './_shared.js';
+import { LEGACY_NICHE_SLUGS } from './_niches.js';
 
 export const maxDuration = 60;
 
@@ -26,6 +27,33 @@ const NICHES_PER_RUN = 3;
 const TIME_BUDGET_MS = 35_000;
 
 export default async function handler(req, res) {
+  res.setHeader?.('Cache-Control', 'no-store');
+
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { body = {}; }
+  }
+  const action = req.query?.action || body?.action || '';
+
+  // Uses the existing ADMIN_SECRET and the existing function slot. Preview is
+  // safe over GET; production mutation is deliberately POST-only.
+  if (action === 'repair-niches') {
+    if (!['GET', 'POST'].includes(req.method)) {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+    if (!adminSecretOk(req)) return res.status(401).json({ error: 'ADMIN_SECRET required' });
+    if (req.method === 'POST' && body?.confirm !== 'REPAIR_NICHES') {
+      return res.status(400).json({ error: 'POST repair requires confirm=REPAIR_NICHES' });
+    }
+    try {
+      const result = await reconcileNicheCatalogue({ apply: req.method === 'POST' });
+      return res.status(200).json(result);
+    } catch (e) {
+      console.error('niche repair error:', e);
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!cronAuthOk(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -45,9 +73,18 @@ export default async function handler(req, res) {
 
     // Explicit niche: single targeted mine (admin use).
     if (req.query.niche) {
+      if (LEGACY_NICHE_SLUGS.includes(req.query.niche)) {
+        return res.status(410).json({
+          error: 'That legacy niche is retired. Run action=repair-niches, then mine its canonical replacement.',
+        });
+      }
       const niche = await getNicheBySlug(req.query.niche);
       if (!niche) return res.status(404).json({ error: 'No active niche found' });
-      const result = await mineNiche(niche, apiKey, { dry, fresh });
+      const result = await mineNiche(niche, apiKey, {
+        dry,
+        fresh,
+        ...(fresh ? { maxExtractions: 18, maxTranscripts: 30 } : {}),
+      });
       return res.status(fresh && !dry && result.applied === false ? 409 : 200).json(result);
     }
 

@@ -3,6 +3,10 @@
 
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
+import {
+  CANONICAL_NICHES, NICHE_MERGES, RETIRED_NICHE_SLUGS, LEGACY_NICHE_SLUGS,
+  NICHE_CLASSIFIER_VERSION, slugifyNiche, mergeNicheKeywords,
+} from './_niches.js';
 
 function getSQL() {
   return neon(process.env.POSTGRES_URL);
@@ -222,17 +226,19 @@ export async function getNicheBySlug(slug) {
 
 export async function getStalestNiches(limit = 1) {
   const sql = getSQL();
-  // Niches that belong to a paying subscriber's audience jump the queue when
-  // they haven't been mined in 24h; otherwise plain stalest-first rotation.
+  // Automatic quota is spent only on pools an actual saved product uses.
+  // Explicit admin mining can still target any active canonical pool.
   return sql`
     SELECT n.* FROM niches n
     WHERE n.active = TRUE
-    ORDER BY (
-      (n.last_mined_at IS NULL OR n.last_mined_at < NOW() - INTERVAL '24 hours')
+      AND NOT (n.slug = ANY(${LEGACY_NICHE_SLUGS}))
       AND EXISTS (
         SELECT 1 FROM users u
-        WHERE u.tier = 'pro' AND u.profile->'audience_niche'->>'slug' = n.slug
+        WHERE u.profile->'audience_niche'->>'slug' = n.slug
       )
+    ORDER BY EXISTS (
+      SELECT 1 FROM users u
+      WHERE u.tier = 'pro' AND u.profile->'audience_niche'->>'slug' = n.slug
     ) DESC,
     n.last_mined_at ASC NULLS FIRST
     LIMIT ${limit}
@@ -249,31 +255,28 @@ export async function markNicheMined(nicheId) {
   await sql`UPDATE niches SET last_mined_at = NOW() WHERE id = ${nicheId}`;
 }
 
-export function slugifyNiche(name) {
-  return String(name || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 50)
-    .replace(/-+$/, '');
+export async function claimNicheLightMine(nicheId) {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE niches
+    SET last_mined_at = NOW()
+    WHERE id = ${nicheId}
+      AND active = TRUE
+      AND (
+        last_mined_at IS NULL
+        OR last_mined_at < NOW() - INTERVAL '6 hours'
+      )
+    RETURNING id
+  `;
+  return rows.length > 0;
 }
 
-// Merge keyword lists for a niche: the fresh app's own keywords lead (they
-// drive the next mine), existing ones follow, case-insensitive dedupe, capped.
-// Pure — unit tested.
-export function mergeKeywords(fresh, existing, cap = 12) {
-  const out = [];
-  const seen = new Set();
-  for (const k of [...(Array.isArray(fresh) ? fresh : []), ...(Array.isArray(existing) ? existing : [])]) {
-    const s = String(k || '').trim();
-    if (!s) continue;
-    const key = s.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(s);
-    if (out.length >= cap) break;
-  }
-  return out;
+export { slugifyNiche };
+
+// Merge keyword lists for a niche: reviewed/shared pool terms stay first and
+// product-specific suggestions only fill spare slots. Pure — unit tested.
+export function mergeKeywords(existing, fresh, cap = 12) {
+  return mergeNicheKeywords(existing, fresh, cap);
 }
 
 export async function setNicheKeywords(slug, keywords) {
@@ -289,32 +292,184 @@ export async function ensureNiche({ slug, name, keywords }) {
     INSERT INTO niches (slug, name, keywords)
     VALUES (${slug}, ${name}, ${keywords || []})
     ON CONFLICT (slug) DO UPDATE SET
+      active = TRUE,
+      name = EXCLUDED.name,
       keywords = CASE WHEN cardinality(niches.keywords) = 0 THEN EXCLUDED.keywords ELSE niches.keywords END
     RETURNING *
   `;
   return rows[0];
 }
 
-// Cross-niche curated patterns — cold-start pool for freshly created niches
-// that haven't been mined yet. Curated rows are portable format patterns.
-export async function getCuratedHookPool(poolSize = 12) {
-  const sql = getSQL();
+async function getNicheRepairInventory(sql) {
+  const watched = [...new Set([
+    ...CANONICAL_NICHES.map((niche) => niche.slug),
+    ...LEGACY_NICHE_SLUGS,
+  ])];
   return sql`
-    SELECT h.*, n.slug AS niche_slug
-    FROM hooks h JOIN niches n ON n.id = h.niche_id
-    WHERE h.curated = TRUE
-    ORDER BY random()
-    LIMIT ${poolSize}
+    SELECT n.slug, n.name, n.active,
+           COUNT(DISTINCT h.id)::int AS hooks,
+           COUNT(DISTINCT u.id)::int AS profiles,
+           COUNT(DISTINCT sp.id)::int AS script_packs
+    FROM niches n
+    LEFT JOIN hooks h ON h.niche_id = n.id
+    LEFT JOIN users u ON u.profile->'audience_niche'->>'slug' = n.slug
+    LEFT JOIN script_packs sp ON sp.niche_id = n.id
+    WHERE n.slug = ANY(${watched})
+    GROUP BY n.id, n.slug, n.name, n.active
+    ORDER BY n.slug
   `;
 }
 
-export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0, includeCurated = false }) {
+// Preview or atomically reconcile only the exact, reviewed legacy allowlist.
+// Hook IDs are moved rather than recreated, so historical carousel and swipe
+// references remain valid. No niche, hook, carousel, or post is deleted.
+export async function reconcileNicheCatalogue({ apply = false } = {}) {
   const sql = getSQL();
-  // Rows with curated:// placeholder URLs have no real source video. The
-  // create-page picker can request them as fallbacks; mined sources must meet
-  // the same absolute-reach floor as the current miner.
+  const before = await getNicheRepairInventory(sql);
+  const plan = {
+    ensure: CANONICAL_NICHES.map(({ slug, name }) => ({ slug, name })),
+    merge: Object.entries(NICHE_MERGES).map(([from, to]) => ({ from, to })),
+    retire: [...RETIRED_NICHE_SLUGS],
+    deactivate: [...LEGACY_NICHE_SLUGS],
+    retireCuratedPlaceholders: true,
+  };
+
+  if (!apply) return { applied: false, plan, before };
+
+  const labels = [];
+  const results = await sql.transaction((tx) => {
+    const queries = [];
+    const add = (label, query) => {
+      labels.push(label);
+      queries.push(query);
+    };
+
+    // Shared with every mining write. A mine that discovered against a legacy
+    // row either lands before this repair moves it, or fails its active guard
+    // afterward; it can never repopulate the retired source behind our back.
+    add('catalogue-lock', tx`SELECT pg_advisory_xact_lock(87000, 1)`);
+    add('repair-lock', tx`SELECT pg_advisory_xact_lock(87002, 1)`);
+
+    for (const niche of CANONICAL_NICHES) {
+      add(`ensure:${niche.slug}`, tx`
+        INSERT INTO niches (slug, name, keywords, active, last_mined_at)
+        VALUES (${niche.slug}, ${niche.name}, ${niche.keywords}, TRUE, NULL)
+        ON CONFLICT (slug) DO UPDATE SET
+          name = EXCLUDED.name,
+          keywords = EXCLUDED.keywords,
+          active = TRUE
+        RETURNING id
+      `);
+    }
+
+    for (const [from, to] of Object.entries(NICHE_MERGES)) {
+      const destination = CANONICAL_NICHES.find((niche) => niche.slug === to);
+      add(`hooks:${from}->${to}`, tx`
+        UPDATE hooks
+        SET niche_id = (SELECT id FROM niches WHERE slug = ${to})
+        WHERE niche_id = (SELECT id FROM niches WHERE slug = ${from})
+        RETURNING id
+      `);
+      add(`packs:${from}->${to}`, tx`
+        UPDATE script_packs
+        SET niche_id = (SELECT id FROM niches WHERE slug = ${to})
+        WHERE niche_id = (SELECT id FROM niches WHERE slug = ${from})
+        RETURNING id
+      `);
+      add(`profiles:${from}->${to}`, tx`
+        UPDATE users
+        SET profile = jsonb_set(
+              profile,
+              '{audience_niche}',
+              jsonb_build_object(
+                'slug', ${to}::text,
+                'name', ${destination.name}::text,
+                'classifier_version', ${NICHE_CLASSIFIER_VERSION}::int
+              ),
+              TRUE
+            ),
+            updated_at = NOW()
+        WHERE profile->'audience_niche'->>'slug' = ${from}
+        RETURNING id
+      `);
+    }
+
+    // Existing profiles already on a canonical slug can safely adopt the new
+    // classifier version without paying for another AI decision on next save.
+    for (const niche of CANONICAL_NICHES) {
+      add(`canonical-profiles:${niche.slug}`, tx`
+        UPDATE users
+        SET profile = jsonb_set(
+              profile,
+              '{audience_niche}',
+              jsonb_build_object(
+                'slug', ${niche.slug}::text,
+                'name', ${niche.name}::text,
+                'classifier_version', ${NICHE_CLASSIFIER_VERSION}::int
+              ),
+              TRUE
+            ),
+            updated_at = NOW()
+        WHERE profile->'audience_niche'->>'slug' = ${niche.slug}
+          AND (
+            profile->'audience_niche'->>'name' IS DISTINCT FROM ${niche.name}
+            OR profile->'audience_niche'->>'classifier_version'
+               IS DISTINCT FROM ${String(NICHE_CLASSIFIER_VERSION)}
+          )
+        RETURNING id
+      `);
+    }
+
+    // appdev carried no reliable information about the product's buyers. It
+    // must be classified from the product fields on the next profile save.
+    add('clear-retired-profiles', tx`
+      UPDATE users
+      SET profile = profile - 'audience_niche',
+          updated_at = NOW()
+      WHERE profile->'audience_niche'->>'slug' = ANY(${RETIRED_NICHE_SLUGS})
+      RETURNING id
+    `);
+
+    // Old hand-written placeholders were useful during prototyping but have
+    // no source receipt and bypass the same evidence gate as mined hooks.
+    add('retire-curated-placeholders', tx`
+      UPDATE hooks
+      SET platform = 'curated_retired',
+          last_verified = NOW()
+      WHERE curated = TRUE
+        AND platform <> 'curated_retired'
+      RETURNING id
+    `);
+
+    add('deactivate-legacy', tx`
+      UPDATE niches
+      SET active = FALSE
+      WHERE slug = ANY(${LEGACY_NICHE_SLUGS})
+        AND active = TRUE
+      RETURNING id
+    `);
+
+    return queries;
+  });
+
+  const changes = {};
+  labels.forEach((label, index) => {
+    if (!label.endsWith('lock')) changes[label] = results[index]?.length || 0;
+  });
+
+  return {
+    applied: true,
+    plan,
+    changes,
+    before,
+    after: await getNicheRepairInventory(sql),
+  };
+}
+
+export async function getHooks({ nicheSlug, format, platform, limit = 50, offset = 0 }) {
+  const sql = getSQL();
+  // Only source-backed, currently accepted hooks are product-facing.
   const cappedLimit = Math.min(limit, 100);
-  const curatedOk = !!includeCurated;
   const rows = await sql`
     SELECT h.id, h.hook_template, h.hook_verbatim, h.topic, h.format, h.platform,
            h.video_url, h.video_title, h.views, h.followers, h.outlier_score,
@@ -322,8 +477,9 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
-      AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
-      AND (h.curated = TRUE OR h.views >= 250000)
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
@@ -334,8 +490,9 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
     SELECT COUNT(*)::int AS total
     FROM hooks h JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE
-      AND (${curatedOk} OR h.video_url NOT LIKE 'curated://%')
-      AND (h.curated = TRUE OR h.views >= 250000)
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
       AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
       AND (${format || null}::text IS NULL OR h.format = ${format || null})
       AND (${platform || null}::text IS NULL OR h.platform = ${platform || null})
@@ -344,7 +501,7 @@ export async function getHooks({ nicheSlug, format, platform, limit = 50, offset
 }
 
 // Auto-pick for the done-for-you flow: a random hook from the niche's top
-// performers (mined receipts first, curated patterns as the fallback pool).
+// performers. Generic hand-written placeholders are deliberately excluded.
 export async function getAutoHookPool(nicheSlug, poolSize = 10) {
   const sql = getSQL();
   return sql`
@@ -352,19 +509,26 @@ export async function getAutoHookPool(nicheSlug, poolSize = 10) {
     FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE n.active = TRUE AND n.slug = ${nicheSlug}
-      AND (h.curated = TRUE OR h.views >= 250000)
-    ORDER BY h.curated ASC, h.views DESC, h.outlier_score DESC, h.last_verified DESC
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+    ORDER BY h.views DESC, h.outlier_score DESC, h.last_verified DESC
     LIMIT ${poolSize}
   `;
 }
 
-export async function getHooksByIds(ids) {
+export async function getHooksByIds(ids, nicheSlug = null) {
   if (!ids || ids.length === 0) return [];
   const sql = getSQL();
   return sql`
     SELECT h.*, n.slug AS niche_slug FROM hooks h
     JOIN niches n ON n.id = h.niche_id
     WHERE h.id = ANY(${ids})
+      AND n.active = TRUE
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+      AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
   `;
 }
 
@@ -399,11 +563,50 @@ export async function upsertHook(nicheId, h) {
   return rows[0];
 }
 
+export async function applyIncrementalMine(nicheId, hooks, refreshes) {
+  const safeHooks = Array.isArray(hooks) ? hooks : [];
+  const safeRefreshes = Array.isArray(refreshes) ? refreshes : [];
+  const sql = getSQL();
+  const results = await sql.transaction((tx) => [
+    tx`SELECT pg_advisory_xact_lock(87000, 1)`,
+    tx`SELECT pg_advisory_xact_lock(87001, ${nicheId})`,
+    tx`
+      SELECT 1 / CASE WHEN EXISTS (
+        SELECT 1 FROM niches WHERE id = ${nicheId} AND active = TRUE
+      ) THEN 1 ELSE 0 END AS niche_active
+    `,
+    ...safeHooks.map((hook) => upsertHookQuery(tx, nicheId, hook)),
+    ...safeRefreshes.map((source) => tx`
+      UPDATE hooks
+      SET views = ${source.views},
+          followers = ${source.followers},
+          outlier_score = ${source.score},
+          last_verified = NOW()
+      WHERE video_url = ${source.url}
+      RETURNING id
+    `),
+    tx`
+      UPDATE niches
+      SET last_mined_at = NOW()
+      WHERE id = ${nicheId} AND active = TRUE
+      RETURNING id
+    `,
+  ]);
+  const hookStart = 3;
+  const refreshStart = hookStart + safeHooks.length;
+  return {
+    inserted: results.slice(hookStart, refreshStart)
+      .reduce((count, rows) => count + (rows?.length || 0), 0),
+    refreshed: results.slice(refreshStart, refreshStart + safeRefreshes.length)
+      .reduce((count, rows) => count + (rows?.length || 0), 0),
+  };
+}
+
 // Atomically replace one niche's YouTube-mined inventory after a full policy
 // recheck. Accepted URLs are upserted first so retained rows keep their ids;
-// obsolete YouTube rows are then removed. Curated and future non-YouTube rows
-// are deliberately preserved. Any query failure rolls the whole transaction
-// back, including the deletion.
+// obsolete YouTube rows are then soft-retired. Curated and future non-YouTube
+// rows are deliberately preserved. Soft retirement keeps swipe/carousel
+// references and lets a later successful recheck reactivate the same row.
 export async function replaceMinedHooksForNiche(nicheId, hooks) {
   if (!Array.isArray(hooks) || hooks.length === 0) {
     throw new Error('Fresh rebuild produced no accepted hooks; existing hooks were kept.');
@@ -420,7 +623,15 @@ export async function replaceMinedHooksForNiche(nicheId, hooks) {
     throw new Error('Fresh rebuild found source URLs owned by another niche; existing hooks were kept.');
   }
   const results = await sql.transaction((tx) => [
+    tx`SELECT pg_advisory_xact_lock(87000, 1)`,
     tx`SELECT pg_advisory_xact_lock(87001, ${nicheId})`,
+    // A repair may have deactivated this niche while discovery was running.
+    // Fail atomically instead of writing new rows back into a legacy pool.
+    tx`
+      SELECT 1 / CASE WHEN EXISTS (
+        SELECT 1 FROM niches WHERE id = ${nicheId} AND active = TRUE
+      ) THEN 1 ELSE 0 END AS niche_active
+    `,
     ...hooks.map((hook) => upsertHookQuery(tx, nicheId, hook)),
     // Division by zero deliberately aborts and rolls back the transaction if a
     // concurrent mine claimed one of these globally-unique video URLs.
@@ -433,7 +644,9 @@ export async function replaceMinedHooksForNiche(nicheId, hooks) {
         AND video_url = ANY(${acceptedUrls})
     `,
     tx`
-      DELETE FROM hooks
+      UPDATE hooks
+      SET platform = 'youtube_retired',
+          last_verified = NOW()
       WHERE niche_id = ${nicheId}
         AND curated = FALSE
         AND platform = 'youtube'
@@ -447,10 +660,12 @@ export async function replaceMinedHooksForNiche(nicheId, hooks) {
       RETURNING id
     `,
   ]);
-  const deleteResult = results[hooks.length + 2] || [];
+  const upsertStart = 3;
+  const retireResult = results[upsertStart + hooks.length + 1] || [];
   return {
-    removed: deleteResult.length,
-    upserted: results.slice(1, hooks.length + 1)
+    retired: retireResult.length,
+    removed: 0,
+    upserted: results.slice(upsertStart, upsertStart + hooks.length)
       .reduce((count, rows) => count + (rows?.length || 0), 0),
   };
 }
@@ -474,6 +689,17 @@ export async function getMinedHookUrlsForNiche(nicheId) {
   return new Set(rows.map((row) => row.video_url));
 }
 
+export async function getOwnedHookUrlsForNiche(nicheId) {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT video_url
+    FROM hooks
+    WHERE niche_id = ${nicheId}
+      AND curated = FALSE
+  `;
+  return new Set(rows.map((row) => row.video_url));
+}
+
 export async function refreshHookStats(videoUrl, views, followers, outlierScore) {
   const sql = getSQL();
   await sql`
@@ -487,7 +713,7 @@ export async function refreshHookStats(videoUrl, views, followers, outlierScore)
 // ============================================
 // HOOKLAB: SWIPE FILE
 // ============================================
-export async function getSwipeFile(userId) {
+export async function getSwipeFile(userId, nicheSlug = null) {
   const sql = getSQL();
   return sql`
     SELECT h.id, h.hook_template, h.hook_verbatim, h.topic, h.format, h.platform,
@@ -497,17 +723,32 @@ export async function getSwipeFile(userId) {
     JOIN hooks h ON h.id = sf.hook_id
     JOIN niches n ON n.id = h.niche_id
     WHERE sf.user_id = ${userId}
+      AND n.active = TRUE
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+      AND (${nicheSlug || null}::text IS NULL OR n.slug = ${nicheSlug || null})
     ORDER BY sf.created_at DESC
   `;
 }
 
 export async function saveToSwipeFile(userId, hookId) {
   const sql = getSQL();
-  await sql`
+  const rows = await sql`
     INSERT INTO swipe_file (user_id, hook_id)
-    VALUES (${userId}, ${hookId})
-    ON CONFLICT (user_id, hook_id) DO NOTHING
+    SELECT ${userId}, h.id
+    FROM hooks h
+    JOIN niches n ON n.id = h.niche_id
+    WHERE h.id = ${hookId}
+      AND n.active = TRUE
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+    ON CONFLICT (user_id, hook_id) DO UPDATE
+      SET created_at = swipe_file.created_at
+    RETURNING hook_id
   `;
+  return rows.length > 0;
 }
 
 export async function removeFromSwipeFile(userId, hookId) {
@@ -517,7 +758,17 @@ export async function removeFromSwipeFile(userId, hookId) {
 
 export async function swipeFileCount(userId) {
   const sql = getSQL();
-  const rows = await sql`SELECT COUNT(*)::int AS n FROM swipe_file WHERE user_id = ${userId}`;
+  const rows = await sql`
+    SELECT COUNT(*)::int AS n
+    FROM swipe_file sf
+    JOIN hooks h ON h.id = sf.hook_id
+    JOIN niches n ON n.id = h.niche_id
+    WHERE sf.user_id = ${userId}
+      AND n.active = TRUE
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+  `;
   return rows[0].n;
 }
 

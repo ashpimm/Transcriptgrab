@@ -1380,7 +1380,6 @@ el('edit-profile').addEventListener('click', function () {
   ST.pendingIconUrl = null;
   ST.pendingIconChecked = null;
   ST.pendingAppUrl = null;
-  ST.prefillNiche = null;
   ST.prefillFacts = null;
   if (ST.profile) { fillForm(ST.profile); el('import-url').value = ST.profile.app_url || ''; }
 });
@@ -1398,7 +1397,6 @@ function runImport(url) {
   var importRun = ++ST.importRun;
   ST.importBusy = true;
   ST.pendingAppUrl = null;
-  ST.prefillNiche = null;
   ST.prefillFacts = null;
   ST.pendingIconUrl = '';
   ST.pendingIconChecked = false;
@@ -1426,7 +1424,6 @@ function runImport(url) {
         el('import-url').value = ST.pendingAppUrl;
         ST.pendingIconUrl = res.j.prefill.icon_url || '';
         ST.pendingIconChecked = true;
-        ST.prefillNiche = res.j.prefill.audience_niche || null;
         ST.prefillFacts = res.j.prefill.facts || null;
         showMsg('Here’s what we found. Check the details, then save your product.', true);
       } else {
@@ -1461,9 +1458,6 @@ el('save-profile').addEventListener('click', function () {
       ? !!ST.pendingIconChecked
       : (keepsSavedSource ? !!(ST.profile && ST.profile.icon_checked) : false),
     color: ST.formColor || (ST.profile && ST.profile.color) || '',
-    audience_niche: usesImportedProfile
-      ? (ST.prefillNiche || null)
-      : (keepsSavedSource ? ((ST.profile && ST.profile.audience_niche) || null) : null),
     facts: usesImportedProfile
       ? (ST.prefillFacts || [])
       : (keepsSavedSource ? ((ST.profile && ST.profile.facts) || []) : [])
@@ -1487,7 +1481,6 @@ el('save-profile').addEventListener('click', function () {
       finishProfileSave();
       if (res.s === 200) {
         ST.profile = res.j.profile;
-        ST.prefillNiche = null;
         ST.prefillFacts = null;
         ST.pendingAppUrl = null;
         ST.pendingIconUrl = null;
@@ -1516,10 +1509,12 @@ function loadHooks() {
   var hookLoadToken = ++ST.hookLoadToken;
   var nicheSlug = ST.profile && ST.profile.audience_niche && ST.profile.audience_niche.slug;
   var hookUrl = nicheSlug
-    ? '/api/hooks?niche=' + encodeURIComponent(nicheSlug) + '&curated=1'
-    : '/api/hooks?curated=1';
+    ? '/api/hooks?niche=' + encodeURIComponent(nicheSlug)
+    : '/api/hooks';
+  var swipeUrl = '/api/hooks?swipe=1' +
+    (nicheSlug ? '&niche=' + encodeURIComponent(nicheSlug) : '');
   Promise.all([
-    fetch('/api/hooks?swipe=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
+    fetch(swipeUrl, { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : { hooks: [] }; }).catch(function () { return { hooks: [] }; }),
     fetch(hookUrl, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).catch(function () { return { hooks: [] }; })
   ]).then(function (both) {
     if (hookLoadToken !== ST.hookLoadToken) return;
@@ -1651,12 +1646,16 @@ function runGenerate() {
         setGenerationBusy(false);
         window.location.href = '/api/auth/google';
       }
-      else if (res.s === 400 && res.j.needsProfile) {
+      else if (res.j.needsProfile) {
         setGenerationBusy(false);
-        setOutputState('Your finished post lands here.', 'Save your product first, then create the complete post.', false);
+        setOutputState(
+          'Your finished post lands here.',
+          res.j.error || 'Save your product first, then create the complete post.',
+          false
+        );
         el('profile-zone').scrollIntoView({ behavior: 'smooth' });
         el('profile-form').classList.add('show');
-        el('gen-note').textContent = 'finish your product profile above first';
+        el('gen-note').textContent = res.j.error || 'finish your product profile above first';
       }
       else if (res.s === 402) {
         setGenerationBusy(false);

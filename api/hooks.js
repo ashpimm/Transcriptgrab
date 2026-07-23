@@ -33,12 +33,12 @@ export default async function handler(req, res) {
       // Swipe file
       if (req.query.swipe === '1') {
         if (!user) return res.status(401).json({ error: 'Sign in required' });
-        const saved = await getSwipeFile(user.id);
+        const saved = await getSwipeFile(user.id, req.query.niche || null);
         return res.status(200).json({ hooks: saved, cap: user.tier === 'pro' ? null : FREE_SWIPE_CAP });
       }
 
-      // The public feed page is withdrawn, but Create still uses this catalogue
-      // to choose source-backed and curated fallback hooks.
+      // The public feed page is withdrawn, but Create still uses this
+      // source-backed catalogue for optional manual hook selection.
       const tier = user ? user.tier : 'anon';
       const offset = parseInt(req.query.offset || '0', 10) || 0;
 
@@ -49,9 +49,6 @@ export default async function handler(req, res) {
           platform: req.query.platform || null,
           limit: 50,
           offset,
-          // Create can request hand-curated fallback patterns too. Calls
-          // without the flag continue to return source-backed rows only.
-          includeCurated: req.query.curated === '1',
         }),
         getNiches(),
       ]);
@@ -86,7 +83,8 @@ export default async function handler(req, res) {
             return res.status(402).json({ error: `The Free plan lets you save up to ${FREE_SWIPE_CAP} hooks.`, upgrade: true });
           }
         }
-        await saveToSwipeFile(user.id, id);
+        const saved = await saveToSwipeFile(user.id, id);
+        if (!saved) return res.status(404).json({ error: 'That hook is no longer available.' });
         return res.status(200).json({ saved: true });
       }
 

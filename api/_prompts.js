@@ -49,8 +49,7 @@ Return ONLY this JSON object:
   "who": "1 sentence: who it is for",
   "benefit": "1 sentence: the single biggest concrete benefit or outcome for the user",
   "facts": ["3-8 concrete, specific claims from the text — features, numbers, capabilities — each under 15 words"],
-  "color": "#RRGGBB",
-  "audience_niche": { "name": "Fitness & Weight Loss", "keywords": ["4-6 YouTube Shorts search phrases the product's TARGET USERS watch"] }
+  "color": "#RRGGBB"
 }
 
 Rules:
@@ -58,26 +57,37 @@ Rules:
 - benefit must be the sharpest, most specific outcome in the text (a number, a time saved, a pain removed). If several exist, pick the strongest one.
 - facts: the SPECIFIC substance marketing copy gets written from — "scans a meal photo in under 5 seconds", "supports 40+ diets", "syncs with Apple Health". Skip vague puffery ("easy to use", "best app"). Fewer real facts beat padded weak ones.
 - color: the product's brand/accent color as a 6-digit hex if the text names or strongly implies one; otherwise pick a saturated accent that fits its subject (e.g. green for nutrition, blue for finance). Never white, black, or gray.
-- audience_niche: the content niche of the product's TARGET USERS (the people who would use it), never "app development" unless the users are developers. keywords are lowercase search phrases in the audience's own language.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================
 // AUDIENCE NICHE (product profile -> its BUYERS' content niche)
 // ============================================
-export const AUDIENCE_NICHE_PROMPT = `You receive JSON { name, what, who, benefit } describing a product (a mobile app, a website, or a SaaS tool). Identify the content niche of the product's TARGET USERS — the people who would sign up for and use it — NOT the app-developer/indie-hacker/build-in-public niche, unless the product's users literally are software developers.
+export const AUDIENCE_NICHE_PROMPT = `You receive JSON:
+{
+  "product": { "name": "...", "what": "...", "who": "...", "benefit": "..." },
+  "existing_niches": [
+    { "slug": "fitness-weight-loss", "name": "Fitness & Weight Loss", "keywords": ["..."] }
+  ]
+}
+
+Choose the reusable content-source pool for the product's TARGET USERS: the people who sign up for and use it. A pool is shared when the same creators, searches, spoken hooks, and audience interests can serve several products. It is not a taxonomy of product features.
 
 Example: an AI calorie-counting app -> its users are people trying to lose weight or eat better -> niche is "Fitness & Weight Loss", NOT "App Development".
 
 Return ONLY this JSON object:
 {
-  "name": "Fitness & Weight Loss",
-  "keywords": ["calorie deficit tips", "how to lose weight fast", "what I eat in a day", "macro tracking for beginners", "weight loss mistakes"]
+  "existing_slug": "fitness-weight-loss",
+  "new_name": null,
+  "keywords": ["calorie tracking tips", "macro tracking for beginners", "weight loss mistakes"]
 }
 
 Rules:
-- name: 2-4 words, Title Case, the audience's content niche.
-- Be as SPECIFIC as the product allows: a generic calorie counter -> "Fitness & Weight Loss", but a fasting tracker -> "Intermittent Fasting", a budgeting app for couples -> "Couples Money & Budgeting". A specialized product in a mega-niche gets its own narrower niche, never the mega-bucket.
-- keywords: 4-6 YouTube Shorts search phrases this audience actually types or watches — their language, not marketing jargon. Lowercase.
+- Reuse an existing_slug whenever substantially the same creators and searches serve the audience. Pick the slug exactly as supplied.
+- Create a new pool only for a materially different audience, not a narrower feature, method, demographic, or compound intersection. A fasting tracker belongs in Fitness & Weight Loss; a couples budgeting app belongs in Personal Finance; a screen-time tool belongs in Productivity & Focus.
+- Choose one primary audience. Never invent compound feature pools such as "Fitness Productivity" or "Fitness Digital Wellness".
+- "appdev" is retired. Never choose or recreate it. App Development, SaaS, indie hacker, and build-in-public are wrong unless the product's users literally write software; a genuine developer tool may use a new "Software Development" pool.
+- Set exactly one of existing_slug and new_name. For a new pool, existing_slug is null and new_name is a stable 2-4 word Title Case audience label. Never invent a slug.
+- keywords: 4-6 lowercase short-form-video search phrases the audience actually watches, in audience language rather than product marketing jargon.
 - Output raw JSON only. No markdown fences.`;
 
 // ============================================

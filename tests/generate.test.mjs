@@ -85,7 +85,7 @@ test('resolveHookPick keeps only pool ids, in the model\'s order, deduped', () =
   assert.deepEqual(picked.map((h) => h.id), [9, 7]);
 });
 
-test('resolveHookPick returns [] on garbage so callers fall back to random', () => {
+test('resolveHookPick returns [] on garbage so callers can fail closed', () => {
   assert.deepEqual(resolveHookPick(POOL, null), []);
   assert.deepEqual(resolveHookPick(POOL, {}), []);
   assert.deepEqual(resolveHookPick(POOL, { ids: 'nope' }), []);
@@ -93,8 +93,7 @@ test('resolveHookPick returns [] on garbage so callers fall back to random', () 
 });
 
 // {ids: []} is a VALID verdict — the model examined the pool and rejected all
-// of it (nothing transplants onto this product). Distinct from garbage: the
-// caller swaps to curated patterns instead of random-picking a bad-fit hook.
+// of it (nothing transplants onto this product), so generation stops.
 test('resolveHookPick: explicit empty ids is a valid all-rejected verdict', () => {
   assert.deepEqual(resolveHookPick(POOL, { ids: [] }), []);
 });

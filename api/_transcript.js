@@ -5,6 +5,7 @@
 // Used by the mining pipeline to enrich hook extraction.
 
 const SUPADATA_KEY = process.env.SUPADATA_API_KEY || '';
+const TRANSCRIPT_REQUEST_TIMEOUT_MS = 12_000;
 
 /**
  * Fetch transcript text for a video URL. Throws on failure.
@@ -16,7 +17,10 @@ export async function fetchTranscript(videoUrl) {
 
   const res = await fetch(
     `https://api.supadata.ai/v1/transcript?url=${encodeURIComponent(videoUrl)}`,
-    { headers: { 'x-api-key': SUPADATA_KEY } }
+    {
+      headers: { 'x-api-key': SUPADATA_KEY },
+      signal: AbortSignal.timeout(TRANSCRIPT_REQUEST_TIMEOUT_MS),
+    }
   );
 
   if (res.status === 202) throw new Error('Transcript still processing.');

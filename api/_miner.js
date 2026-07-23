@@ -3,8 +3,8 @@
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
 import {
-  markNicheMined, getExistingHookUrls, getMinedHookUrlsForNiche,
-  refreshHookStats, upsertHook, replaceMinedHooksForNiche,
+  getExistingHookUrls, getMinedHookUrlsForNiche, getOwnedHookUrlsForNiche,
+  applyIncrementalMine, replaceMinedHooksForNiche,
 } from './_db.js';
 import {
   computeOutlierScore, isHighReachCandidate, compareCandidateReach, isMostlyLatin,
@@ -15,8 +15,8 @@ import { callGemini } from './_shared.js';
 import { HOOK_EXTRACTION_PROMPT } from './_prompts.js';
 
 const VALID_FORMATS = ['talking_head', 'whiteboard', 'audio_broll', 'skit', 'other'];
-export const MIN_FRESH_ACCEPTED_HOOKS = 3;
-export const MIN_FRESH_TRANSCRIPT_ELIGIBLE = 6;
+export const MIN_FRESH_ACCEPTED_HOOKS = 8;
+export const MIN_FRESH_TRANSCRIPT_ELIGIBLE = 12;
 
 function videoUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
@@ -139,20 +139,31 @@ export async function mineNiche(niche, apiKey, opts = {}) {
 
   // 1. Gather candidate videos
   const candidates = new Map(); // videoId -> {videoId, title, channelId}
-  for (const keyword of (niche.keywords || []).slice(0, maxKeywords)) {
+  const discovery = [
+    ...(niche.keywords || []).slice(0, maxKeywords).map((keyword) => ({
+      label: `search "${keyword}"`,
+      run: () => searchShorts(keyword, apiKey),
+    })),
+    ...(niche.seed_channels || []).slice(0, maxSeedChannels).map((channelId) => ({
+      label: `channel ${channelId}`,
+      run: () => channelRecentShorts(channelId, apiKey),
+    })),
+  ];
+  const discoveryResults = await Promise.all(discovery.map(async (source) => {
     try {
-      for (const v of await searchShorts(keyword, apiKey)) candidates.set(v.videoId, v);
-    } catch (e) {
-      discoveryFailures++;
-      errors.push(`search "${keyword}": ${e.message}`);
+      return { source, videos: await source.run(), error: null };
+    } catch (error) {
+      return { source, videos: [], error };
     }
-  }
-  for (const channelId of (niche.seed_channels || []).slice(0, maxSeedChannels)) {
-    try {
-      for (const v of await channelRecentShorts(channelId, apiKey)) candidates.set(v.videoId, v);
-    } catch (e) {
+  }));
+  for (const result of discoveryResults) {
+    if (result.error) {
       discoveryFailures++;
-      errors.push(`channel ${channelId}: ${e.message}`);
+      errors.push(`${result.source.label}: ${result.error.message}`);
+      continue;
+    }
+    for (const video of result.videos) {
+      candidates.set(video.videoId, video);
     }
   }
 
@@ -187,6 +198,9 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   const currentMined = (dry || fresh)
     ? await getMinedHookUrlsForNiche(niche.id)
     : new Set();
+  const currentOwned = (dry || fresh)
+    ? await getOwnedHookUrlsForNiche(niche.id)
+    : new Set();
   const refresh = outliers.filter((o) => existing.has(o.url));
   const researchPool = selectResearchPool(outliers, existing, { dry, fresh });
 
@@ -197,19 +211,32 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   const transcriptReady = [];
   let transcriptAttempts = 0;
   let transcriptFailures = 0;
-  for (const o of researchPool) {
-    if (transcriptReady.length >= maxExtractions || transcriptAttempts >= maxTranscripts) break;
-    transcriptAttempts++;
-    try {
-      const text = (await fetchTranscript(o.url)).text.substring(0, 2000);
-      if (normalizedWords(text).length >= 8) {
-        o.transcript = text;
-        transcriptReady.push(o);
+  const transcriptCandidates = researchPool.slice(0, maxTranscripts);
+  const TRANSCRIPT_CONCURRENCY = 4;
+  for (let start = 0; start < transcriptCandidates.length; start += TRANSCRIPT_CONCURRENCY) {
+    if (transcriptReady.length >= maxExtractions) break;
+    const batch = transcriptCandidates.slice(start, start + TRANSCRIPT_CONCURRENCY);
+    transcriptAttempts += batch.length;
+    const batchResults = await Promise.all(batch.map(async (candidate) => {
+      try {
+        const text = (await fetchTranscript(candidate.url)).text.substring(0, 2000);
+        return { candidate, text, error: null };
+      } catch (error) {
+        return { candidate, text: '', error };
       }
-    } catch (e) {
-      transcriptFailures++;
-      if (e.message !== 'No captions available.') upstreamFailures++;
-      errors.push(`transcript ${o.url}: ${e.message}`);
+    }));
+    for (const result of batchResults) {
+      if (result.error) {
+        transcriptFailures++;
+        if (result.error.message !== 'No captions available.') upstreamFailures++;
+        errors.push(`transcript ${result.candidate.url}: ${result.error.message}`);
+      } else if (
+        transcriptReady.length < maxExtractions &&
+        normalizedWords(result.text).length >= 8
+      ) {
+        result.candidate.transcript = result.text;
+        transcriptReady.push(result.candidate);
+      }
     }
   }
 
@@ -274,7 +301,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   }
 
   if (dry || fresh) {
-    const owned = excludeCrossNicheRows(rows, existing, currentMined);
+    const owned = excludeCrossNicheRows(rows, existing, currentOwned);
     if (owned.conflicts.length > 0) {
       for (const url of owned.conflicts) errors.push(`skipped source owned by another niche: ${url}`);
       rows.splice(0, rows.length, ...owned.rows);
@@ -291,9 +318,12 @@ export async function mineNiche(niche, apiKey, opts = {}) {
 
   if (dry) {
     const acceptedUrls = new Set(rows.map((row) => row.videoUrl));
-    const wouldInsert = rows.filter((row) => !currentMined.has(row.videoUrl));
+    const wouldInsert = rows.filter((row) => !currentOwned.has(row.videoUrl));
+    const wouldReactivate = rows.filter(
+      (row) => currentOwned.has(row.videoUrl) && !currentMined.has(row.videoUrl),
+    );
     const wouldReplace = rows.filter((row) => currentMined.has(row.videoUrl));
-    const wouldDelete = [...currentMined].filter((url) => !acceptedUrls.has(url));
+    const wouldRetire = [...currentMined].filter((url) => !acceptedUrls.has(url));
     return {
       dry: true, fresh, niche: niche.slug,
       scanned: videoIds.length, outliers: outliers.length,
@@ -304,7 +334,9 @@ export async function mineNiche(niche, apiKey, opts = {}) {
       minimumTranscriptEligible: MIN_FRESH_TRANSCRIPT_ELIGIBLE,
       canApplyFresh: freshReadiness.canApply,
       freshBlockers: freshReadiness.blockers,
-      wouldRefresh: refresh.length, wouldInsert, wouldReplace, wouldDelete, errors,
+      wouldRefresh: refresh.length, wouldInsert, wouldReactivate, wouldReplace, wouldRetire,
+      wouldDelete: [],
+      errors,
     };
   }
 
@@ -320,7 +352,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
         minimumAccepted: MIN_FRESH_ACCEPTED_HOOKS,
         minimumTranscriptEligible: MIN_FRESH_TRANSCRIPT_ELIGIBLE,
         freshBlockers: freshReadiness.blockers,
-        removed: 0, upserted: 0,
+        retired: 0, removed: 0, upserted: 0,
         errors: [
           ...errors,
           'Fresh rebuild was not healthy enough to replace the niche; existing hooks were kept.',
@@ -334,24 +366,16 @@ export async function mineNiche(niche, apiKey, opts = {}) {
       transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
       accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
       currentMined: currentMined.size, finalMined: rows.length,
-      removed: replaced.removed, upserted: replaced.upserted, errors,
+      retired: replaced.retired, removed: replaced.removed,
+      upserted: replaced.upserted, errors,
     };
   }
 
-  let inserted = 0;
-  for (const row of rows) {
-    try { await upsertHook(niche.id, row); inserted++; }
-    catch (e) { errors.push(`upsert ${row.videoUrl}: ${e.message}`); }
-  }
-  for (const o of refresh) {
-    try { await refreshHookStats(o.url, o.views, o.followers, o.score); }
-    catch (e) { errors.push(`refresh ${o.url}: ${e.message}`); }
-  }
-  await markNicheMined(niche.id);
+  const written = await applyIncrementalMine(niche.id, rows, refresh);
 
   return {
     niche: niche.slug,
     scanned: videoIds.length, outliers: outliers.length,
-    inserted, refreshed: refresh.length, errors,
+    inserted: written.inserted, refreshed: written.refreshed, errors,
   };
 }

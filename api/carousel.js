@@ -25,6 +25,7 @@ import {
 import { renderReelSlideJpeg } from './_render.js';
 import { publicBaseUrl, reelAssetUrl, verifyReelAsset } from './_reel.js';
 import { getReelRender, shotstackEnabled, submitReel } from './_shotstack.js';
+import { NICHE_CLASSIFIER_VERSION } from './_niches.js';
 
 export const maxDuration = 60;
 
@@ -127,6 +128,15 @@ export default async function handler(req, res) {
       const profile = await getProfile(user.id);
       if (!profile || !profile.what) {
         return res.status(400).json({ error: 'Set up your app profile first.', needsProfile: true });
+      }
+      if (
+        !profile.audience_niche?.slug ||
+        Number(profile.audience_niche.classifier_version) !== NICHE_CLASSIFIER_VERSION
+      ) {
+        return res.status(409).json({
+          error: 'Your product audience needs a quick refresh. Edit and save your product once.',
+          needsProfile: true,
+        });
       }
 
       // hookId + style are optional — the done-for-you default picks a

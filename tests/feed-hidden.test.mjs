@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const read = (name) => fs.readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
 
 test('the public feed is absent from navigation and indexed pages', () => {
+  assert.equal(fs.existsSync(new URL('../feed.html', import.meta.url)), false);
   assert.doesNotMatch(read('nav.js'), /href=["']\/feed/);
   assert.doesNotMatch(read('index.html'), /href=["']\/feed/);
   assert.doesNotMatch(read('sitemap.xml'), /\/feed</);

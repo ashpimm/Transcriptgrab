@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   MIN_FRESH_ACCEPTED_HOOKS, MIN_FRESH_TRANSCRIPT_ELIGIBLE,
   assessFreshReadiness, excludeCrossNicheRows, selectResearchPool,
@@ -74,32 +75,32 @@ test('dry and fresh mines re-evaluate the complete candidate pool', () => {
 });
 
 test('fresh rebuilds require a minimally useful accepted pool', () => {
-  assert.equal(MIN_FRESH_ACCEPTED_HOOKS, 3);
-  assert.equal(MIN_FRESH_TRANSCRIPT_ELIGIBLE, 6);
+  assert.equal(MIN_FRESH_ACCEPTED_HOOKS, 8);
+  assert.equal(MIN_FRESH_TRANSCRIPT_ELIGIBLE, 12);
   assert.deepEqual(assessFreshReadiness({
-    accepted: 3,
-    transcriptEligible: 6,
-    evaluated: 6,
+    accepted: 8,
+    transcriptEligible: 12,
+    evaluated: 12,
   }), { canApply: true, blockers: [] });
 });
 
 test('fresh rebuilds refuse partial discovery, upstream, and extraction runs', () => {
   assert.equal(assessFreshReadiness({
-    accepted: 5,
-    transcriptEligible: 8,
-    evaluated: 8,
+    accepted: 10,
+    transcriptEligible: 14,
+    evaluated: 14,
     discoveryFailures: 1,
   }).canApply, false);
   assert.equal(assessFreshReadiness({
-    accepted: 5,
-    transcriptEligible: 8,
-    evaluated: 8,
+    accepted: 10,
+    transcriptEligible: 14,
+    evaluated: 14,
     upstreamFailures: 1,
   }).canApply, false);
   assert.equal(assessFreshReadiness({
-    accepted: 5,
-    transcriptEligible: 8,
-    evaluated: 7,
+    accepted: 10,
+    transcriptEligible: 14,
+    evaluated: 13,
   }).canApply, false);
 });
 
@@ -111,4 +112,11 @@ test('fresh rebuilds do not steal a globally-owned video from another niche', ()
   );
   assert.deepEqual(owned.rows.map((row) => row.videoUrl), ['same-niche', 'new']);
   assert.deepEqual(owned.conflicts, ['other-niche']);
+});
+
+test('every mining upstream has a bounded request timeout', () => {
+  for (const file of ['../api/_youtube.js', '../api/_transcript.js', '../api/_shared.js']) {
+    const source = fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.match(source, /signal:\s*AbortSignal\.timeout\(/, file);
+  }
 });

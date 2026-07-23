@@ -2,6 +2,7 @@
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_TEXT_TIMEOUT_MS = 20_000;
 
 /**
  * Set CORS headers and handle OPTIONS preflight.
@@ -100,6 +101,7 @@ export async function callGemini(prompt, text, temperature = 0.7) {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(GEMINI_TEXT_TIMEOUT_MS),
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt + '\n\nTranscript:\n' + input }] }],
         generationConfig: { temperature, responseMimeType: 'application/json' },

@@ -8,11 +8,16 @@
 
 import {
   getSession, getProfile, saveProfile, updateProfileIcon, slugifyNiche, ensureNiche,
-  getAutoHookPool, getNicheBySlug, mergeKeywords, setNicheKeywords,
+  getAutoHookPool, getNicheBySlug, getNiches, mergeKeywords, setNicheKeywords,
+  claimNicheLightMine,
 } from './_db.js';
 import { callGemini } from './_shared.js';
 import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
 import { mineNiche } from './_miner.js';
+import {
+  NICHE_CLASSIFIER_VERSION, nicheCatalogueForPrompt,
+  shouldReuseStoredAudience, validateAudienceChoice,
+} from './_niches.js';
 import http from 'node:http';
 import https from 'node:https';
 import dns from 'node:dns/promises';
@@ -570,7 +575,14 @@ function cleanProfile(p) {
       if (!p.audience_niche || typeof p.audience_niche !== 'object') return null;
       const slug = slugifyNiche(String(p.audience_niche.slug || p.audience_niche.name || ''));
       const name = clipText(String(p.audience_niche.name || ''), 100);
-      return (slug && name) ? { slug, name } : null;
+      const classifierVersion = Number(p.audience_niche.classifier_version);
+      return (slug && name) ? {
+        slug,
+        name,
+        ...(classifierVersion === NICHE_CLASSIFIER_VERSION
+          ? { classifier_version: NICHE_CLASSIFIER_VERSION }
+          : {}),
+      } : null;
     })(),
   };
 }
@@ -643,11 +655,6 @@ export default async function handler(req, res) {
     if (!cleaned || !cleaned.what) {
       return res.status(400).json({ error: 'Describe what your product helps people do — that field is required.' });
     }
-    // Keywords never live on the stored profile (cleanProfile strips them),
-    // but the client may echo back what import derived \u2014 carry them through
-    // to the niche row so the miner isn't starved.
-    const rawKw = (Array.isArray(body.profile?.audience_niche?.keywords) ? body.profile.audience_niche.keywords : [])
-      .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
     // Every profile gets a brand color: it is the accent on every slide, and
     // without one the renderer would have nothing but neutral grays.
     if (!cleaned.color) {
@@ -658,58 +665,76 @@ export default async function handler(req, res) {
         console.error('color pick failed:', e.message);
       }
     }
-    // Every profile gets an audience niche: it decides which niche gets mined
-    // and which hook pool feeds generation. Derived once, user-visible later.
-    // THIS app's keywords always merge into the niche row, new-first — so the
-    // freshest app's own description drives the next mine, instead of the
-    // niche forever running on whatever keywords its first app happened to set.
-    let appKw = rawKw;
-    if (!cleaned.audience_niche) {
-      try {
-        const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
-          name: cleaned.name, what: cleaned.what, who: cleaned.who, benefit: cleaned.benefit,
-        }), 0.3);
-        const slug = slugifyNiche(derived?.name);
-        if (slug) {
-          if (appKw.length === 0) {
-            appKw = (Array.isArray(derived.keywords) ? derived.keywords : [])
-              .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
-          }
-          await ensureNiche({ slug, name: clipText(derived.name, 100), keywords: appKw });
-          cleaned.audience_niche = { slug, name: clipText(derived.name, 100) };
-        }
-      } catch (e) {
-        console.error('audience niche derivation failed:', e.message);
-      }
-    } else {
-      // User-confirmed niche may be brand new — make sure the row exists.
-      // Prefer keywords echoed back by the client (from import); if none,
-      // best-effort derive some so a new niche row never starts empty.
-      if (appKw.length === 0) {
-        try {
-          const derived = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
-            name: cleaned.name, what: cleaned.what, who: cleaned.who, benefit: cleaned.benefit,
-          }), 0.3);
-          appKw = (Array.isArray(derived?.keywords) ? derived.keywords : [])
-            .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
-        } catch (e) {
-          console.error('audience niche keyword derivation (confirmed niche) failed:', e.message);
-        }
-      }
-      await ensureNiche({ slug: cleaned.audience_niche.slug, name: cleaned.audience_niche.name, keywords: appKw }).catch(() => {});
+    // Niche rows are reusable source pools, not hidden client-controlled
+    // product labels. Resolve against the active catalogue whenever the
+    // product's buyer-defining fields change or an old classifier is present.
+    let currentProfile;
+    let activeNiches;
+    try {
+      [currentProfile, activeNiches] = await Promise.all([
+        getProfile(user.id),
+        getNiches(),
+      ]);
+    } catch (e) {
+      console.error('audience catalogue load failed:', e.message);
+      return res.status(500).json({ error: 'Could not load the audience catalogue. Please try again.' });
     }
-    // Merge this app's keywords into the (possibly pre-existing) niche row.
-    if (cleaned.audience_niche && appKw.length > 0) {
+
+    let appKw = [];
+    let audienceWasResolved = false;
+    if (shouldReuseStoredAudience(currentProfile, cleaned, activeNiches)) {
+      const storedSlug = currentProfile.audience_niche.slug;
+      const row = activeNiches.find((niche) => niche.slug === storedSlug);
+      cleaned.audience_niche = {
+        slug: row.slug,
+        name: row.name,
+        classifier_version: NICHE_CLASSIFIER_VERSION,
+      };
+    } else {
+      try {
+        const choice = await callGemini(AUDIENCE_NICHE_PROMPT, JSON.stringify({
+          product: {
+            name: cleaned.name,
+            what: cleaned.what,
+            who: cleaned.who,
+            benefit: cleaned.benefit,
+          },
+          existing_niches: nicheCatalogueForPrompt(activeNiches),
+        }), 0);
+        const resolved = validateAudienceChoice(choice, activeNiches);
+        appKw = resolved.keywords;
+        const row = await ensureNiche({
+          slug: resolved.slug,
+          name: resolved.name,
+          keywords: resolved.keywords,
+        });
+        audienceWasResolved = true;
+        cleaned.audience_niche = {
+          slug: row.slug,
+          name: row.name,
+          classifier_version: NICHE_CLASSIFIER_VERSION,
+        };
+      } catch (e) {
+        console.error('audience niche resolution failed:', e.message);
+        return res.status(502).json({
+          error: 'Could not place this product in a reliable audience pool. Please try saving again.',
+        });
+      }
+    }
+
+    // Reviewed pool searches stay first. A product may append useful searches
+    // into spare slots but can no longer displace the terms every app shares.
+    if (appKw.length > 0) {
       try {
         const row = await getNicheBySlug(cleaned.audience_niche.slug);
-        if (row) {
-          const merged = mergeKeywords(appKw, row.keywords);
-          if (JSON.stringify(merged) !== JSON.stringify(row.keywords || [])) {
-            await setNicheKeywords(cleaned.audience_niche.slug, merged);
-          }
+        if (!row) throw new Error('resolved audience pool is not active');
+        const merged = mergeKeywords(row.keywords, appKw);
+        if (JSON.stringify(merged) !== JSON.stringify(row.keywords || [])) {
+          await setNicheKeywords(cleaned.audience_niche.slug, merged);
         }
       } catch (e) {
         console.error('niche keyword merge failed:', e.message);
+        return res.status(500).json({ error: 'Could not prepare this audience pool. Please try again.' });
       }
     }
     // Persist first: the user's edits must never be lost to a light-mine
@@ -720,15 +745,15 @@ export default async function handler(req, res) {
       console.error('profile save error:', e);
       return res.status(500).json({ error: 'Could not save your profile.' });
     }
-    // Fresh niches have zero mined hooks — kick a light mine inline so the
-    // user's first generation isn't stuck on curated fallbacks. Best effort;
-    // the profile is already saved above, so a timeout here costs nothing.
-    if (cleaned.audience_niche && process.env.YOUTUBE_API_KEY) {
+    // A newly resolved product may land in a new OR pre-seeded-but-empty pool.
+    // Give a thin pool one bounded light mine so its first generation is not
+    // left without source-backed choices. Unchanged v2 saves skip this work.
+    if (audienceWasResolved && cleaned.audience_niche && process.env.YOUTUBE_API_KEY) {
       try {
         const pool = await getAutoHookPool(cleaned.audience_niche.slug, 5);
         if (pool.length < 5) {
           const nicheRow = await getNicheBySlug(cleaned.audience_niche.slug);
-          if (nicheRow) {
+          if (nicheRow && await claimNicheLightMine(nicheRow.id)) {
             // Hooks are transcript-gated now: maxTranscripts must cover the
             // extractions or a light mine inserts nothing.
             await mineNiche(nicheRow, process.env.YOUTUBE_API_KEY, {
@@ -757,7 +782,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Couldn\u2019t read that page \u2014 please fill the form manually.' });
       }
       const structured = await callGemini(APP_PROFILE_PROMPT, parsed.text, 0.3);
-      const structuredKw = Array.isArray(structured.audience_niche?.keywords) ? structured.audience_niche.keywords : [];
       const prefill = cleanProfile({
         app_url: normalized,
         name: structured.name,
@@ -768,17 +792,7 @@ export default async function handler(req, res) {
         icon_checked: true,
         facts: structured.facts,
         color: structured.color,
-        audience_niche: structured.audience_niche && structured.audience_niche.name
-          ? { slug: slugifyNiche(structured.audience_niche.name), name: structured.audience_niche.name, keywords: structuredKw }
-          : null,
       });
-      // cleanProfile only keeps {slug, name} on the audience_niche it stores;
-      // re-attach keywords onto the prefill so the client can echo them back
-      // on save without them ever living on the persisted profile itself.
-      if (prefill.audience_niche && structuredKw.length) {
-        prefill.audience_niche.keywords = structuredKw
-          .map((k) => clipText(String(k), 80)).filter(Boolean).slice(0, 6);
-      }
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {
       console.error('profile import error:', e.message);
