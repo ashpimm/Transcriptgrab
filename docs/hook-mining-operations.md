@@ -88,6 +88,34 @@ If the completeness checks fail, the endpoint returns HTTP 409 and keeps the
 existing inventory unchanged. Any database error rolls the entire replacement
 back.
 
+## Batch preview or pre-launch rebuild
+
+The helper script runs niches sequentially, keeps the admin secret in the
+Authorization header, continues past a blocked niche, and can save a complete
+secret-free report.
+
+Run it through Vercel's in-memory environment runner so production secrets are
+not written to a local file:
+
+```powershell
+# Preview every active niche.
+npx --yes vercel@latest env run -e production -- `
+  node scripts/fresh-mine.mjs --all `
+  --report="$env:TEMP\hook-mining-preview.json"
+
+# Apply every healthy rebuild. A blocked niche keeps its existing hooks.
+npx --yes vercel@latest env run -e production -- `
+  node scripts/fresh-mine.mjs --all --apply --confirm=FRESH_REBUILD `
+  --report="$env:TEMP\hook-mining-apply.json"
+```
+
+Each pass can use up to 600 YouTube search quota units per niche because the
+miner checks up to six search phrases. Avoid immediately running an all-niche
+preview and an all-niche apply on the same day unless the YouTube project has
+enough remaining quota. The apply route independently performs the same
+completeness checks and atomically keeps the current rows when a new batch is
+not healthy, so a one-pass pre-launch apply is the quota-efficient option.
+
 ## Routine mine
 
 Omitting both `dry=1` and `fresh=1` runs the normal incremental miner. It adds
