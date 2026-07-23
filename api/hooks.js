@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         if (user.tier !== 'pro') {
           const count = await swipeFileCount(user.id);
           if (count >= FREE_SWIPE_CAP) {
-            return res.status(402).json({ error: `Free plan caps your swipe file at ${FREE_SWIPE_CAP} hooks.`, upgrade: true });
+            return res.status(402).json({ error: `The Free plan lets you save up to ${FREE_SWIPE_CAP} hooks.`, upgrade: true });
           }
         }
         await saveToSwipeFile(user.id, id);

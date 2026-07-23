@@ -20,14 +20,14 @@
 
       var isSignedIn = window.TGUser && TGUser.isSignedIn();
 
-      var title = 'Keep shipping content.';
-      var subtitle = 'Pro gets you 30 carousels a month, watermark-free — a month of content in an afternoon.';
+      var title = 'Keep your app visible all month.';
+      var subtitle = 'Pro includes 30 complete posts a month, no watermark, Reel exports, and daily Instagram publishing.';
       if (variant === 'limit') {
-        title = 'You hit this month’s 30.';
-        subtitle = 'Your Pro quota resets on your billing date.';
+        title = 'You’ve created this month’s 30 posts.';
+        subtitle = 'Your Pro allowance resets on your next billing date.';
       } else if (!isSignedIn) {
-        title = 'Your first 3 carousels are free.';
-        subtitle = 'Sign in, paste your app’s link, and post today. No card required.';
+        title = 'Create your first 3 complete posts free.';
+        subtitle = 'Sign in, paste your product link, and download your first publishable post. No card required.';
       }
 
       var plansHtml =
@@ -35,7 +35,7 @@
           (variant === 'limit' ? '' :
           '<button class="tg-modal-plan-btn tg-plan-pro" id="tg-buy-pro">' +
             '<span class="tg-plan-price">$19<small>/mo</small></span>' +
-            '<span class="tg-plan-desc">Pro — 30 carousels a month, no watermark</span>' +
+            '<span class="tg-plan-desc">30 complete posts + Reel exports, no watermark</span>' +
           '</button>') +
         '</div>';
 
@@ -53,7 +53,7 @@
           '<p class="tg-modal-subtitle">' + subtitle + '</p>' +
           signinHtml +
           plansHtml +
-          '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Maybe later</button>' +
+          '<button class="tg-modal-dismiss" onclick="TGPro.hideUpgradeModal()">Keep using Free</button>' +
         '</div>';
 
       document.body.appendChild(overlay);

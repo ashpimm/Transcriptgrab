@@ -66,7 +66,7 @@ async function fetchHtml(url) {
       redirect: 'follow',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; HooklabBot/1.0; +https://transcriptgrab.vercel.app)',
+        'User-Agent': 'Mozilla/5.0 (compatible; PromoteDevBot/1.0; +https://transcriptgrab.vercel.app)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-US,en;q=0.9',
       },
@@ -322,7 +322,7 @@ export default async function handler(req, res) {
   if (action === 'save') {
     const cleaned = cleanProfile(body.profile);
     if (!cleaned || !cleaned.what) {
-      return res.status(400).json({ error: 'Tell us what your app does \u2014 that field is required.' });
+      return res.status(400).json({ error: 'Describe what your product helps people do — that field is required.' });
     }
     // Keywords never live on the stored profile (cleanProfile strips them),
     // but the client may echo back what import derived \u2014 carry them through

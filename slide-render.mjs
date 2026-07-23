@@ -173,7 +173,7 @@ export function drawSlideOn(canvas, bg, slide, count, style, accent, opts) {
 
   // Free-tier watermark: whisper, not a badge. Last slide only (caller decides).
   if (opts.watermark) {
-    var wm = 'made with hooklab';
+    var wm = 'made with promote.dev';
     x.globalAlpha = 0.35;
     x.fillStyle = ink;
     x.font = '500 26px ' + fontMono;

@@ -59,10 +59,10 @@ export default async function handler(req, res) {
 
     if (body.action === 'link') {
       if (user.tier !== 'pro') {
-        return res.status(402).json({ error: 'Auto-posting is part of Autopilot ($19/mo). Upgrade to connect your accounts.', upgrade: true });
+        return res.status(402).json({ error: 'Daily Instagram publishing is included with Pro ($19/month). Upgrade to connect your account.', upgrade: true });
       }
       if (!uploadPostEnabled()) {
-        return res.status(503).json({ error: 'Auto-posting is not enabled yet — download and post manually for now.' });
+        return res.status(503).json({ error: 'Instagram connection is temporarily unavailable. Download and publish your post manually for now.' });
       }
       const username = user.upload_post_username || `hooklab-u${user.id}`;
       await createUploadPostUser(username);

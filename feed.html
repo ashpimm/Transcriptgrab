@@ -3,9 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hook feed — Hooklab</title>
-<meta name="description" content="Viral outlier hooks with receipts — real videos, real view counts, 5× rule. Pick one and turn it into a carousel for your app.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>H</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
+<title>Proven hook feed — Promote.dev</title>
+<meta name="description" content="Explore recent spoken hooks with real source videos, view counts, and 5× performance receipts. Turn the strongest fit into a complete social post for your app.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://transcriptgrab.vercel.app/feed">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Promote.dev">
+<meta property="og:title" content="Proven hook feed — Promote.dev">
+<meta property="og:description" content="Explore recent spoken hooks with real source videos, view counts, and 5× performance receipts.">
+<meta property="og:image" content="https://transcriptgrab.vercel.app/og-image-promote-dev.png">
+<meta property="og:image:alt" content="Promote.dev turns an app into complete social posts built from proven hooks.">
+<meta property="og:url" content="https://transcriptgrab.vercel.app/feed">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Proven hook feed — Promote.dev">
+<meta name="twitter:description" content="Real short-form hooks with source videos, view counts, and evidence that they outperformed their creators' audiences.">
+<meta name="twitter:image" content="https://transcriptgrab.vercel.app/og-image-promote-dev.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>P</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -81,8 +94,8 @@
 <body>
 <main class="page wrap">
   <div class="page-head">
-    <h1 class="display">Hooks that already won.</h1>
-    <p class="sub">Every hook here carried a real video past the 5× line — at least five times more views than the account had followers. Receipts on every card.</p>
+    <h1 class="display">Hooks that earned outsized attention.</h1>
+    <p class="sub">Every public hook comes from a recent spoken video with 10,000+ views and at least 5× as many views as its creator has followers. Inspect the source and numbers on every card.</p>
   </div>
 
   <div class="toolbar" id="niche-bar"></div>
@@ -95,22 +108,22 @@
       <option value="skit">Skit</option>
       <option value="other">Other</option>
     </select>
-    <button class="chip" id="drawer-open">Saved <span id="swipe-count" class="score-chip" style="display:none"></span></button>
+    <button class="chip" id="drawer-open">Saved hooks <span id="swipe-count" class="score-chip" style="display:none"></span></button>
     <span class="stat" id="result-count"></span>
   </div>
 
   <div class="grid" id="grid"><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div></div>
 
   <div class="use-strip" data-reveal>
-    <h3>Any of these could carry your app.</h3>
-    <p>Pick a hook, paste your link, and get the finished carousel in about a minute.</p>
-    <a class="btn btn-primary" href="/create">Make one for my app</a>
+    <h3>Turn the pattern into a post for your product.</h3>
+    <p>Choose an opener or let Promote.dev find the best fit. Your six slides, caption, and hashtags come out together.</p>
+    <a class="btn btn-primary" href="/create">Create a post from a proven hook</a>
   </div>
 </main>
 
 <footer class="footer">
   <div class="wrap footer-inner">
-    <span class="brand">Hooklab</span>
+    <span class="brand">Promote.dev</span>
     <nav>
       <a href="/create">Create</a>
       <a href="/privacy">Privacy</a>
@@ -127,7 +140,7 @@
   </div>
   <div class="drawer-list" id="drawer-list"><div class="empty">Nothing saved yet. Hit + on a hook to collect it.</div></div>
   <div class="drawer-foot">
-    <a class="btn btn-signal" id="drawer-generate" href="/create">Turn these into carousels</a>
+    <a class="btn btn-signal" id="drawer-generate" href="/create">Use a saved hook in my next post</a>
   </div>
 </aside>
 
@@ -194,7 +207,7 @@ function cardHtml(h) {
 
 function render() {
   var grid = document.getElementById('grid');
-  grid.innerHTML = S.hooks.length ? S.hooks.map(cardHtml).join('') : '<div class="empty" style="grid-column:1/-1">No hooks match these filters yet. The miner restocks daily.</div>';
+  grid.innerHTML = S.hooks.length ? S.hooks.map(cardHtml).join('') : '<div class="empty" style="grid-column:1/-1">No qualifying hooks match these filters yet. New sources are screened regularly.</div>';
   // staggered entrance, capped so deep grids don't feel slow
   Array.prototype.forEach.call(grid.querySelectorAll('.hook-card'), function (c, i) {
     c.style.animationDelay = Math.min(i, 8) * 45 + 'ms';

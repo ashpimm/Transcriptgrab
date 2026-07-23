@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Account — Hooklab</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>H</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
+<title>Account — Promote.dev</title>
+<meta name="description" content="Manage your Promote.dev plan, post allowance, Instagram connection, and daily publishing queue.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>P</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -87,20 +89,20 @@
   </div>
 
   <div class="acct-card">
-    <h2>Plan &amp; usage</h2>
+    <h2>Your plan and posts</h2>
     <div id="plan-body"><span class="stat">Loading…</span></div>
   </div>
 
   <div class="acct-card">
-    <h2>Need more?</h2>
+    <h2>Create all month with Pro</h2>
     <div class="actions">
-      <button class="btn btn-primary" id="go-pro" style="display:none">Go Pro — $19/mo</button>
+      <button class="btn btn-primary" id="go-pro" style="display:none">Upgrade to Promote.dev Pro — $19/month</button>
       <a class="btn btn-ghost" id="manage-sub" href="/api/checkout" style="display:none">Manage subscription</a>
     </div>
   </div>
 
   <div class="acct-card" id="autopilot-card" style="display:none">
-    <h2>Auto-posting</h2>
+    <h2>Daily Instagram publishing</h2>
     <div id="autopilot-body"><span class="stat">Loading…</span></div>
   </div>
 
@@ -139,11 +141,11 @@ function render(u) {
   var body = '';
   if (u.tier === 'pro') {
     var used = u.carouselsUsed || 0, lim = u.carouselsLimit || 30;
-    body += '<div class="row"><span>Pro $19/mo — carousels this month</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
+    body += '<div class="row"><span>Pro $19/month — posts this month</span><span class="v">' + used + ' / ' + lim + '</span></div>' +
       '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, used / lim * 100) + '%"></div></div>';
   } else {
     var fUsed = u.freeCarouselsUsed || 0, fLim = u.freeCarouselsLimit || 3;
-    body += '<div class="row"><span>Free carousels used</span><span class="v">' + fUsed + ' / ' + fLim + '</span></div>' +
+    body += '<div class="row"><span>Free posts used</span><span class="v">' + fUsed + ' / ' + fLim + '</span></div>' +
       '<div class="usage-track"><div class="usage-fill" style="width:' + Math.min(100, fUsed / fLim * 100) + '%"></div></div>';
   }
   body += '<div class="row"><span>Credits</span><span class="v">' + (u.credits || 0) + '</span></div>';
@@ -206,29 +208,28 @@ function loadSocial() {
   fetch('/api/social', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(renderSocial)
-    .catch(function () { el('autopilot-body').innerHTML = '<span class="stat">Couldn’t load autopilot status.</span>'; });
+    .catch(function () { el('autopilot-body').innerHTML = '<span class="stat">Couldn’t load publishing status.</span>'; });
 }
 
 function renderSocial(d) {
   if (!d.connected) {
-    // Auto-posting ships behind a feature flag. Until it is on, say so plainly
-    // — never show a Connect button that can only fail.
+    // Never show a Connect button when the provider is temporarily unavailable.
     if (!d.enabled) {
       el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;">Auto-posting to Instagram is in private beta (TikTok coming soon). Until it opens up, download your slides and paste the caption — about a minute per post. Pro members get it free the day it lands.</p>';
+        '<p style="color:var(--muted);font-size:13.5px;">Instagram connection is temporarily unavailable. Your posts are safe — download the complete post and publish it manually while we restore the connection.</p>';
       return;
     }
     if (CUR_TIER !== 'pro') {
       el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Auto-posting is a Pro feature ($19/mo) — upgrade to connect Instagram and have your daily carousel posted for you (TikTok coming soon).</p>' +
-        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Go Pro — $19/mo</a>';
+        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Daily Instagram publishing is included with Pro. Connect your account once and Promote.dev will prepare, queue, and publish a fresh post for you each day.</p>' +
+        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Start daily publishing — $19/month</a>';
       return;
     }
     el('autopilot-body').innerHTML =
-      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect Instagram and your daily carousel gets posted for you. TikTok coming soon.</p>' +
-      '<button class="btn btn-primary" id="connect-social">Connect Instagram</button>' +
+      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect Instagram once. Promote.dev will prepare, queue, and publish a fresh post for you each day.</p>' +
+      '<button class="btn btn-primary" id="connect-social">Connect Instagram for daily publishing</button>' +
       '<div id="connect-err" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></div>';
-    wireLinkButton('connect-social', 'Connect Instagram');
+    wireLinkButton('connect-social', 'Connect Instagram for daily publishing');
     return;
   }
 
@@ -271,7 +272,7 @@ function renderSocial(d) {
           '<span class="status-pill ' + st + '">' + esc(label) + '</span>' +
         '</div>';
       }).join('') + '</div>'
-    : '<p style="color:var(--muted);font-size:13.5px;">No posts queued yet — the next one drafts within 24 hours.</p>';
+    : '<p style="color:var(--muted);font-size:13.5px;">Your publishing queue is empty. The next daily post will be prepared within 24 hours.</p>';
 
   el('autopilot-body').innerHTML = html +
     '<div style="margin-top:16px;">' + queueHtml + '</div>';

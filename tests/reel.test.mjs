@@ -43,13 +43,13 @@ test('signed asset URLs carry only the bounded render coordinates', () => {
 
 test('create page exposes render progress, retry, and direct MP4 download states', () => {
   const source = fs.readFileSync(new URL('../create.html', import.meta.url), 'utf8');
-  assert.match(source, /Create Reel \(\.mp4\)/);
+  assert.match(source, /Turn this into a Reel/);
   assert.match(source, /action: 'reel-status'/);
   assert.match(source, /Retry Reel render/);
-  assert.match(source, /hooklab-reel\.mp4/);
+  assert.match(source, /promote-dev-reel\.mp4/);
   assert.match(source, /choose your song in Instagram/i);
   assert.match(source, /updateHistoryReelState/);
-  assert.match(source, /Unlock Reel export with Pro/);
+  assert.match(source, /Upgrade to turn this post into a Reel/);
   const classicScripts = [...source.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
   assert.ok(classicScripts.length > 0);
   for (const script of classicScripts) assert.doesNotThrow(() => new Function(script));

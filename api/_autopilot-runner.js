@@ -58,7 +58,7 @@ async function sendFailureAlert(summary) {
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: `Hooklab Autopilot ${summary.job} failed`, ...summary }),
+      body: JSON.stringify({ text: `Promote.dev publishing worker ${summary.job} failed`, ...summary }),
       signal: AbortSignal.timeout(3000),
     });
   } catch (error) {

@@ -121,12 +121,12 @@
 
   function usageLine(u) {
     if (u.tier === 'pro') {
-      var line = (u.carouselsUsed || 0) + ' / ' + (u.carouselsLimit || 20) + ' carousels this month';
+      var line = (u.carouselsUsed || 0) + ' / ' + (u.carouselsLimit || 20) + ' posts this month';
       if (u.credits > 0) line += ' · ' + u.credits + ' credits';
       return line;
     }
     if (u.credits > 0) return u.credits + ' credit' + (u.credits === 1 ? '' : 's') + ' left';
-    return u.freeCarouselUsed ? 'free carousel used' : '1 free carousel waiting';
+    return u.freeCarouselUsed ? 'free post used' : 'free posts waiting';
   }
 
   function renderNav() {
@@ -138,7 +138,7 @@
         ? '<img class="suite-nav-avatar" src="' + escapeAttr(_user.picture) + '" alt="" referrerpolicy="no-referrer">'
         : '<div class="suite-nav-avatar" style="background:#17191D;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#F5F5F6;">' + (_user.name || _user.email || '?').charAt(0).toUpperCase() + '</div>';
 
-      var goProHtml = _user.tier === 'pro' ? '' : '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
+      var goProHtml = _user.tier === 'pro' ? '' : '<a href="/#pricing" class="suite-nav-gopro">Upgrade</a>';
 
       rightHtml =
         '<div class="suite-nav-user" id="nav-user-area">' +
@@ -162,7 +162,7 @@
     } else {
       rightHtml =
         '<button class="suite-nav-signin" onclick="window.location.href=\'/api/auth/google\'">Sign in</button>' +
-        '<a href="/#pricing" class="suite-nav-gopro">Go Pro</a>';
+        '<a href="/#pricing" class="suite-nav-gopro">Upgrade</a>';
     }
 
     var linksHtml =
@@ -171,7 +171,7 @@
 
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
-        '<a href="' + brandHref + '" class="suite-nav-brand">Hooklab</a>' +
+        '<a href="' + brandHref + '" class="suite-nav-brand">Promote.dev</a>' +
         '<div class="suite-nav-links">' + linksHtml + '</div>' +
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';

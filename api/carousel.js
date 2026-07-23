@@ -83,7 +83,7 @@ async function serveReelSlide(req, res) {
     return res.status(403).json({ error: 'Invalid or expired Reel asset link.' });
   }
   const carousel = await getCarouselByIdForRender(carouselId);
-  if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+  if (!carousel) return res.status(404).json({ error: 'Post not found.' });
   const jpeg = await renderReelSlideJpeg({ carousel, index, accent: carousel.profile?.color || '' });
   res.setHeader('Content-Type', 'image/jpeg');
   res.setHeader('Content-Length', String(jpeg.length));
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       if (!gate.allowed) {
         const msg = gate.reason === 'monthly_limit'
           ? 'You have used all 30 posts this month. They reset on your billing date.'
-          : 'You have used your 3 free carousels. Autopilot is $19/mo — content posted daily for you.';
+          : 'You have used your 3 free posts. Pro is $19/month for 30 posts, Reel exports, and daily Instagram publishing.';
         return res.status(402).json({ error: msg, reason: gate.reason, upgrade: gate.reason === 'upgrade' });
       }
 
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
       await ensureReelSchema();
       const carouselId = parseInt(body.carouselId, 10);
       const carousel = await getCarousel(user.id, carouselId);
-      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!carousel) return res.status(404).json({ error: 'Post not found.' });
       if (!carousel.bg) {
         return res.status(409).json({ error: 'Finish generating the slide visuals before creating a Reel.' });
       }
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
       await ensureReelSchema();
       const carouselId = parseInt(body.carouselId, 10);
       const state = await getReelState(user.id, carouselId);
-      if (!state) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!state) return res.status(404).json({ error: 'Post not found.' });
       const current = reelJson(state);
       if (current.status === 'ready' || current.status === 'failed' || current.status === 'expired' || current.status === 'idle') {
         if (current.status === 'expired' && state.reel_status !== 'expired') {
@@ -237,7 +237,7 @@ export default async function handler(req, res) {
     // ===== BACKGROUND: the textless art every TEXT slide sits on =====
     if (action === 'background') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
-      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!carousel) return res.status(404).json({ error: 'Post not found.' });
 
       // Cached on the carousel — revisiting history is free. Only body.fresh
       // (the "New visuals" button) buys a new one.
@@ -268,7 +268,7 @@ export default async function handler(req, res) {
     // carousel looked like before this existed. Never a 500. =====
     if (action === 'hero') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
-      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!carousel) return res.status(404).json({ error: 'Post not found.' });
 
       if (carousel.hero && !body.fresh) {
         return res.status(200).json({ hero: `data:image/png;base64,${carousel.hero}` });
@@ -297,7 +297,7 @@ export default async function handler(req, res) {
     // ===== SLIDE: render one image (legacy path for cached clients) =====
     if (action === 'slide') {
       const carousel = await getCarousel(user.id, parseInt(body.carouselId, 10));
-      if (!carousel) return res.status(404).json({ error: 'Carousel not found.' });
+      if (!carousel) return res.status(404).json({ error: 'Post not found.' });
       const slides = carousel.slides;
       const idx = parseInt(body.index, 10);
       const slide = Array.isArray(slides) ? slides.find((s) => s.index === idx) : null;
