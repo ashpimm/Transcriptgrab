@@ -38,12 +38,12 @@
 
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js')
       .then(function () {
-        return loadScript('https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.halo.min.js');
+        return loadScript('https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js');
       })
       .then(function () {
-        if (!window.VANTA || !window.VANTA.HALO || !hero.isConnected) return;
+        if (!window.VANTA || !window.VANTA.NET || !hero.isConnected) return;
 
-        var effect = window.VANTA.HALO({
+        var effect = window.VANTA.NET({
           el: hero,
           mouseControls: true,
           touchControls: true,
@@ -52,12 +52,12 @@
           minWidth: 200,
           scale: 1,
           scaleMobile: 0.72,
-          baseColor: 0xffdd00,
+          color: 0xffdd00,
           backgroundColor: 0x070708,
-          amplitudeFactor: 1.15,
-          size: 1.05,
-          xOffset: 0.16,
-          yOffset: -0.08
+          points: 7,
+          maxDistance: 19,
+          spacing: 22,
+          showDots: true
         });
 
         var canvas = hero.querySelector('.vanta-canvas');
@@ -72,7 +72,7 @@
         }, { once: true });
       })
       .catch(function () {
-        // The CSS glow remains as a complete fallback if either CDN is unavailable.
+        hero.setAttribute('data-vanta-state', 'fallback');
       });
   }
 

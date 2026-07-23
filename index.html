@@ -100,7 +100,11 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background: #070708;
+  background-color: #070708;
+  background-image:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.055), transparent 38%),
+    radial-gradient(circle, rgba(255,255,255,.075) 1px, transparent 1.2px);
+  background-size: auto, 28px 28px;
 }
 .hero::after {
   content: '';
