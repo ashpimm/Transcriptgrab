@@ -164,14 +164,20 @@
    in, then the finished post (the slides below) that came out. Mono because the
    URL is data; the yellow arrow is the one signal — it marks the generation. */
 .demo-io { display: flex; align-items: center; justify-content: center; gap: 14px 18px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
-.demo-io .io-k { font-family: var(--mono); font-size: var(--t-meta); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.demo-io .io-url { font-family: var(--mono); font-size: var(--t-support); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; white-space: nowrap; min-width: 0; max-width: min(720px, 100%, calc(100vw - 96px)); overflow: hidden; text-overflow: ellipsis; }
-.demo-io .io-step { display: inline-flex; align-items: center; gap: 10px; }
-.demo-io .io-arrow { font-family: var(--mono); font-size: 20px; line-height: 1; color: var(--signal); }
+.demo-io .io-k { flex-shrink: 0; font-family: var(--mono); font-size: var(--t-meta); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.demo-io .io-url { flex: 0 1 auto; min-width: 0; font-family: var(--mono); font-size: var(--t-support); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-io .io-step { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.demo-io .io-arrow { flex-shrink: 0; font-family: var(--mono); font-size: 20px; line-height: 1; color: var(--signal); }
 .demo-io .io-out { color: var(--ink-2); font-size: var(--t-support); font-weight: 450; }
-@media (max-width: 520px) {
-  .demo-io { gap: 8px 12px; }
-  .demo-io .io-arrow { transform: rotate(90deg); }
+/* Below the deck breakpoint the horizontal IN → OUT can't fit a phone-width
+   card, so stack it: labels left, URL fills the row and ellipses from the
+   start, arrow turns down into the deck. */
+@media (max-width: 760px) {
+  .demo-io { flex-direction: column; align-items: stretch; text-align: left; gap: 12px; }
+  .demo-io .io-step { display: flex; width: 100%; }
+  .demo-io .io-url { flex: 1 1 auto; }
+  .demo-io .io-arrow { align-self: center; transform: rotate(90deg); margin: 2px 0; }
+  .demo-io .io-out { line-height: 1.4; }
 }
 .demo-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
 /* Frame furniture is prose, so it is set in the sans. Only the measured thing
