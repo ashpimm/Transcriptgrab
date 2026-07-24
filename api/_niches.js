@@ -64,6 +64,46 @@ export const CANONICAL_NICHES = Object.freeze([
     name: 'Coaching Business',
     keywords: ['online coaching tips', 'grow a coaching business', 'coach client onboarding', 'coaching sales tips', 'coaching content ideas'],
   },
+  {
+    slug: 'students-study',
+    name: 'Students & Study',
+    keywords: ['study tips', 'how to study effectively', 'study motivation', 'exam preparation tips', 'note taking tips'],
+  },
+  {
+    slug: 'content-creators',
+    name: 'Content Creators',
+    keywords: ['grow on instagram', 'content creation tips', 'grow on tiktok', 'social media growth tips', 'youtube growth tips'],
+  },
+  {
+    slug: 'small-business-marketing',
+    name: 'Small Business Owners',
+    keywords: ['small business tips', 'small business marketing', 'ecommerce tips', 'etsy seller tips', 'get more customers'],
+  },
+  {
+    slug: 'side-hustles',
+    name: 'Side Hustles & Online Income',
+    keywords: ['side hustle ideas', 'make money online', 'passive income ideas', 'freelancing tips', 'online business tips'],
+  },
+  {
+    slug: 'career-growth',
+    name: 'Career & Job Hunting',
+    keywords: ['job interview tips', 'resume tips', 'career advice', 'linkedin profile tips', 'salary negotiation tips'],
+  },
+  {
+    slug: 'parenting',
+    name: 'Parenting',
+    keywords: ['parenting hacks', 'toddler parenting tips', 'mom hacks', 'positive parenting tips', 'parenting advice'],
+  },
+  {
+    slug: 'home-organization',
+    name: 'Home & Organization',
+    keywords: ['home organization hacks', 'cleaning hacks', 'declutter tips', 'small space organization', 'cleaning motivation'],
+  },
+  {
+    slug: 'pet-owners',
+    name: 'Pet Owners',
+    keywords: ['dog training tips', 'puppy training tips', 'dog owner tips', 'cat owner tips', 'pet care tips'],
+  },
 ]);
 
 // Exact production rows known to represent the same source audience. Repair
@@ -135,6 +175,35 @@ const EXTRA_ALIASES = Object.freeze({
   'real-estate-agents': 'real-estate-professionals',
   coaching: 'coaching-business',
   coaches: 'coaching-business',
+  students: 'students-study',
+  study: 'students-study',
+  'study-and-exams': 'students-study',
+  'college-students': 'students-study',
+  creators: 'content-creators',
+  influencers: 'content-creators',
+  'social-media-growth': 'content-creators',
+  'social-media-creators': 'content-creators',
+  'small-business': 'small-business-marketing',
+  'small-business-owners': 'small-business-marketing',
+  entrepreneurs: 'small-business-marketing',
+  ecommerce: 'small-business-marketing',
+  'side-hustle': 'side-hustles',
+  'make-money-online': 'side-hustles',
+  'online-income': 'side-hustles',
+  freelancers: 'side-hustles',
+  career: 'career-growth',
+  'job-search': 'career-growth',
+  'job-seekers': 'career-growth',
+  careers: 'career-growth',
+  parents: 'parenting',
+  'new-parents': 'parenting',
+  'home-and-organization': 'home-organization',
+  cleaning: 'home-organization',
+  decluttering: 'home-organization',
+  pets: 'pet-owners',
+  'dog-owners': 'pet-owners',
+  'dog-training': 'pet-owners',
+  'cat-owners': 'pet-owners',
 });
 
 const CANONICAL_BY_SLUG = new Map(CANONICAL_NICHES.map((niche) => [niche.slug, niche]));
@@ -203,6 +272,30 @@ export function inferCanonicalNicheSlug(label, keywords = []) {
   }
   if (/\b(coaching business|online coach|business coach|coach client|coaching sales)\w*\b/.test(text)) {
     return 'coaching-business';
+  }
+  if (/\b(students?|study (?:tips|routine|motivation|habits|skills)|studying|exams?|note taking|college|homework|revision)\w*\b/.test(text)) {
+    return 'students-study';
+  }
+  if (/\b(content creat|influencers?|social media (?:growth|manager|tips|marketing)|grow on (?:instagram|tiktok|youtube)|youtube growth|audience growth)\w*\b/.test(text)) {
+    return 'content-creators';
+  }
+  if (/\b(small business|e-?commerce|etsy|shopify|local business|business owners?)\w*\b/.test(text)) {
+    return 'small-business-marketing';
+  }
+  if (/\b(side hustle|make money online|passive income|freelanc|online income|gig work)\w*\b/.test(text)) {
+    return 'side-hustles';
+  }
+  if (/\b(job (?:search|hunt|interview)|resume|career (?:advice|growth|change|development)|linkedin|salary negotiation)\w*\b/.test(text)) {
+    return 'career-growth';
+  }
+  if (/\b(parenting|parenthood|new parents?|moms?|dads?)\w*\b/.test(text)) {
+    return 'parenting';
+  }
+  if (/\b(home organi[sz]|declutter|cleaning (?:hacks|tips|routine)|tidying|organi[sz]ing tips)\w*\b/.test(text)) {
+    return 'home-organization';
+  }
+  if (/\b(dogs?|pupp(?:y|ies)|cats?|kittens?|pets?)\b/.test(text)) {
+    return 'pet-owners';
   }
   return '';
 }

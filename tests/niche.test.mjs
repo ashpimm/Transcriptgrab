@@ -84,14 +84,14 @@ test('an alias choice is mapped to its canonical pool, never recreated', () => {
 
 test('existing choices use the database canonical name', () => {
   const resolved = validateAudienceChoice({
-    existing_slug: 'pet-care',
+    existing_slug: 'photography',
     new_name: null,
-    keywords: ['dog training tips', 'cat care tips', 'new puppy advice'],
-  }, [{ slug: 'pet-care', name: 'Pet Care & Training', keywords: ['pet care', 'dog health', 'cat health'] }]);
+    keywords: ['camera settings tips', 'photo editing tips', 'beginner photography'],
+  }, [{ slug: 'photography', name: 'Photography & Cameras', keywords: ['photography basics', 'camera gear', 'photo composition'] }]);
   assert.deepEqual(resolved, {
-    slug: 'pet-care',
-    name: 'Pet Care & Training',
-    keywords: ['dog training tips', 'cat care tips', 'new puppy advice'],
+    slug: 'photography',
+    name: 'Photography & Cameras',
+    keywords: ['camera settings tips', 'photo editing tips', 'beginner photography'],
     isNew: false,
   });
 });
@@ -116,15 +116,15 @@ test('invalid, retired, and unknown model choices fail closed', () => {
   );
   assert.throws(
     () => validateAudienceChoice(
-      { existing_slug: 'pet-care', new_name: null, keywords: [] },
-      [{ slug: 'pet-care', name: 'Pet Care', keywords: ['pets'] }],
+      { existing_slug: 'photography', new_name: null, keywords: [] },
+      [{ slug: 'photography', name: 'Photography', keywords: ['photography'] }],
     ),
     /at least three search phrases/i,
   );
   assert.throws(
     () => validateAudienceChoice(
-      { existing_slug: null, new_name: 'Pet Care', keywords: [] },
-      [{ slug: 'pet-care', name: 'Pet Care', keywords: ['pets'] }],
+      { existing_slug: null, new_name: 'Photography', keywords: [] },
+      [{ slug: 'photography', name: 'Photography', keywords: ['photography'] }],
     ),
     /at least three search phrases/i,
   );
@@ -153,7 +153,7 @@ test('invalid, retired, and unknown model choices fail closed', () => {
     /choose one/i,
   );
   assert.throws(
-    () => validateAudienceChoice({ existing_slug: null, new_name: 'Pets', keywords: ['one'] }, []),
+    () => validateAudienceChoice({ existing_slug: null, new_name: 'Photography', keywords: ['one'] }, []),
     /at least three/i,
   );
 });
@@ -191,4 +191,21 @@ test('only an unchanged active v2 audience can skip reclassification', () => {
 test('the launch batch fits the 90-request runner guard', () => {
   assert.ok(LAUNCH_NICHE_SLUGS.length * 9 <= 90);
   assert.ok(!LAUNCH_NICHE_SLUGS.some((slug) => LEGACY_NICHE_SLUGS.includes(slug)));
+});
+
+test('expanded catalogue: new audiences map to their canonical pools', () => {
+  assert.equal(inferCanonicalNicheSlug('Students'), 'students-study');
+  assert.equal(inferCanonicalNicheSlug('Study & Exams'), 'students-study');
+  assert.equal(inferCanonicalNicheSlug('Content Creators'), 'content-creators');
+  assert.equal(inferCanonicalNicheSlug('Small Business Owners'), 'small-business-marketing');
+  assert.equal(inferCanonicalNicheSlug('Side Hustles'), 'side-hustles');
+  assert.equal(inferCanonicalNicheSlug('Job Search'), 'career-growth');
+  assert.equal(inferCanonicalNicheSlug('Parenting'), 'parenting');
+  assert.equal(inferCanonicalNicheSlug('Home Organization'), 'home-organization');
+  assert.equal(inferCanonicalNicheSlug('Dog Owners'), 'pet-owners');
+  assert.equal(canonicalNicheSlug('make-money-online'), 'side-hustles');
+  assert.equal(canonicalNicheSlug('cleaning'), 'home-organization');
+  assert.equal(canonicalNicheSlug('influencers'), 'content-creators');
+  // note-taking / task apps stay in the existing productivity pool
+  assert.equal(inferCanonicalNicheSlug('Time Management'), 'productivity-focus');
 });
