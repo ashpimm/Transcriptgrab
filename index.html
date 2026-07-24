@@ -165,7 +165,7 @@
    URL is data; the yellow arrow is the one signal — it marks the generation. */
 .demo-io { display: flex; align-items: center; justify-content: center; gap: 14px 18px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .demo-io .io-k { font-family: var(--mono); font-size: var(--t-meta); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.demo-io .io-url { font-family: var(--mono); font-size: var(--t-support); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; white-space: nowrap; }
+.demo-io .io-url { font-family: var(--mono); font-size: var(--t-support); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; white-space: nowrap; min-width: 0; max-width: min(720px, 100%, calc(100vw - 96px)); overflow: hidden; text-overflow: ellipsis; }
 .demo-io .io-step { display: inline-flex; align-items: center; gap: 10px; }
 .demo-io .io-arrow { font-family: var(--mono); font-size: 20px; line-height: 1; color: var(--signal); }
 .demo-io .io-out { color: var(--ink-2); font-size: var(--t-support); font-weight: 450; }
@@ -415,7 +415,7 @@
 <section class="demo" id="real-output">
   <div class="demo-frame">
     <div class="demo-io" aria-label="One product link goes in; the finished post comes out below">
-      <span class="io-step"><span class="io-k">In</span><code class="io-url">apps.apple.com/hud-plus</code></span>
+      <span class="io-step"><span class="io-k">In</span><code class="io-url" title="play.google.com/store/apps/details?id=com.hyperfixlabs.hudplus">play.google.com/store/apps/details?id=com.hyperfixlabs.hudplus</code></span>
       <span class="io-arrow" aria-hidden="true">&rarr;</span>
       <span class="io-step"><span class="io-k">Out</span><span class="io-out">the finished post &mdash; slides, caption, hashtags</span></span>
     </div>
