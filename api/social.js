@@ -1,17 +1,27 @@
-// api/social.js — Account-page companion: social account linking, the post
-// queue, AND the "Measure" analytics loop. Analytics lives here rather than in
-// its own file to stay under the Vercel Hobby 12-function limit.
+// api/social.js — Autopilot/account companion: social account linking, the
+// post queue AND its user controls (toggle, posting slot, edit/skip), and the
+// "Measure" analytics loop. All in one file to stay under the Vercel Hobby
+// 12-function limit.
 //
 // GET  /api/social                          -> { enabled, connected, username, linked, posts, queue, health }
 // GET  /api/social?resource=analytics       -> { enabled, connected, totals, posts, syncedAt }  (cached, fast)
+// GET  /api/social?resource=autopilot       -> GET payload + { autopilotOn, postSlot, slots }
 // POST /api/social {action:'link'}          -> { url } (hosted upload-post linking page)
 // POST /api/social {action:'refresh-analytics'} -> pull fresh numbers, save, return updated set
+// POST /api/social {action:'toggle', enabled}   -> autopilot on/off
+// POST /api/social {action:'set-slot', slot}    -> posting time (allowed cron slots only)
+// POST /api/social {action:'edit-post', postId, slides, caption} -> manual queue edit
+// POST /api/social {action:'skip-post', postId} -> skip a queued post
 
 import {
   getSession, setUploadPostUsername, getPostsForUser, getPostQueueSummary,
   getLatestAutopilotRuns, ensureAnalyticsSchema, getPostsWithMetrics,
-  getPostsForMetricSync, savePostMetrics,
+  getPostsForMetricSync, savePostMetrics, ensureAutopilotReliabilitySchema,
+  setAutopilotEnabled, setPostSlot, updateQueuedPost, skipQueuedPost,
 } from './_db.js';
+import {
+  PUBLISH_SLOTS, DEFAULT_SLOT, isAllowedSlot, validatePostEdit,
+} from './_autopilot-controls.js';
 import {
   uploadPostEnabled, createUploadPostUser, generateLinkUrl, getLinkedPlatforms,
   getPostAnalytics, getProfileAnalytics,
@@ -101,6 +111,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
+      const wantsAutopilot = req.query?.resource === 'autopilot';
+      if (wantsAutopilot) await ensureAutopilotReliabilitySchema();
       const [posts, queue, healthRows] = await Promise.all([
         getPostsForUser(user.id),
         getPostQueueSummary(user.id),
@@ -113,7 +125,7 @@ export default async function handler(req, res) {
       if (user.upload_post_username && uploadPostEnabled()) {
         linked = await getLinkedPlatforms(user.upload_post_username).catch(() => null);
       }
-      return res.status(200).json({
+      const payload = {
         enabled: uploadPostEnabled(),
         connected: !!user.upload_post_username,
         username: user.upload_post_username || '',
@@ -121,7 +133,15 @@ export default async function handler(req, res) {
         posts,
         queue,
         health: publicAutopilotHealth(healthRows),
-      });
+      };
+      if (wantsAutopilot) {
+        // Column missing pre-migration reads as undefined -> treat as defaults.
+        payload.autopilotOn = user.autopilot_enabled !== false;
+        payload.postSlot = isAllowedSlot(user.post_slot) ? user.post_slot : DEFAULT_SLOT;
+        payload.slots = PUBLISH_SLOTS;
+        payload.tier = user.tier || 'free';
+      }
+      return res.status(200).json(payload);
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -141,6 +161,51 @@ export default async function handler(req, res) {
       if (!user.upload_post_username) await setUploadPostUsername(user.id, username);
       const url = await generateLinkUrl(username);
       return res.status(200).json({ url });
+    }
+
+    // ---- autopilot controls (pro-only; the page itself upsells free users) ----
+    if (['toggle', 'set-slot', 'edit-post', 'skip-post'].includes(body.action)) {
+      if (user.tier !== 'pro') {
+        return res.status(402).json({ error: 'Autopilot is included with Pro ($19/month).', upgrade: true });
+      }
+      await ensureAutopilotReliabilitySchema();
+
+      if (body.action === 'toggle') {
+        const on = !!body.enabled;
+        await setAutopilotEnabled(user.id, on);
+        return res.status(200).json({ autopilotOn: on });
+      }
+
+      if (body.action === 'set-slot') {
+        if (!isAllowedSlot(body.slot)) {
+          return res.status(400).json({ error: 'Pick one of the available posting times.' });
+        }
+        await setPostSlot(user.id, body.slot);
+        return res.status(200).json({ postSlot: body.slot });
+      }
+
+      const postId = parseInt(body.postId, 10);
+      if (!Number.isInteger(postId) || postId <= 0) {
+        return res.status(400).json({ error: 'Missing post id.' });
+      }
+
+      if (body.action === 'edit-post') {
+        const checked = validatePostEdit(body);
+        if (checked.error) return res.status(400).json({ error: checked.error });
+        const updated = await updateQueuedPost(user.id, postId, checked.slides, checked.caption);
+        if (!updated) {
+          return res.status(409).json({ error: 'This post is no longer editable — it may already be publishing.' });
+        }
+        return res.status(200).json({ post: updated });
+      }
+
+      if (body.action === 'skip-post') {
+        const skipped = await skipQueuedPost(user.id, postId);
+        if (!skipped) {
+          return res.status(409).json({ error: 'This post can no longer be skipped — it may already be publishing.' });
+        }
+        return res.status(200).json({ skipped: true });
+      }
     }
 
     // ---- analytics: refresh (network) ----

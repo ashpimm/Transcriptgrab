@@ -6,6 +6,7 @@ import { getAutoHookPool, getGlobalHookPool, getHooksByIds } from './_db.js';
 import { callGemini } from './_shared.js';
 import { CAROUSEL_COPY_PROMPT, HOOK_PICK_PROMPT } from './_prompts.js';
 import { NICHE_CLASSIFIER_VERSION } from './_niches.js';
+import { scheduledTimeForSlot } from './_autopilot-controls.js';
 
 export const SLIDE_COUNT = 6;
 
@@ -152,17 +153,20 @@ export function cleanCta(v) {
   return s.substring(0, 60);
 }
 
-// Daily posting slots at 15:00 UTC (peak US morning/noon). Returns up to
-// `days` future Date slots, skipping days that already have a post queued —
-// backfills past collisions so the queue always reaches its target depth.
-export function nextSlots(nowIso, existing, days) {
+// Daily posting slots. Returns up to `days` future Date slots, skipping days
+// that already have a post queued — backfills past collisions so the queue
+// always reaches its target depth. `postSlot` is the user's chosen publish
+// cron fire time ('HH:MM' UTC); posts are scheduled 30 minutes before it so
+// they come due on the intended fire (default 20:30 → 20:00, 6 AM Adelaide).
+export function nextSlots(nowIso, existing, days, postSlot) {
+  const { h, m } = scheduledTimeForSlot(postSlot);
   const now = new Date(nowIso);
   const takenDays = new Set(existing.map((d) => new Date(d).toISOString().substring(0, 10)));
   const out = [];
   for (let i = 0; out.length < days && i < days + 7; i++) {
     const slot = new Date(now);
     slot.setUTCDate(slot.getUTCDate() + i);
-    slot.setUTCHours(20, 0, 0, 0); // 5:30 AM ACST — due before the 20:30 UTC cron posts at 6 AM Adelaide
+    slot.setUTCHours(h, m, 0, 0);
     if (slot <= now) continue;
     if (takenDays.has(slot.toISOString().substring(0, 10))) continue;
     out.push(slot);

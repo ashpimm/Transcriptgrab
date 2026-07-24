@@ -328,7 +328,7 @@ export function handleTopup(req, res, scheduledTrigger) {
               ctx.stats.queueFullUsers = (ctx.stats.queueFullUsers || 0) + 1;
               continue;
             }
-            const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n);
+            const slots = nextSlots(new Date().toISOString(), scheduledAts, QUEUE_DAYS - n, user.post_slot);
             let total = await countAllPosts(user.id);
             for (const slot of slots) {
               if (postsCreatedThisRun >= MAX_TOPUP_POSTS_PER_RUN) {

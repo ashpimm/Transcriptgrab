@@ -215,3 +215,7 @@ ALTER TABLE users ADD COLUMN profile JSONB;                     -- {sells, audie
 ALTER TABLE users ADD COLUMN packs_used INTEGER DEFAULT 0;      -- monthly, reset with usage_reset_at
 ALTER TABLE users ADD COLUMN carousels_used INTEGER DEFAULT 0;  -- monthly
 ALTER TABLE users ADD COLUMN sample_pack_used BOOLEAN DEFAULT FALSE;
+
+-- Autopilot user controls (2026-07-25): see scripts/migrate-autopilot-controls.sql
+ALTER TABLE users ADD COLUMN autopilot_enabled BOOLEAN NOT NULL DEFAULT TRUE;  -- master on/off for daily publishing
+ALTER TABLE users ADD COLUMN post_slot TEXT NOT NULL DEFAULT '20:30';          -- publish cron fire time (UTC HH:MM)

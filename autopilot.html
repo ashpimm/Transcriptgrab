@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autopilot — Promote.dev</title>
+<meta name="description" content="Control your daily publishing: turn Autopilot on or off, pick your posting time, edit queued posts, and track performance.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>P</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
+<style>
+.page { padding: 52px 0 90px; max-width: 720px; }
+.page h1 { font-size: clamp(28px, 4vw, 40px); margin-bottom: 8px; }
+.page .sub { color: var(--muted); font-size: 14px; margin-bottom: 30px; }
+.ap-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; }
+.ap-card h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.ap-card .h2-sub { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-bottom: 16px; }
+
+/* ---- status header ---- */
+.machine { display: flex; align-items: center; gap: 18px; }
+.machine .m-copy { min-width: 0; flex: 1; }
+.machine .m-state { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+.machine .m-next { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+.switch { position: relative; flex: 0 0 auto; width: 56px; height: 32px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface-2); cursor: pointer; transition: background .2s, border-color .2s; padding: 0; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: transform .22s cubic-bezier(.23,1,.32,1), background .2s; }
+.switch[aria-checked="true"] { background: var(--signal); border-color: var(--signal); }
+.switch[aria-checked="true"]::after { transform: translateX(24px); background: #000; }
+.switch:focus-visible { outline: 2px solid var(--signal-line); outline-offset: 2px; }
+.switch:disabled { opacity: .4; cursor: not-allowed; }
+.paused-note { display: none; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface-2); color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+
+.automation-health { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; margin-top: 16px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface-2); }
+.automation-health .health-dot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; flex: 0 0 auto; background: var(--muted); }
+.automation-health.healthy .health-dot { background: #36c98f; box-shadow: 0 0 0 4px rgba(54,201,143,.12); }
+.automation-health.running .health-dot { background: #7eb6ff; box-shadow: 0 0 0 4px rgba(126,182,255,.12); }
+.automation-health.attention .health-dot { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); }
+.automation-health .health-title { font-size: 13.5px; font-weight: 700; }
+.automation-health .health-copy { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 2px; }
+
+/* ---- connection ---- */
+.plat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 2px; }
+.plat-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); }
+.plat-chip.on { background: var(--ink); color: #000; border-color: var(--ink); }
+.plat-chip.off { background: transparent; color: var(--muted); }
+.plat-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* ---- schedule ---- */
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.slot { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius-s); padding: 14px; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; font-family: var(--font); }
+.slot:hover { border-color: var(--line-2); }
+.slot .s-time { font-size: 17px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.slot .s-zone { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; letter-spacing: .04em; }
+.slot[aria-pressed="true"] { border-color: var(--signal-line); background: var(--signal-soft); }
+.slot[aria-pressed="true"] .s-time { color: var(--signal); }
+.slot:disabled { opacity: .45; cursor: not-allowed; }
+.slot-note { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+
+/* ---- queue ---- */
+.q-list { display: flex; flex-direction: column; gap: 14px; }
+.q-post { border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface-2); overflow: hidden; }
+.q-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px; flex-wrap: wrap; }
+.q-when { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.q-kind { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.q-spacer { flex: 1; }
+.status-pill { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; flex-shrink: 0; }
+.status-pill.queued { background: var(--glass-2); color: var(--ink-2); }
+.status-pill.publishing, .status-pill.submitted, .status-pill.verifying { background: rgba(74,144,226,.16); color: #7eb6ff; }
+.status-pill.posted { background: var(--ink); color: #000; }
+.status-pill.failed, .status-pill.blocked { background: var(--danger-soft); color: var(--danger); }
+.status-pill.skipped { background: var(--glass-2); color: var(--muted); }
+.q-error { padding: 0 15px 12px; color: var(--danger); font-size: 12.5px; line-height: 1.45; }
+.q-slides { display: flex; gap: 10px; overflow-x: auto; padding: 2px 15px 14px; scrollbar-width: thin; scrollbar-color: var(--glass-2) transparent; }
+.q-slides::-webkit-scrollbar { height: 6px; }
+.q-slides::-webkit-scrollbar-thumb { background: var(--glass-2); border-radius: 999px; }
+.hp-slide { position: relative; flex: 0 0 auto; width: 132px; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; padding: 13px 12px; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,.07); }
+.hp-slide .hp-acc { width: 24px; height: 5px; border-radius: 2px; background: var(--acc); margin-bottom: 10px; flex: 0 0 auto; }
+.hp-slide .hp-h { font-size: 13.5px; font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
+.hp-slide .hp-b { font-size: 8.5px; line-height: 1.42; margin-top: 7px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+.hp-slide .hp-cta { margin-top: auto; font-size: 9px; font-weight: 700; padding-top: 7px; color: var(--acc); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.hp-slide.mono-type .hp-h, .hp-slide.mono-type .hp-b, .hp-slide.mono-type .hp-cta { font-family: var(--mono); }
+.q-caption { padding: 0 15px 13px; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.q-actions { display: flex; gap: 8px; padding: 0 15px 15px; flex-wrap: wrap; }
+.q-locked { padding: 0 15px 14px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* ---- editor ---- */
+.q-editor { display: none; border-top: 1px solid var(--line); padding: 16px 15px; }
+.q-post.editing .q-editor { display: block; }
+.q-editor .ed-slide { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 14px; margin-bottom: 12px; }
+.q-editor .ed-slide-n { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.q-editor label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 10px 0 5px; }
+.q-editor input, .q-editor textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font-family: var(--font); font-size: 13.5px; padding: 10px 12px; line-height: 1.45; }
+.q-editor input:focus, .q-editor textarea:focus { outline: none; border-color: var(--line-2); }
+.q-editor textarea { resize: vertical; min-height: 58px; }
+.ed-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.ed-msg { font-size: 12.5px; margin-top: 10px; display: none; }
+.ed-msg.err { color: var(--danger); display: block; }
+.ed-msg.ok { color: #36c98f; display: block; }
+.q-empty { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+/* ---- history / analytics (same language as before, moved here) ---- */
+.totals-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 10px; margin: 2px 0 0; }
+.tot { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 13px 15px; }
+.tot .tv { font-size: 23px; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tot .tl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 7px; }
+.sync-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.sync-line .sync-when { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.hist-list { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+.hist-post { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 14px; background: var(--surface-2); }
+.hp-slides { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: var(--glass-2) transparent; }
+.hp-slides::-webkit-scrollbar { height: 6px; }
+.hp-slides::-webkit-scrollbar-thumb { background: var(--glass-2); border-radius: 999px; }
+.hp-slides .hp-slide { width: 150px; padding: 15px 14px; scroll-snap-align: start; }
+.hp-slides .hp-slide::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.20)); pointer-events: none; }
+.hp-slides .hp-slide .hp-h { font-size: 15px; }
+.hp-slides .hp-slide .hp-b { font-size: 9.5px; margin-top: 8px; }
+.hp-slides .hp-slide .hp-cta { font-size: 10px; padding-top: 8px; }
+.hp-meta { margin-top: 13px; }
+.hp-topline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hp-when { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.hp-dot { color: var(--muted); }
+.hp-caption { font-size: 12.5px; color: var(--ink-2); margin-top: 9px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.hp-plats { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pm-row { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.pm-name { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; min-width: 76px; }
+.pm-stats { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+.pm-stat { display: flex; flex-direction: column; }
+.pm-stat .sv { font-size: 15px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.pm-stat .sl { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+.pm-link { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-decoration: none; white-space: nowrap; margin-left: auto; }
+.pm-link:hover { color: var(--ink); }
+.pm-empty { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* ---- upsell (free tier) ---- */
+.upsell { text-align: left; }
+.upsell .up-line { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.upsell .up-line:last-of-type { border-bottom: none; }
+.upsell .up-line .n { font-family: var(--mono); font-size: 11px; color: var(--signal); flex: 0 0 auto; }
+
+@media (max-width: 640px) {
+  .page { padding: 36px 18px 64px; }
+  .ap-card { padding: 20px; border-radius: 20px; }
+  .ap-card h2 { font-size: 17px; }
+  .machine .m-state { font-size: 17px; }
+  .switch { width: 60px; height: 34px; }
+  .switch::after { width: 26px; height: 26px; }
+  .switch[aria-checked="true"]::after { transform: translateX(26px); }
+  .slot-grid { grid-template-columns: repeat(2, 1fr); }
+  .actions { align-items: stretch; flex-direction: column; }
+  .actions .btn { width: 100%; }
+  .plat-chip { min-height: 44px; font-size: 13px; }
+  .q-actions .btn, .ed-actions .btn { flex: 1; }
+  .hp-slide { width: 46vw; max-width: 200px; }
+  .totals-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tot { padding: 12px; }
+  .tot .tv { font-size: 20px; }
+  .pm-name { min-width: 0; width: 100%; }
+  .pm-link { width: 100%; margin-left: 0; margin-top: 2px; }
+}
+</style>
+</head>
+<body>
+<main class="page wrap">
+  <h1 class="display">Autopilot</h1>
+  <p class="sub">Your daily publishing machine — what it posts, when, and how it performed.</p>
+
+  <div class="ap-card" id="status-card">
+    <div id="status-body"><span class="stat">Loading…</span></div>
+  </div>
+
+  <div class="ap-card" id="connect-card" style="display:none">
+    <h2>Connected accounts</h2>
+    <p class="h2-sub">Autopilot publishes through these. Link once — it keeps working.</p>
+    <div id="connect-body"></div>
+  </div>
+
+  <div class="ap-card" id="schedule-card" style="display:none">
+    <h2>Posting time</h2>
+    <p class="h2-sub">Pick when your daily post goes live. Shown in your local time.</p>
+    <div id="schedule-body"></div>
+  </div>
+
+  <div class="ap-card" id="queue-card" style="display:none">
+    <h2>Up next</h2>
+    <p class="h2-sub">Posts Autopilot has prepared. Edit anything before it goes out — or skip it and a fresh one takes its place.</p>
+    <div id="queue-body"><span class="stat">Loading…</span></div>
+  </div>
+
+  <div class="ap-card" id="history-card" style="display:none">
+    <h2>Post history &amp; performance</h2>
+    <div id="analytics-body"><span class="stat">Loading…</span></div>
+  </div>
+
+  <div class="ap-card" id="upsell-card" style="display:none">
+    <h2>Marketing that runs itself</h2>
+    <div class="upsell">
+      <div class="up-line"><span class="n">01</span><span>Autopilot writes a fresh post for your app every day — hook, slides, caption.</span></div>
+      <div class="up-line"><span class="n">02</span><span>It publishes to Instagram and TikTok at the time you choose. No reminders, no exports.</span></div>
+      <div class="up-line"><span class="n">03</span><span>Every post is editable before it goes out, and every number lands back here.</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-signal" id="go-pro">Start daily publishing — $19/month</button>
+    </div>
+  </div>
+</main>
+
+<script src="/nav.js" defer></script>
+<script src="/pro.js" defer></script>
+<script>
+function el(id) { return document.getElementById(id); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+var STATE = { data: null, saving: false };
+
+window.addEventListener('load', function () {
+  var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
+  ready.then(function (u) {
+    if (!u) { window.location.href = '/api/auth/google'; return; }
+    if (u.tier !== 'pro') { renderUpsell(); return; }
+    load();
+    loadAnalytics();
+  });
+});
+
+function renderUpsell() {
+  el('status-card').style.display = 'none';
+  el('upsell-card').style.display = 'block';
+  el('go-pro').addEventListener('click', function () { TGPro._checkout('autopilot'); });
+}
+
+function load() {
+  fetch('/api/social?resource=autopilot', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.error) throw new Error(d.error);
+      STATE.data = d;
+      renderAll();
+    })
+    .catch(function () {
+      el('status-body').innerHTML = '<span class="stat">Couldn’t load Autopilot. Refresh to try again.</span>';
+    });
+}
+
+function post(action, extra) {
+  var body = Object.assign({ action: action }, extra || {});
+  return fetch('/api/social', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); });
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  catch (e) { return iso; }
+}
+
+// Posts are scheduled 30 minutes before their publish cron fires; users should
+// see the time it actually goes live, not the internal due time.
+function liveTime(iso) {
+  return new Date(new Date(iso).getTime() + 30 * 60000);
+}
+function fmtLive(iso) {
+  if (!iso) return '';
+  try { return liveTime(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  catch (e) { return iso; }
+}
+function fmtDay(iso) {
+  if (!iso) return '';
+  try {
+    var d = liveTime(iso);
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var that = new Date(d); that.setHours(0, 0, 0, 0);
+    var diff = Math.round((that - today) / 86400000);
+    var day = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    if (diff === 0) return 'Today · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    if (diff === 1) return 'Tomorrow · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return day + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  } catch (e) { return iso; }
+}
+
+// The slot value is the UTC cron fire time; the post goes live right then.
+function slotLocalLabel(slot) {
+  var h = parseInt(slot.substring(0, 2), 10), m = parseInt(slot.substring(3, 5), 10);
+  var d = new Date();
+  d.setUTCHours(h, m, 0, 0);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function renderAll() {
+  renderStatus();
+  renderConnect();
+  renderSchedule();
+  renderQueue();
+}
+
+// ---- status ----
+function renderStatus() {
+  var d = STATE.data;
+  var on = !!d.autopilotOn;
+  var next = '';
+  if (on) {
+    next = d.queue && d.queue.next_at ? 'Next post ' + fmtLive(d.queue.next_at)
+      : 'Next post is being prepared';
+  } else {
+    next = 'Nothing will be published while paused';
+  }
+  el('status-body').innerHTML =
+    '<div class="machine">' +
+      '<div class="m-copy">' +
+        '<div class="m-state">' + (on ? 'Publishing daily' : 'Paused') + '</div>' +
+        '<div class="m-next">' + esc(next) + '</div>' +
+      '</div>' +
+      '<button class="switch" id="ap-switch" role="switch" aria-checked="' + (on ? 'true' : 'false') + '" aria-label="Autopilot on or off"></button>' +
+    '</div>' +
+    '<div class="paused-note" id="paused-note">Your queue is kept exactly as it is. Flip Autopilot back on and publishing resumes with the next scheduled post.</div>' +
+    (on ? healthHtml(d.health, d.queue) : '');
+  el('paused-note').style.display = on ? 'none' : 'block';
+  el('ap-switch').addEventListener('click', function () {
+    var sw = el('ap-switch');
+    if (STATE.saving) return;
+    STATE.saving = true; sw.disabled = true;
+    post('toggle', { enabled: !STATE.data.autopilotOn }).then(function (res) {
+      STATE.saving = false;
+      if (res.s === 200) { STATE.data.autopilotOn = res.j.autopilotOn; renderStatus(); }
+      else { sw.disabled = false; }
+    }).catch(function () { STATE.saving = false; sw.disabled = false; });
+  });
+}
+
+function healthHtml(health, queue) {
+  if (!health || (!health.publish && !health.topup)) {
+    return '<div class="automation-health attention"><span class="health-dot"></span><div>' +
+      '<div class="health-title">Automation history is starting</div>' +
+      '<div class="health-copy">The next worker run will record a permanent check-in here.</div></div></div>';
+  }
+  var publish = health.publish || {};
+  var topup = health.topup || {};
+  var running = publish.state === 'running' || topup.state === 'running';
+  var state = health.ok ? 'healthy' : (running ? 'running' : 'attention');
+  var title = health.ok ? 'Automation workers are healthy' : (running ? 'Automation is running now' : 'Automation needs attention');
+  var checks = [];
+  var publishAt = publish.finishedAt || publish.startedAt;
+  var topupAt = topup.finishedAt || topup.startedAt;
+  if (publishAt) checks.push('Posting checked ' + fmtDateTime(publishAt));
+  if (topupAt) checks.push('Queue checked ' + fmtDateTime(topupAt));
+  queue = queue || {};
+  if ((queue.blocked || 0) > 0) {
+    checks.push(queue.blocked + ' post' + (queue.blocked === 1 ? '' : 's') + ' blocked — reconnect the social account');
+  } else if ((queue.submitted || 0) > 0) {
+    checks.push(queue.submitted + ' post' + (queue.submitted === 1 ? '' : 's') + ' awaiting provider confirmation');
+  } else if ((queue.due || 0) > 0) {
+    checks.push(queue.due + ' post' + (queue.due === 1 ? '' : 's') + ' due — the next run will pick it up');
+  }
+  var copy = checks.length ? checks.join(' · ') : (publish.message || topup.message || 'No completed worker run has been recorded yet.');
+  return '<div class="automation-health ' + state + '"><span class="health-dot"></span><div>' +
+    '<div class="health-title">' + esc(title) + '</div><div class="health-copy">' + esc(copy) + '</div></div></div>';
+}
+
+// ---- connection ----
+function renderConnect() {
+  var d = STATE.data;
+  el('connect-card').style.display = 'block';
+  if (!d.enabled) {
+    el('connect-body').innerHTML = '<p style="color:var(--muted);font-size:13.5px;">Instagram connection is temporarily unavailable. Your posts are safe — download them from history and publish manually while we restore it.</p>';
+    return;
+  }
+  if (!d.connected) {
+    el('connect-body').innerHTML =
+      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:4px;">Connect Instagram once. Autopilot prepares, queues, and publishes a fresh post every day.</p>' +
+      '<div class="actions"><button class="btn btn-primary" id="link-btn">Connect Instagram</button></div>' +
+      '<div id="connect-err" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></div>';
+    wireLinkButton('Connect Instagram');
+    return;
+  }
+  var PLATFORMS = ['instagram', 'tiktok'];
+  var html = '';
+  if (Array.isArray(d.linked)) {
+    var chips = PLATFORMS.concat(d.linked.filter(function (p) { return PLATFORMS.indexOf(p) < 0; }));
+    html += '<div class="plat-row">' + chips.map(function (p) {
+      var on = d.linked.indexOf(p) >= 0;
+      return '<span class="plat-chip ' + (on ? 'on' : 'off') + '"><span class="dot"></span>' + esc(p) + (on ? '' : ' — not linked') + '</span>';
+    }).join('') + '</div>';
+    if (d.linked.length === 0) {
+      html += '<p style="color:var(--danger);font-size:13px;margin-top:12px;">No accounts linked yet — posts can’t go out until you link one.</p>';
+    }
+  } else {
+    html += '<span class="plat-chip on"><span class="dot"></span>Connected</span>';
+  }
+  html += '<div class="actions"><button class="btn btn-ghost btn-sm" id="link-btn">Link / manage accounts</button></div>' +
+    '<div id="connect-err" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></div>';
+  el('connect-body').innerHTML = html;
+  wireLinkButton('Link / manage accounts');
+}
+
+function wireLinkButton(label) {
+  var btn = el('link-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    btn.disabled = true; btn.textContent = 'Opening…';
+    post('link').then(function (res) {
+      btn.disabled = false; btn.textContent = label;
+      if (res.s === 200 && res.j.url) { window.open(res.j.url, '_blank'); }
+      else {
+        var e = el('connect-err');
+        e.textContent = (res.j && res.j.error) || 'Something went wrong. Please try again.';
+        e.style.display = 'block';
+      }
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = label;
+      var e = el('connect-err');
+      e.textContent = 'Connection error. Please try again.';
+      e.style.display = 'block';
+    });
+  });
+}
+
+// ---- schedule ----
+function renderSchedule() {
+  var d = STATE.data;
+  el('schedule-card').style.display = 'block';
+  var slots = d.slots || [];
+  var zone = '';
+  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace(/_/g, ' '); } catch (e) {}
+  el('schedule-body').innerHTML =
+    '<div class="slot-grid">' + slots.map(function (s) {
+      var sel = s === d.postSlot;
+      return '<button class="slot" data-slot="' + esc(s) + '" aria-pressed="' + (sel ? 'true' : 'false') + '">' +
+        '<div class="s-time">' + esc(slotLocalLabel(s)) + '</div>' +
+        '<div class="s-zone">' + (sel ? 'YOUR TIME · ' : '') + esc(zone || 'local') + '</div>' +
+      '</button>';
+    }).join('') + '</div>' +
+    '<div class="slot-note">Already-queued posts keep their time. New posts use the new slot from the next queue fill.</div>' +
+    '<div class="ed-msg" id="slot-msg"></div>';
+  Array.prototype.forEach.call(document.querySelectorAll('.slot'), function (b) {
+    b.addEventListener('click', function () {
+      var slot = b.getAttribute('data-slot');
+      if (slot === STATE.data.postSlot || STATE.saving) return;
+      STATE.saving = true;
+      Array.prototype.forEach.call(document.querySelectorAll('.slot'), function (x) { x.disabled = true; });
+      post('set-slot', { slot: slot }).then(function (res) {
+        STATE.saving = false;
+        if (res.s === 200) { STATE.data.postSlot = res.j.postSlot; }
+        renderSchedule();
+        if (res.s !== 200) msg('slot-msg', (res.j && res.j.error) || 'Couldn’t save. Try again.', true);
+      }).catch(function () { STATE.saving = false; renderSchedule(); msg('slot-msg', 'Couldn’t save. Try again.', true); });
+    });
+  });
+}
+
+function msg(id, text, isErr) {
+  var m = el(id);
+  if (!m) return;
+  m.textContent = text;
+  m.className = 'ed-msg ' + (isErr ? 'err' : 'ok');
+}
+
+// ---- queue ----
+var SLIDE_THEMES = {
+  bold:     { bg: '#0d1014', ink: '#ffffff', sub: 'rgba(255,255,255,.82)', dark: true },
+  mono:     { bg: '#faf7f2', ink: '#141414', sub: 'rgba(20,20,20,.72)',    dark: false },
+  notebook: { bg: '#f7f2e6', ink: '#20232B', sub: 'rgba(32,35,43,.75)',    dark: false },
+  stat:     { bg: '#050608', ink: '#F5F5F6', sub: 'rgba(245,245,246,.72)', dark: true, mono: true },
+};
+
+function visAccent(hex, ink, dark) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex || '')) return ink;
+  var r = parseInt(hex.substr(1, 2), 16) / 255, g = parseInt(hex.substr(3, 2), 16) / 255, b = parseInt(hex.substr(5, 2), 16) / 255;
+  var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (dark && lum < 0.35) { var lift = function (c) { return Math.round((c + (1 - c) * 0.55) * 255); }; return 'rgb(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ')'; }
+  if (!dark && lum > 0.62) { var sink = function (c) { return Math.round(c * 0.4 * 255); }; return 'rgb(' + sink(r) + ',' + sink(g) + ',' + sink(b) + ')'; }
+  return hex;
+}
+
+function slideCard(slide, style, accent) {
+  var t = SLIDE_THEMES[style] || SLIDE_THEMES.bold;
+  var acc = visAccent(accent, t.ink, t.dark);
+  var heading = (slide && (slide.heading || slide.text)) || '';
+  return '<div class="hp-slide' + (t.mono ? ' mono-type' : '') + '" style="background:' + t.bg + ';color:' + t.ink + ';--acc:' + acc + '">' +
+    '<span class="hp-acc"></span>' +
+    '<div class="hp-h">' + esc(heading) + '</div>' +
+    (slide && slide.body ? '<div class="hp-b" style="color:' + t.sub + '">' + esc(slide.body) + '</div>' : '') +
+    (slide && slide.cta ? '<div class="hp-cta">' + esc(slide.cta) + '</div>' : '') +
+  '</div>';
+}
+
+var UPCOMING = ['queued', 'publishing', 'submitted', 'verifying', 'blocked'];
+
+function renderQueue() {
+  var d = STATE.data;
+  el('queue-card').style.display = 'block';
+  var upcoming = (d.posts || []).filter(function (p) {
+    return UPCOMING.indexOf(p.status) >= 0;
+  }).sort(function (a, b) { return new Date(a.scheduled_at) - new Date(b.scheduled_at); });
+
+  if (!upcoming.length) {
+    el('queue-body').innerHTML = '<p class="q-empty">' + (d.autopilotOn
+      ? 'The queue is empty. Autopilot prepares the next post within 24 hours.'
+      : 'The queue is empty. Turn Autopilot on and it starts preparing posts.') + '</p>';
+    return;
+  }
+  el('queue-body').innerHTML = '<div class="q-list">' + upcoming.map(queuePostHtml).join('') + '</div>';
+  upcoming.forEach(wireQueuePost);
+}
+
+function queuePostHtml(p) {
+  var labels = { publishing: 'publishing', submitted: 'verifying', verifying: 'checking', blocked: 'needs action' };
+  var label = labels[p.status] || (p.status === 'queued' && p.retries ? 'retry queued' : p.status);
+  var cards = (p.slides || []).map(function (s) { return slideCard(s, p.style, p.accent); }).join('');
+  var editable = p.status === 'queued';
+  return '<div class="q-post" id="qp-' + p.id + '">' +
+    '<div class="q-head">' +
+      '<span class="q-when">' + esc(fmtDay(p.scheduled_at)) + '</span>' +
+      (p.kind ? '<span class="q-kind">' + esc(p.kind) + '</span>' : '') +
+      '<span class="q-spacer"></span>' +
+      '<span class="status-pill ' + esc(p.status) + '">' + esc(label) + '</span>' +
+    '</div>' +
+    (p.status !== 'posted' && p.error ? '<div class="q-error">' + esc(p.error) + '</div>' : '') +
+    '<div class="q-slides">' + cards + '</div>' +
+    (p.caption ? '<div class="q-caption">' + esc(p.caption) + '</div>' : '') +
+    (editable
+      ? '<div class="q-actions">' +
+          '<button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">Edit post</button>' +
+          '<button class="btn btn-ghost btn-sm" data-skip="' + p.id + '">Skip</button>' +
+        '</div>' +
+        '<div class="q-editor" id="qe-' + p.id + '"></div>'
+      : '<div class="q-locked">' + (p.status === 'blocked'
+          ? 'Waiting on the account link above — this post retries automatically.'
+          : 'This post is locked — it’s already on its way out.') + '</div>') +
+  '</div>';
+}
+
+function wireQueuePost(p) {
+  var editBtn = document.querySelector('[data-edit="' + p.id + '"]');
+  var skipBtn = document.querySelector('[data-skip="' + p.id + '"]');
+  if (editBtn) editBtn.addEventListener('click', function () { toggleEditor(p); });
+  if (skipBtn) skipBtn.addEventListener('click', function () { skipPost(p, skipBtn); });
+}
+
+function toggleEditor(p) {
+  var wrap = el('qp-' + p.id);
+  var ed = el('qe-' + p.id);
+  if (wrap.classList.contains('editing')) { wrap.classList.remove('editing'); ed.innerHTML = ''; return; }
+  wrap.classList.add('editing');
+  ed.innerHTML = (p.slides || []).map(function (s, i) {
+    return '<div class="ed-slide">' +
+      '<div class="ed-slide-n">Slide ' + (i + 1) + '</div>' +
+      '<label for="ed-h-' + p.id + '-' + i + '">Heading</label>' +
+      '<input id="ed-h-' + p.id + '-' + i + '" maxlength="120" value="' + esc(s.heading || s.text || '') + '">' +
+      '<label for="ed-b-' + p.id + '-' + i + '">Body</label>' +
+      '<textarea id="ed-b-' + p.id + '-' + i + '" maxlength="500">' + esc(s.body || '') + '</textarea>' +
+      '<label for="ed-c-' + p.id + '-' + i + '">Call to action</label>' +
+      '<input id="ed-c-' + p.id + '-' + i + '" maxlength="120" value="' + esc(s.cta || '') + '">' +
+    '</div>';
+  }).join('') +
+  '<label for="ed-cap-' + p.id + '" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 5px;">Caption</label>' +
+  '<textarea id="ed-cap-' + p.id + '" maxlength="2200" style="min-height:74px;">' + esc(p.caption || '') + '</textarea>' +
+  '<div class="ed-actions" style="margin-top:12px;">' +
+    '<button class="btn btn-primary btn-sm" id="ed-save-' + p.id + '">Save changes</button>' +
+    '<button class="btn btn-ghost btn-sm" id="ed-cancel-' + p.id + '">Cancel</button>' +
+  '</div>' +
+  '<div class="ed-msg" id="ed-msg-' + p.id + '"></div>';
+
+  el('ed-cancel-' + p.id).addEventListener('click', function () { toggleEditor(p); });
+  el('ed-save-' + p.id).addEventListener('click', function () { savePost(p); });
+}
+
+function savePost(p) {
+  var slides = (p.slides || []).map(function (s, i) {
+    return {
+      heading: el('ed-h-' + p.id + '-' + i).value,
+      body: el('ed-b-' + p.id + '-' + i).value,
+      cta: el('ed-c-' + p.id + '-' + i).value,
+    };
+  });
+  var caption = el('ed-cap-' + p.id).value;
+  var btn = el('ed-save-' + p.id);
+  btn.disabled = true; btn.textContent = 'Saving…';
+  post('edit-post', { postId: p.id, slides: slides, caption: caption }).then(function (res) {
+    btn.disabled = false; btn.textContent = 'Save changes';
+    if (res.s === 200 && res.j.post) {
+      // Refresh this post in local state and re-render the queue.
+      var posts = STATE.data.posts || [];
+      for (var i = 0; i < posts.length; i++) if (posts[i].id === p.id) posts[i] = res.j.post;
+      renderQueue();
+    } else {
+      msg('ed-msg-' + p.id, (res.j && res.j.error) || 'Couldn’t save. Try again.', true);
+      if (res.s === 409) load();
+    }
+  }).catch(function () {
+    btn.disabled = false; btn.textContent = 'Save changes';
+    msg('ed-msg-' + p.id, 'Connection error. Try again.', true);
+  });
+}
+
+function skipPost(p, btn) {
+  if (btn.getAttribute('data-armed') !== '1') {
+    btn.setAttribute('data-armed', '1');
+    btn.textContent = 'Skip — a fresh post takes its place?';
+    setTimeout(function () {
+      if (btn.isConnected) { btn.removeAttribute('data-armed'); btn.textContent = 'Skip'; }
+    }, 4000);
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Skipping…';
+  post('skip-post', { postId: p.id }).then(function (res) {
+    if (res.s === 200) {
+      STATE.data.posts = (STATE.data.posts || []).filter(function (x) { return x.id !== p.id; });
+      renderQueue();
+    } else {
+      btn.disabled = false; btn.textContent = 'Skip';
+      if (res.s === 409) load();
+    }
+  }).catch(function () { btn.disabled = false; btn.textContent = 'Skip'; });
+}
+
+// ---- history & performance (Measure loop) ----
+function fmtNum(n) {
+  n = Number(n) || 0;
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'k';
+  return String(n);
+}
+
+function platformList(post) {
+  var metricsPlats = (post.metrics || []).map(function (m) { return String(m.platform).toLowerCase(); });
+  var base = post.status === 'posted' && metricsPlats.length ? metricsPlats
+    : (post.platforms || []).map(function (p) { return String(p).toLowerCase(); }).concat(metricsPlats);
+  var out = [];
+  base.forEach(function (p) { if (p && out.indexOf(p) < 0) out.push(p); });
+  return out;
+}
+
+function metricsByPlatform(post) {
+  var map = {};
+  (post.metrics || []).forEach(function (m) { map[String(m.platform).toLowerCase()] = m; });
+  return map;
+}
+
+function pmRow(plat, m) {
+  var stats = ['views', 'likes', 'comments', 'shares'];
+  var inner = m
+    ? stats.map(function (k) { return '<div class="pm-stat"><span class="sv">' + fmtNum(m[k]) + '</span><span class="sl">' + k + '</span></div>'; }).join('')
+    : '<span class="pm-empty">No numbers yet — engagement lands here once the platform reports it.</span>';
+  var link = m && m.post_url ? '<a class="pm-link" href="' + esc(m.post_url) + '" target="_blank" rel="noopener">View ↗</a>' : '';
+  return '<div class="pm-row"><span class="pm-name">' + esc(plat) + '</span><div class="pm-stats">' + inner + '</div>' + link + '</div>';
+}
+
+function historyPost(post) {
+  var cards = (post.slides || []).map(function (s) { return slideCard(s, post.style, post.accent); }).join('');
+  var status = post.status || 'queued';
+  var st = ['queued', 'publishing', 'submitted', 'verifying', 'posted', 'blocked', 'failed', 'skipped'].indexOf(status) >= 0 ? status : 'queued';
+  var labels = { publishing: 'publishing', submitted: 'verifying', verifying: 'checking', blocked: 'needs action' };
+  var label = labels[status] || status;
+  var plats = platformList(post);
+  var mmap = metricsByPlatform(post);
+  var platHtml;
+  if (status === 'posted') {
+    platHtml = plats.map(function (p) { return pmRow(p, mmap[p]); }).join('');
+  } else {
+    var note = (status === 'failed' || status === 'blocked')
+      ? esc(post.error || 'Needs attention')
+      : 'Scheduled — analytics appear here once it publishes.';
+    platHtml = '<div class="pm-row"><span class="pm-name">' + plats.map(esc).join(' · ') + '</span><span class="pm-empty">' + note + '</span></div>';
+  }
+  return '<div class="hist-post">' +
+    '<div class="hp-slides">' + cards + '</div>' +
+    '<div class="hp-meta">' +
+      '<div class="hp-topline"><span class="status-pill ' + st + '">' + esc(label) + '</span>' +
+        '<span class="hp-when">' + esc(fmtLive(post.scheduled_at)) + '</span>' +
+        (post.kind ? '<span class="hp-dot">·</span><span class="hp-when">' + esc(post.kind) + '</span>' : '') +
+      '</div>' +
+      (post.caption ? '<div class="hp-caption">' + esc(post.caption) + '</div>' : '') +
+      '<div class="hp-plats">' + platHtml + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function totCell(v, l) { return '<div class="tot"><div class="tv">' + fmtNum(v) + '</div><div class="tl">' + l + '</div></div>'; }
+
+function renderAnalytics(d) {
+  var posts = (d.posts || []).filter(function (p) { return UPCOMING.indexOf(p.status) < 0; });
+  if (!posts.length) { el('history-card').style.display = 'none'; return; }
+  el('history-card').style.display = 'block';
+  var t = d.totals || {};
+  var strip = '<div class="totals-strip">' +
+    totCell(t.views, 'views') + totCell(t.likes, 'likes') +
+    totCell(t.comments, 'comments') + totCell(t.shares, 'shares') +
+    (d.followers ? totCell(d.followers, 'followers') : '') +
+  '</div>';
+  var when = d.syncedAt ? ('Updated ' + fmtDateTime(d.syncedAt))
+    : (d.connected ? 'Not synced yet' : 'Connect a platform to pull performance');
+  var measured = t.measuredPosts ? (' · ' + t.measuredPosts + ' measured') : '';
+  var sync = '<div class="sync-line"><span class="sync-when">' + esc(when) + measured + '</span>' +
+    (d.connected ? '<button class="btn btn-ghost btn-sm" id="refresh-analytics">Refresh numbers</button>' : '') +
+  '</div>';
+  el('analytics-body').innerHTML = strip + sync + '<div class="hist-list">' + posts.map(historyPost).join('') + '</div>';
+  var rb = el('refresh-analytics');
+  if (rb) rb.addEventListener('click', function () { doAnalyticsRefresh(true); });
+}
+
+function loadAnalytics() {
+  fetch('/api/social?resource=analytics', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || d.error) return;
+      renderAnalytics(d);
+      if (d.connected && (d.posts || []).some(function (p) { return p.status === 'posted'; })) {
+        doAnalyticsRefresh(false);
+      }
+    })
+    .catch(function () {});
+}
+
+function doAnalyticsRefresh(force) {
+  var rb = el('refresh-analytics');
+  if (rb) { rb.disabled = true; rb.textContent = 'Refreshing…'; }
+  post('refresh-analytics', { force: !!force })
+    .then(function (res) { if (res.s === 200 && res.j && !res.j.error) renderAnalytics(res.j); })
+    .catch(function () {})
+    .then(function () { var b = el('refresh-analytics'); if (b) { b.disabled = false; b.textContent = 'Refresh numbers'; } });
+}
+</script>
+</body>
+</html>

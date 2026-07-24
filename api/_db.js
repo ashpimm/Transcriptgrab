@@ -1241,10 +1241,47 @@ export async function getPostsForUser(userId, limit = 30) {
   const sql = getSQL();
   return sql`
     SELECT id, scheduled_at, status, kind, style, slides, caption, platforms,
-           error, retries, created_at
+           accent, error, retries, created_at
     FROM posts WHERE user_id = ${userId}
     ORDER BY scheduled_at DESC LIMIT ${limit}
   `;
+}
+
+// ---- User-facing Autopilot controls ----
+
+export async function setAutopilotEnabled(userId, enabled) {
+  const sql = getSQL();
+  await sql`UPDATE users SET autopilot_enabled = ${!!enabled}, updated_at = NOW() WHERE id = ${userId}`;
+}
+
+export async function setPostSlot(userId, slot) {
+  const sql = getSQL();
+  await sql`UPDATE users SET post_slot = ${slot}, updated_at = NOW() WHERE id = ${userId}`;
+}
+
+// Manual edit of a queued post. The status guard in the WHERE clause makes the
+// edit atomic: if the publisher claimed the post between page load and save,
+// zero rows update and the caller reports "too late" instead of clobbering.
+export async function updateQueuedPost(userId, postId, slides, caption) {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE posts
+    SET slides = ${JSON.stringify(slides)}, caption = ${caption}
+    WHERE id = ${postId} AND user_id = ${userId} AND status = 'queued'
+    RETURNING id, scheduled_at, status, kind, style, slides, caption, platforms, accent, error, retries, created_at
+  `;
+  return rows[0] || null;
+}
+
+export async function skipQueuedPost(userId, postId) {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE posts
+    SET status = 'skipped', error = 'Skipped by you. Autopilot will prepare a fresh post in its place.'
+    WHERE id = ${postId} AND user_id = ${userId} AND status = 'queued'
+    RETURNING id
+  `;
+  return rows[0] || null;
 }
 
 // ============================================
@@ -1363,6 +1400,7 @@ export async function getAutopilotUsers() {
     WHERE tier = 'pro'
       AND upload_post_username IS NOT NULL
       AND profile->>'what' IS NOT NULL
+      AND autopilot_enabled
   `;
 }
 
@@ -1429,9 +1467,11 @@ export async function claimDuePosts(runId, limit = 5) {
     WITH candidates AS (
       SELECT p.id
       FROM posts p
+      JOIN users u ON u.id = p.user_id
       WHERE p.status IN ('queued', 'blocked') AND p.scheduled_at <= NOW()
+        AND u.autopilot_enabled
       ORDER BY p.scheduled_at ASC
-      FOR UPDATE SKIP LOCKED
+      FOR UPDATE OF p SKIP LOCKED
       LIMIT ${limit}
     ), claimed AS (
       UPDATE posts p
@@ -1567,6 +1607,10 @@ export async function ensureAutopilotReliabilitySchema() {
         ON posts(status, publish_claimed_at)
         WHERE publish_claimed_at IS NOT NULL
       `;
+      // User-facing Autopilot controls (2026-07-25). Same bootstrap rationale:
+      // a deploy and its migration can't land atomically on Vercel.
+      await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS autopilot_enabled BOOLEAN NOT NULL DEFAULT TRUE`;
+      await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS post_slot TEXT NOT NULL DEFAULT '20:30'`;
     })().catch((e) => {
       autopilotSchemaPromise = null;
       throw e;

@@ -150,6 +150,7 @@
           '<div class="suite-nav-dropdown" id="nav-dropdown">' +
             '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(_user.email || '') + '</div>' +
             '<div class="suite-nav-drop-item suite-nav-drop-muted">' + escapeHtml(usageLine(_user)) + '</div>' +
+            '<a href="/autopilot" class="suite-nav-drop-item" style="text-decoration:none;">Autopilot</a>' +
             '<a href="/account" class="suite-nav-drop-item" style="text-decoration:none;">Account</a>' +
             (_user.tier === 'pro'
               ? '<a href="/api/checkout" class="suite-nav-drop-item" style="text-decoration:none;">Manage subscription</a>'
@@ -165,9 +166,19 @@
         '<a href="/#pricing" class="suite-nav-gopro">Upgrade</a>';
     }
 
+    var linksHtml = '';
+    if (_user) {
+      var links = [{ href: '/create', label: 'Create' }, { href: '/autopilot', label: 'Autopilot' }];
+      linksHtml = '<div class="suite-nav-links">' + links.map(function(l) {
+        var active = path === l.href;
+        return '<a href="' + l.href + '" class="suite-nav-link' + (active ? ' active' : '') + '">' + l.label + '</a>';
+      }).join('') + '</div>';
+    }
+
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
         '<a href="' + brandHref + '" class="suite-nav-brand">Promote.dev</a>' +
+        linksHtml +
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
 

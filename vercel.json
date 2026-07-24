@@ -15,7 +15,9 @@
     { "path": "/api/autopilot-topup", "schedule": "0 17 * * *" },
     { "path": "/api/autopilot-topup-recovery", "schedule": "0 19 * * *" },
     { "path": "/api/autopilot", "schedule": "30 20 * * *" },
-    { "path": "/api/autopilot-recovery", "schedule": "0 22 * * *" }
+    { "path": "/api/autopilot-slot-0230", "schedule": "30 2 * * *" },
+    { "path": "/api/autopilot-slot-0830", "schedule": "30 8 * * *" },
+    { "path": "/api/autopilot-slot-1430", "schedule": "30 14 * * *" }
   ],
   "redirects": [
     { "source": "/feed", "destination": "/create", "permanent": false },
@@ -38,6 +40,9 @@
     { "source": "/api/social", "destination": "/api/social" },
     { "source": "/api/autopilot", "destination": "/api/autopilot" },
     { "source": "/api/autopilot-recovery", "destination": "/api/autopilot?mode=publish&scheduledTrigger=recovery" },
+    { "source": "/api/autopilot-slot-0230", "destination": "/api/autopilot?mode=publish&scheduledTrigger=slot-0230" },
+    { "source": "/api/autopilot-slot-0830", "destination": "/api/autopilot?mode=publish&scheduledTrigger=slot-0830" },
+    { "source": "/api/autopilot-slot-1430", "destination": "/api/autopilot?mode=publish&scheduledTrigger=slot-1430" },
     { "source": "/api/autopilot-topup", "destination": "/api/autopilot?mode=topup&scheduledTrigger=primary" },
     { "source": "/api/autopilot-topup-recovery", "destination": "/api/autopilot?mode=topup&scheduledTrigger=recovery" },
     { "source": "/api/health", "destination": "/api/health" },
@@ -45,6 +50,7 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/create", "destination": "/create.html" },
     { "source": "/account", "destination": "/account.html" },
+    { "source": "/autopilot", "destination": "/autopilot.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" }
   ],

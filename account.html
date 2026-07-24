@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Account — Promote.dev</title>
-<meta name="description" content="Manage your Promote.dev plan, post allowance, Instagram connection, and daily publishing queue.">
+<meta name="description" content="Manage your Promote.dev plan and billing.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>P</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,107 +29,27 @@
 .plan-badge { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; }
 .plan-badge.pro { background: var(--ink); color: #000; }
 .plan-badge.free { background: var(--glass-2); color: var(--ink-2); }
-.queue-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-.queue-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-s); font-size: 13.5px; }
-.queue-item .qi-main { min-width: 0; }
-.queue-item .qi-date { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
-.queue-item .qi-heading { font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.queue-item .qi-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
-.status-pill { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; flex-shrink: 0; }
-.status-pill.queued { background: var(--glass-2); color: var(--ink-2); }
-.status-pill.publishing, .status-pill.submitted, .status-pill.verifying { background: rgba(74,144,226,.16); color: #7eb6ff; }
-.status-pill.posted { background: var(--ink); color: #000; }
-.status-pill.failed, .status-pill.blocked { background: var(--danger-soft); color: var(--danger); }
-.status-pill.skipped { background: var(--glass-2); color: var(--muted); }
-.automation-health { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; margin: 14px 0; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface-2); }
-.automation-health .health-dot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; flex: 0 0 auto; background: var(--muted); }
-.automation-health.healthy .health-dot { background: #36c98f; box-shadow: 0 0 0 4px rgba(54,201,143,.12); }
-.automation-health.running .health-dot { background: #7eb6ff; box-shadow: 0 0 0 4px rgba(126,182,255,.12); }
-.automation-health.attention .health-dot { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); }
-.automation-health .health-title { font-size: 13.5px; font-weight: 700; }
-.automation-health .health-copy { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 2px; }
-.plat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 2px; }
-.plat-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); }
-.plat-chip.on { background: var(--ink); color: #000; border-color: var(--ink); }
-.plat-chip.off { background: transparent; color: var(--muted); }
-.plat-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
-
-/* ---- Post history & performance ---- */
-.totals-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 10px; margin: 2px 0 0; }
-.tot { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 13px 15px; }
-.tot .tv { font-size: 23px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
-.tot .tl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 7px; }
-.sync-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-.sync-line .sync-when { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
-
-.hist-list { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
-.hist-post { border: 1px solid var(--line); border-radius: var(--radius-s); padding: 14px; background: var(--surface-2); }
-.hp-slides { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: var(--glass-2) transparent; }
-.hp-slides::-webkit-scrollbar { height: 6px; }
-.hp-slides::-webkit-scrollbar-thumb { background: var(--glass-2); border-radius: 999px; }
-.hp-slide { position: relative; flex: 0 0 auto; width: 150px; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; scroll-snap-align: start; padding: 15px 14px; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,.07); }
-.hp-slide::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.20)); pointer-events: none; }
-.hp-slide .hp-acc { width: 26px; height: 5px; border-radius: 2px; background: var(--acc); margin-bottom: 11px; flex: 0 0 auto; }
-.hp-slide .hp-h { font-size: 15px; font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
-.hp-slide .hp-b { font-size: 9.5px; line-height: 1.42; margin-top: 8px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
-.hp-slide .hp-cta { margin-top: auto; font-size: 10px; font-weight: 700; padding-top: 8px; color: var(--acc); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.hp-slide.mono-type .hp-h, .hp-slide.mono-type .hp-b, .hp-slide.mono-type .hp-cta { font-family: var(--mono); }
-
-.hp-meta { margin-top: 13px; }
-.hp-topline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.hp-when { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
-.hp-dot { color: var(--muted); }
-.hp-caption { font-size: 12.5px; color: var(--ink-2); margin-top: 9px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.hp-plats { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.pm-row { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
-.pm-name { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; min-width: 76px; }
-.pm-stats { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
-.pm-stat { display: flex; flex-direction: column; }
-.pm-stat .sv { font-size: 15px; font-weight: 800; line-height: 1; }
-.pm-stat .sl { font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
-.pm-link { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-decoration: none; white-space: nowrap; margin-left: auto; }
-.pm-link:hover { color: var(--ink); }
-.pm-empty { font-size: 12px; color: var(--muted); line-height: 1.4; }
-.hist-empty { color: var(--muted); font-size: 13.5px; }
+.ap-link { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.ap-link .al-copy { min-width: 0; }
+.ap-link .al-title { font-size: 15px; font-weight: 700; }
+.ap-link .al-sub { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-top: 4px; }
 
 @media (max-width: 640px) {
   .page { padding: 36px 18px 64px; }
   .page h1 { margin-bottom: 24px; font-size: 38px; letter-spacing: 0; }
   .acct-card { padding: 20px; border-radius: 20px; }
   .acct-card h2 { font-size: 17px; }
-  .acct-card p, .acct-card #connect-err { font-size: 15.5px !important; line-height: 1.55; }
-
   .who { gap: 14px; }
   .who img { width: 52px; height: 52px; }
   .who .n { font-size: 17px; }
   .who .e { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
-
   .row { align-items: flex-start; flex-direction: column; gap: 4px; padding: 14px 0; font-size: 16px; }
   .row .v { font-size: 14.5px; }
   .actions { align-items: stretch; flex-direction: column; }
   .actions .btn { width: 100%; }
   .plan-badge { font-size: 12px; padding: 6px 12px; }
-
-  .queue-item { align-items: stretch; flex-direction: column; padding: 15px; font-size: 15px; }
-  .queue-item .qi-date { font-size: 13px; }
-  .queue-item .qi-heading { font-size: 15.5px; white-space: normal; }
-  .queue-item .qi-error { font-size: 13.5px; }
-  .status-pill { align-self: flex-start; min-height: 30px; padding: 6px 10px; font-size: 12px; }
-  .plat-chip { min-height: 44px; font-size: 13px; }
-
-  .totals-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .tot { padding: 12px; }
-  .tot .tv { font-size: 20px; }
-  .tot .tl { font-size: 10.5px; }
-  .pm-stats { gap: 13px; }
-  .pm-link { width: 100%; margin-left: 0; margin-top: 2px; }
-  .hp-slide { width: 54vw; max-width: 220px; }
-  .hp-slide .hp-h { font-size: 19px; -webkit-line-clamp: 7; }
-  .hp-slide .hp-b { font-size: 12px; }
-  .hp-slide .hp-cta { font-size: 12.5px; }
-  .pm-name { min-width: 0; width: 100%; }
-  .pm-stat .sv { font-size: 16px; }
-  .hp-caption { font-size: 14px; }
+  .ap-link { flex-direction: column; align-items: stretch; }
+  .ap-link .btn { width: 100%; }
 }
 </style>
 </head>
@@ -147,21 +67,21 @@
   </div>
 
   <div class="acct-card">
+    <div class="ap-link">
+      <div class="al-copy">
+        <div class="al-title">Autopilot</div>
+        <div class="al-sub">Daily publishing, posting time, queue, and performance now live on their own page.</div>
+      </div>
+      <a class="btn btn-primary" href="/autopilot">Open Autopilot</a>
+    </div>
+  </div>
+
+  <div class="acct-card">
     <h2>Create all month with Pro</h2>
     <div class="actions">
       <button class="btn btn-primary" id="go-pro" style="display:none">Upgrade to Promote.dev Pro — $19/month</button>
       <a class="btn btn-ghost" id="manage-sub" href="/api/checkout" style="display:none">Manage subscription</a>
     </div>
-  </div>
-
-  <div class="acct-card" id="autopilot-card" style="display:none">
-    <h2>Daily Instagram publishing</h2>
-    <div id="autopilot-body"><span class="stat">Loading…</span></div>
-  </div>
-
-  <div class="acct-card" id="history-card" style="display:none">
-    <h2>Post history &amp; performance</h2>
-    <div id="analytics-body"><span class="stat">Loading…</span></div>
   </div>
 
   <div class="acct-card">
@@ -178,20 +98,16 @@
 <script>
 function el(id) { return document.getElementById(id); }
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-var CUR_TIER = 'free';
 
 window.addEventListener('load', function () {
   var ready = (window.TGUser && TGUser.ready) ? TGUser.ready : Promise.resolve(null);
   ready.then(function (u) {
     if (!u) { window.location.href = '/api/auth/google'; return; }
     render(u);
-    loadSocial();
-    loadAnalytics();
   });
 });
 
 function render(u) {
-  CUR_TIER = u.tier || 'free';
   el('who').innerHTML =
     (u.picture ? '<img src="' + esc(u.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
     '<div><div class="n">' + esc(u.name || '') + ' <span class="plan-badge ' + (u.tier === 'pro' ? 'pro' : 'free') + '">' + (u.tier === 'pro' ? 'Pro' : 'Free') + '</span></div>' +
@@ -215,303 +131,6 @@ function render(u) {
   } else {
     el('go-pro').style.display = 'inline-flex';
   }
-}
-
-function fmtDate(iso) {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
-  catch (e) { return iso; }
-}
-
-function fmtDateTime(iso) {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
-  catch (e) { return iso; }
-}
-
-function healthHtml(health, queue) {
-  if (!health || (!health.publish && !health.topup)) {
-    return '<div class="automation-health attention"><span class="health-dot"></span><div>' +
-      '<div class="health-title">Automation history is starting</div>' +
-      '<div class="health-copy">The next worker run will record a permanent check-in here.</div></div></div>';
-  }
-  var publish = health.publish || {};
-  var topup = health.topup || {};
-  var running = publish.state === 'running' || topup.state === 'running';
-  var state = health.ok ? 'healthy' : (running ? 'running' : 'attention');
-  var title = health.ok ? 'Automation workers are healthy' : (running ? 'Automation is running now' : 'Automation needs attention');
-  var checks = [];
-  var publishAt = publish.finishedAt || publish.startedAt;
-  var topupAt = topup.finishedAt || topup.startedAt;
-  if (publishAt) checks.push('Posting checked ' + fmtDateTime(publishAt));
-  if (topupAt) checks.push('Queue checked ' + fmtDateTime(topupAt));
-  queue = queue || {};
-  if ((queue.blocked || 0) > 0) {
-    checks.push(queue.blocked + ' post' + (queue.blocked === 1 ? '' : 's') + ' blocked — reconnect the social account');
-  } else if ((queue.submitted || 0) > 0) {
-    checks.push(queue.submitted + ' post' + (queue.submitted === 1 ? '' : 's') + ' awaiting provider confirmation');
-  } else if ((queue.due || 0) > 0) {
-    checks.push(queue.due + ' post' + (queue.due === 1 ? '' : 's') + ' due — recovery will retry automatically');
-  } else if (queue.next_at) {
-    checks.push('Next post ' + fmtDateTime(queue.next_at));
-  } else {
-    checks.push('No post is currently scheduled');
-  }
-  var copy = checks.length ? checks.join(' · ') : (publish.message || topup.message || 'No completed worker run has been recorded yet.');
-  return '<div class="automation-health ' + state + '"><span class="health-dot"></span><div>' +
-    '<div class="health-title">' + esc(title) + '</div><div class="health-copy">' + esc(copy) + '</div></div></div>';
-}
-
-function loadSocial() {
-  el('autopilot-card').style.display = 'block';
-  fetch('/api/social', { credentials: 'same-origin' })
-    .then(function (r) { return r.json(); })
-    .then(renderSocial)
-    .catch(function () { el('autopilot-body').innerHTML = '<span class="stat">Couldn’t load publishing status.</span>'; });
-}
-
-function renderSocial(d) {
-  if (!d.connected) {
-    // Never show a Connect button when the provider is temporarily unavailable.
-    if (!d.enabled) {
-      el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;">Instagram connection is temporarily unavailable. Your posts are safe — download the complete post and publish it manually while we restore the connection.</p>';
-      return;
-    }
-    if (CUR_TIER !== 'pro') {
-      el('autopilot-body').innerHTML =
-        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Daily Instagram publishing is included with Pro. Connect your account once and Promote.dev will prepare, queue, and publish a fresh post for you each day.</p>' +
-        '<a class="btn btn-primary" href="/api/checkout?plan=autopilot">Start daily publishing — $19/month</a>';
-      return;
-    }
-    el('autopilot-body').innerHTML =
-      '<p style="color:var(--muted);font-size:13.5px;margin-bottom:16px;">Connect Instagram once. Promote.dev will prepare, queue, and publish a fresh post for you each day.</p>' +
-      '<button class="btn btn-primary" id="connect-social">Connect Instagram for daily publishing</button>' +
-      '<div id="connect-err" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></div>';
-    wireLinkButton('connect-social', 'Connect Instagram for daily publishing');
-    return;
-  }
-
-  // Connected: show WHICH platforms are actually linked, not an internal id.
-  // d.linked null = couldn't verify -> plain Connected line, no false claims.
-  var PLATFORMS = ['instagram', 'tiktok'];
-  var html = '';
-  if (Array.isArray(d.linked)) {
-    var chips = PLATFORMS.concat(d.linked.filter(function (p) { return PLATFORMS.indexOf(p) < 0; }));
-    html += '<div class="plat-row">' + chips.map(function (p) {
-      var on = d.linked.indexOf(p) >= 0;
-      return '<span class="plat-chip ' + (on ? 'on' : 'off') + '"><span class="dot"></span>' +
-        esc(p) + (on ? '' : ' — not linked') + '</span>';
-    }).join('') + '</div>';
-    if (d.linked.length === 0) {
-      html += '<p style="color:var(--danger);font-size:13px;margin-top:12px;">No accounts linked yet — posts can’t go out until you link one.</p>';
-    }
-  } else {
-    html += '<div class="row"><span>Status</span><span class="v">Connected ✓</span></div>';
-  }
-  html += '<div class="actions"><button class="btn btn-ghost btn-sm" id="manage-social">Link / manage accounts</button></div>' +
-    '<div id="connect-err" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></div>';
-
-  html += healthHtml(d.health, d.queue);
-
-  var posts = d.posts || [];
-  var queueHtml = posts.length
-    ? '<div class="queue-list">' + posts.map(function (p) {
-        var heading = (p.slides && p.slides[0] && (p.slides[0].heading || p.slides[0].text)) || '';
-        var status = p.status || 'queued';
-        var st = ['queued', 'publishing', 'submitted', 'verifying', 'posted', 'blocked', 'failed', 'skipped'].indexOf(status) >= 0 ? status : 'queued';
-        var labels = { publishing: 'publishing', submitted: 'verifying', verifying: 'checking', blocked: 'needs action' };
-        var label = labels[status] || (status === 'queued' && p.retries ? 'retry queued' : status);
-        return '<div class="queue-item">' +
-          '<div class="qi-main">' +
-            '<div class="qi-date">' + esc(fmtDate(p.scheduled_at)) + ' · ' + esc(p.kind || '') + '</div>' +
-            '<div class="qi-heading">' + esc(heading) + '</div>' +
-            (status !== 'posted' && p.error ? '<div class="qi-error">' + esc(p.error) + '</div>' : '') +
-          '</div>' +
-          '<span class="status-pill ' + st + '">' + esc(label) + '</span>' +
-        '</div>';
-      }).join('') + '</div>'
-    : '<p style="color:var(--muted);font-size:13.5px;">Your publishing queue is empty. The next daily post will be prepared within 24 hours.</p>';
-
-  el('autopilot-body').innerHTML = html +
-    '<div style="margin-top:16px;">' + queueHtml + '</div>';
-  wireLinkButton('manage-social', 'Link / manage accounts');
-}
-
-// Both "Connect" (first time) and "Link / manage accounts" (already connected)
-// go through the same flow: ask the server for a fresh hosted linking URL.
-function wireLinkButton(id, label) {
-  var btn = el(id);
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    btn.disabled = true; btn.textContent = 'Opening…';
-    fetch('/api/social', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'link' })
-    }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
-      .then(function (res) {
-        btn.disabled = false; btn.textContent = label;
-        if (res.s === 200 && res.j.url) {
-          window.open(res.j.url, '_blank');
-        } else {
-          var e = el('connect-err');
-          e.textContent = (res.j && res.j.error) || 'Something went wrong. Please try again.';
-          e.style.display = 'block';
-        }
-      })
-      .catch(function () {
-        btn.disabled = false; btn.textContent = label;
-        var e = el('connect-err');
-        e.textContent = 'Connection error. Please try again.';
-        e.style.display = 'block';
-      });
-  });
-}
-
-// ---- Post history & performance (the "Measure" loop) ----
-// Slides aren't stored as images, so history rebuilds them as on-brand themed
-// cards from the same slide text + accent + style the renderer uses. Kept in
-// sync with slide-render.mjs's SLIDE_THEMES / visibleAccent by hand.
-var SLIDE_THEMES = {
-  bold:     { bg: '#0d1014', ink: '#ffffff', sub: 'rgba(255,255,255,.82)', dark: true },
-  mono:     { bg: '#faf7f2', ink: '#141414', sub: 'rgba(20,20,20,.72)',    dark: false },
-  notebook: { bg: '#f7f2e6', ink: '#20232B', sub: 'rgba(32,35,43,.75)',    dark: false },
-  stat:     { bg: '#050608', ink: '#F5F5F6', sub: 'rgba(245,245,246,.72)', dark: true, mono: true },
-};
-
-function fmtNum(n) {
-  n = Number(n) || 0;
-  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M';
-  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'k';
-  return String(n);
-}
-
-function visAccent(hex, ink, dark) {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex || '')) return ink;
-  var r = parseInt(hex.substr(1, 2), 16) / 255, g = parseInt(hex.substr(3, 2), 16) / 255, b = parseInt(hex.substr(5, 2), 16) / 255;
-  var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  if (dark && lum < 0.35) { var lift = function (c) { return Math.round((c + (1 - c) * 0.55) * 255); }; return 'rgb(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ')'; }
-  if (!dark && lum > 0.62) { var sink = function (c) { return Math.round(c * 0.4 * 255); }; return 'rgb(' + sink(r) + ',' + sink(g) + ',' + sink(b) + ')'; }
-  return hex;
-}
-
-function slideCard(slide, style, accent) {
-  var t = SLIDE_THEMES[style] || SLIDE_THEMES.bold;
-  var acc = visAccent(accent, t.ink, t.dark);
-  var heading = (slide && (slide.heading || slide.text)) || '';
-  return '<div class="hp-slide' + (t.mono ? ' mono-type' : '') + '" style="background:' + t.bg + ';color:' + t.ink + ';--acc:' + acc + '">' +
-    '<span class="hp-acc"></span>' +
-    '<div class="hp-h">' + esc(heading) + '</div>' +
-    (slide && slide.body ? '<div class="hp-b" style="color:' + t.sub + '">' + esc(slide.body) + '</div>' : '') +
-    (slide && slide.cta ? '<div class="hp-cta">' + esc(slide.cta) + '</div>' : '') +
-  '</div>';
-}
-
-function platformList(post) {
-  var metricsPlats = (post.metrics || []).map(function (m) { return String(m.platform).toLowerCase(); });
-  var base = post.status === 'posted' && metricsPlats.length ? metricsPlats
-    : (post.platforms || []).map(function (p) { return String(p).toLowerCase(); }).concat(metricsPlats);
-  var out = [];
-  base.forEach(function (p) { if (p && out.indexOf(p) < 0) out.push(p); });
-  return out;
-}
-
-function metricsByPlatform(post) {
-  var map = {};
-  (post.metrics || []).forEach(function (m) { map[String(m.platform).toLowerCase()] = m; });
-  return map;
-}
-
-function pmRow(plat, m) {
-  var stats = ['views', 'likes', 'comments', 'shares'];
-  var inner = m
-    ? stats.map(function (k) { return '<div class="pm-stat"><span class="sv">' + fmtNum(m[k]) + '</span><span class="sl">' + k + '</span></div>'; }).join('')
-    : '<span class="pm-empty">No numbers yet — engagement lands here once the platform reports it.</span>';
-  var link = m && m.post_url ? '<a class="pm-link" href="' + esc(m.post_url) + '" target="_blank" rel="noopener">View ↗</a>' : '';
-  return '<div class="pm-row"><span class="pm-name">' + esc(plat) + '</span><div class="pm-stats">' + inner + '</div>' + link + '</div>';
-}
-
-function historyPost(post) {
-  var cards = (post.slides || []).map(function (s) { return slideCard(s, post.style, post.accent); }).join('');
-  var status = post.status || 'queued';
-  var st = ['queued', 'publishing', 'submitted', 'verifying', 'posted', 'blocked', 'failed', 'skipped'].indexOf(status) >= 0 ? status : 'queued';
-  var labels = { publishing: 'publishing', submitted: 'verifying', verifying: 'checking', blocked: 'needs action' };
-  var label = labels[status] || status;
-  var plats = platformList(post);
-  var mmap = metricsByPlatform(post);
-  var platHtml;
-  if (status === 'posted') {
-    platHtml = plats.map(function (p) { return pmRow(p, mmap[p]); }).join('');
-  } else {
-    var note = (status === 'failed' || status === 'blocked')
-      ? esc(post.error || 'Needs attention')
-      : 'Scheduled — analytics appear here once it publishes.';
-    platHtml = '<div class="pm-row"><span class="pm-name">' + plats.map(esc).join(' · ') + '</span><span class="pm-empty">' + note + '</span></div>';
-  }
-  return '<div class="hist-post">' +
-    '<div class="hp-slides">' + cards + '</div>' +
-    '<div class="hp-meta">' +
-      '<div class="hp-topline"><span class="status-pill ' + st + '">' + esc(label) + '</span>' +
-        '<span class="hp-when">' + esc(fmtDateTime(post.scheduled_at)) + '</span>' +
-        (post.kind ? '<span class="hp-dot">·</span><span class="hp-when">' + esc(post.kind) + '</span>' : '') +
-      '</div>' +
-      (post.caption ? '<div class="hp-caption">' + esc(post.caption) + '</div>' : '') +
-      '<div class="hp-plats">' + platHtml + '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-function totCell(v, l) { return '<div class="tot"><div class="tv">' + fmtNum(v) + '</div><div class="tl">' + l + '</div></div>'; }
-
-function renderAnalytics(d) {
-  var posts = d.posts || [];
-  if (!posts.length) { el('history-card').style.display = 'none'; return; }
-  el('history-card').style.display = 'block';
-  var t = d.totals || {};
-  var strip = '<div class="totals-strip">' +
-    totCell(t.views, 'views') + totCell(t.likes, 'likes') +
-    totCell(t.comments, 'comments') + totCell(t.shares, 'shares') +
-    (d.followers ? totCell(d.followers, 'followers') : '') +
-  '</div>';
-  var when = d.syncedAt ? ('Updated ' + fmtDateTime(d.syncedAt))
-    : (d.connected ? 'Not synced yet' : 'Connect a platform to pull performance');
-  var measured = t.measuredPosts ? (' · ' + t.measuredPosts + ' measured') : '';
-  var sync = '<div class="sync-line"><span class="sync-when">' + esc(when) + measured + '</span>' +
-    (d.connected ? '<button class="btn btn-ghost btn-sm" id="refresh-analytics">Refresh numbers</button>' : '') +
-  '</div>';
-  el('analytics-body').innerHTML = strip + sync + '<div class="hist-list">' + posts.map(historyPost).join('') + '</div>';
-  var rb = el('refresh-analytics');
-  if (rb) rb.addEventListener('click', function () { doAnalyticsRefresh(true); });
-}
-
-function loadAnalytics() {
-  fetch('/api/social?resource=analytics', { credentials: 'same-origin' })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (!d || d.error) return;
-      renderAnalytics(d);
-      // If connected and something actually published, pull fresh numbers in
-      // the background. The server stale-gates this, so it's cheap when recent.
-      if (d.connected && (d.posts || []).some(function (p) { return p.status === 'posted'; })) {
-        doAnalyticsRefresh(false);
-      }
-    })
-    .catch(function () {});
-}
-
-function doAnalyticsRefresh(force) {
-  var rb = el('refresh-analytics');
-  if (rb) { rb.disabled = true; rb.textContent = 'Refreshing…'; }
-  fetch('/api/social', {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'refresh-analytics', force: !!force }),
-  })
-    .then(function (r) { return r.json(); })
-    .then(function (d) { if (d && !d.error) renderAnalytics(d); })
-    .catch(function () {})
-    .then(function () { var b = el('refresh-analytics'); if (b) { b.disabled = false; b.textContent = 'Refresh numbers'; } });
 }
 
 el('go-pro').addEventListener('click', function () { TGPro._checkout('autopilot'); });

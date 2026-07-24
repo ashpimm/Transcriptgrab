@@ -169,16 +169,24 @@ Create; `/feed` redirects there.
 
 The create page is the shortest path from product profile to finished post. The default path is done for the user; hook and style controls are secondary.
 
+### Autopilot
+
+The autopilot page is the daily-publishing control surface:
+
+- Master on/off switch (off holds the queue; nothing publishes)
+- Posting-time slots (fixed choices matching the publish crons, shown in local time)
+- Instagram/TikTok connection and linking
+- Upcoming queue with slide previews; queued posts can be edited or skipped
+- Publishing-worker health and recovery guidance
+- Post history and per-platform performance
+
 ### Account
 
 The account page contains:
 
 - Plan and post allowance
 - Stripe subscription management
-- Instagram connection
-- Publishing-worker health
-- Upcoming and recent post status
-- Recovery guidance when a social account needs attention
+- Link to the Autopilot page
 
 ## Positioning
 
