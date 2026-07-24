@@ -228,12 +228,12 @@ async function costsSection() {
       GROUP BY 1, 2 ORDER BY 1
     `,
     sql`
-      SELECT provider,
+      SELECT provider, op,
              COUNT(*)::int AS calls,
              COALESCE(SUM(est_cost_micros), 0)::bigint AS cost_micros
       FROM api_usage
       WHERE created_at >= date_trunc('month', NOW())
-      GROUP BY 1 ORDER BY 1
+      GROUP BY 1, 2 ORDER BY 1, 2
     `,
   ]);
 

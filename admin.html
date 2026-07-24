@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
 <!--
-THESIS: the whole business on one black sheet of receipts — money, activity,
-pipelines, spend — readable in ten seconds from a phone; refuses the SaaS
-admin template of colored widget cards and decorative rings.
+THESIS: the whole business as one black control room — a left rail, a revenue
+hero, a posting calendar, and a row of instrument cards — readable in ten
+seconds from a phone; the one highlighter yellow still marks money only.
 OWN-WORLD: hooklab v3 — pure black, glassy dark cards radius 24, Archivo +
-JetBrains Mono for every measured value; the one highlighter yellow marks
-money only (MRR, revenue, spend), green/blue/red dots carry worker state.
-STORY: the owner opens it, sees MRR and today's posts instantly, scans down
-for anything red, closes it.
-FIRST VIEWPORT: slim ops bar, then four stat tiles (MRR yellow-marked),
-then money and pipeline cards side by side.
-FORM: single scrolling sheet, KPI strip over two-column card grid; precisely
-specified in the approved spec, no tournament.
+JetBrains Mono for every measured value; green/blue/red dots carry worker
+state; no decorative color.
+STORY: the owner opens it, reads MRR and the calendar of shipped posts,
+scans the instrument row for anything red, closes it.
+FIRST VIEWPORT: topbar, revenue hero (MRR + 30-day bars + series toggle)
+beside the posting calendar, then pipelines / spending donut / signups.
+FORM: icon rail + bento grid modelled on the approved reference screenshot;
+AI-summary slot → Pipelines, Invoices slot → Signups.
 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,39 +25,127 @@ specified in the approved spec, no tournament.
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hooklab.css">
 <style>
-.page { padding: 34px 0 90px; }
+/* ---- shell: rail + page ---- */
+.rail {
+  position: fixed; inset: 0 auto 0 0; width: 68px; z-index: var(--z-sticky);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 0; border-right: 1px solid var(--line); background: var(--bg);
+}
+.rail .r-logo { width: 36px; height: 36px; border-radius: 10px; background: var(--ink); color: #000; display: grid; place-items: center; font-weight: 800; font-size: 19px; text-decoration: none; margin-bottom: 14px; }
+.rail nav { display: flex; flex-direction: column; gap: 6px; }
+.rail a.ric {
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  color: var(--muted); transition: background .15s, color .15s;
+}
+.rail a.ric:hover { background: var(--glass); color: var(--ink); }
+.rail a.ric.on { background: var(--ink); color: #000; }
+.rail .r-foot { margin-top: auto; }
+.rail svg { width: 19px; height: 19px; }
 
-/* ---- ops bar ---- */
-.opsbar { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; flex-wrap: wrap; }
-.opsbar .mark { font-weight: 800; letter-spacing: -.02em; font-size: 19px; }
-.opsbar .mark .dim { color: var(--muted); font-weight: 600; }
-.opsbar .stamp { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-left: auto; }
-.opsbar .stamp b { color: var(--ink-2); font-weight: 500; }
+.page { margin-left: 68px; padding: 26px 0 90px; }
+.page .wrap { max-width: 1240px; }
 
-/* ---- stat tiles ---- */
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px 18px; min-width: 0; }
-.kpi .k-label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-.kpi .k-value { font-family: var(--mono); font-size: clamp(26px, 3vw, 34px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin-top: 10px; font-variant-numeric: tabular-nums; }
-.kpi .k-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-.kpi .k-sub b { color: var(--ink-2); font-weight: 600; }
-/* money values wear the highlighter — receipts grammar */
-.kpi.money .k-value { color: var(--signal); }
+/* ---- topbar ---- */
+.topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+.topbar h1 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.topbar .stamp { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.topbar .stamp b { color: var(--ink-2); font-weight: 500; }
+.topbar .spacer { margin-left: auto; }
+.who { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--glass); }
+.who .ava { width: 28px; height: 28px; border-radius: 50%; background: var(--signal); color: #000; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.who .w-mail { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
 
-/* ---- card grid ---- */
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-.grid > .span2 { grid-column: 1 / -1; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 26px; min-width: 0; }
+/* ---- grid ---- */
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; align-items: start; }
+.sp2 { grid-column: span 2; } .sp3 { grid-column: span 3; } .sp4 { grid-column: span 4; } .sp6 { grid-column: 1 / -1; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; min-width: 0; }
 .card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
 .card h2 .h-meta { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
-.card .body { margin-top: 16px; }
+.card .body { margin-top: 14px; }
+.mlab { font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
 
-/* ---- generic rows / tables ---- */
-.trow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; min-width: 0; }
+/* ---- revenue hero ---- */
+.h-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.seg { margin-left: auto; display: flex; gap: 4px; background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.seg button {
+  font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--muted);
+  background: none; border: 0; border-radius: 999px; padding: 6px 13px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.seg button:hover { color: var(--ink); }
+.seg button.on { background: var(--ink); color: #000; }
+.h-num { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; flex-wrap: wrap; }
+.h-num .big { font-family: var(--mono); font-size: clamp(32px, 3.6vw, 44px); font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--signal); }
+.h-num .delta { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--signal-soft); color: var(--signal); border: 1px solid var(--signal-line); }
+.h-num .vs { font-size: 12.5px; color: var(--muted); }
+.h-chart-lab { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; }
+.h-chart-lab .tot { font-family: var(--mono); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* ---- charts ---- */
+.chart { margin-top: 10px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .bar { transition: opacity .12s; cursor: default; }
+.chart .bar:hover { opacity: 1 !important; }
+.axis { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.peak { font-family: var(--mono); font-size: 10px; fill: var(--ink-2); }
+.gridline { stroke: rgba(255,255,255,.07); stroke-width: 1; }
+.tip { position: fixed; z-index: var(--z-toast); pointer-events: none; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 7px 11px; font-family: var(--mono); font-size: 11.5px; color: var(--ink); opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s; white-space: nowrap; }
+.tip.show { opacity: 1; transform: none; }
+.tip .tl { color: var(--muted); }
+
+/* ---- calendar ---- */
+.cal-head { display: flex; align-items: baseline; justify-content: space-between; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 14px; }
+.cal span { display: grid; place-items: center; aspect-ratio: 1; font-size: 12px; border-radius: 9px; position: relative; font-variant-numeric: tabular-nums; }
+.cal .c-w { font-family: var(--mono); font-size: 9.5px; color: var(--muted); aspect-ratio: auto; padding: 2px 0 4px; }
+.cal .c-d { color: var(--ink-2); }
+.cal .c-d.pub { background: var(--glass-2); color: var(--ink); font-weight: 600; }
+.cal .c-d.pub::after { content: ''; position: absolute; bottom: 4px; width: 3px; height: 3px; border-radius: 50%; background: var(--ink); opacity: .7; }
+.cal .c-d.today { box-shadow: inset 0 0 0 1px var(--line-2); font-weight: 700; color: var(--ink); }
+.cal .c-d.next { box-shadow: inset 0 0 0 1px var(--signal-line); }
+.cal .c-d.next::after { content: ''; position: absolute; bottom: 4px; width: 3px; height: 3px; border-radius: 50%; background: var(--signal); }
+.cal-stat { display: flex; align-items: center; gap: 12px; margin-top: 16px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 12px 14px; }
+.cal-stat .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); flex: 0 0 auto; }
+.cal-stat .ic svg { width: 17px; height: 17px; }
+.cal-stat .v { font-family: var(--mono); font-size: 19px; font-weight: 700; color: var(--signal); line-height: 1.1; }
+.cal-stat .s { font-size: 11.5px; color: var(--muted); }
+
+/* ---- pipelines minis ---- */
+.mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.mini .m { background: var(--surface-2); border-radius: var(--radius-s); padding: 12px 14px; min-width: 0; }
+.mini .m .v { font-family: var(--mono); font-size: 24px; font-weight: 700; margin-top: 6px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mini .m .v.bad { color: var(--danger); }
+.mini .m .s { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ---- donut ---- */
+.donut-wrap { display: flex; align-items: center; gap: 18px; }
+.donut-wrap .dsvg { width: 148px; flex: 0 0 auto; }
+.d-val { font-family: var(--mono); font-size: 19px; font-weight: 700; fill: var(--ink); }
+.d-lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em; fill: var(--muted); }
+.dleg { flex: 1; min-width: 0; }
+.dleg .dl { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; color: var(--ink-2); }
+.dleg .dl i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.dleg .dl .dv { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dnote { margin-top: 14px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 10px 13px; font-size: 12px; color: var(--ink-2); }
+
+/* ---- signups ---- */
+.meter-lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.meter-lab .mv { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.meter { display: flex; gap: 2px; height: 20px; margin-bottom: 14px; }
+.meter i { flex: 1; border-radius: 2px; background: var(--glass); }
+.meter i.f { background: var(--signal); }
+.badge { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); flex: 0 0 auto; }
+.badge.b-pro { background: var(--signal-soft); color: var(--signal); border-color: var(--signal-line); }
+.badge.b-ok { background: rgba(54,201,143,.12); color: #36c98f; border-color: rgba(54,201,143,.3); }
+.badge.b-warn { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-line); }
+
+/* ---- generic rows ---- */
+.trow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; min-width: 0; }
 .trow:last-child { border-bottom: none; }
+.trow > div { min-width: 0; }
 .trow .t-main { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.trow .t-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 1px; }
-.trow .t-val { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.trow .t-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.trow .t-val { font-family: var(--mono); font-size: 12px; color: var(--ink-2); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .trow .t-val.money { color: var(--signal); }
 .trow .t-val.bad { color: var(--danger); }
 
@@ -66,23 +154,7 @@ specified in the approved spec, no tournament.
 .dot.run { background: #7eb6ff; box-shadow: 0 0 0 3px rgba(126,182,255,.12); }
 .dot.bad { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
-.chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
-.chip b { color: var(--ink); }
-.chip.bad { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-line); }
-
-/* ---- charts ---- */
-.chart { margin-top: 14px; }
-.chart svg { display: block; width: 100%; height: auto; }
-.chart .bar { transition: opacity .12s; cursor: default; }
-.chart .bar:hover { opacity: 1 !important; }
-.axis { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
-.gridline { stroke: rgba(255,255,255,.07); stroke-width: 1; }
-.tip { position: fixed; z-index: var(--z-toast); pointer-events: none; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 7px 11px; font-family: var(--mono); font-size: 11.5px; color: var(--ink); opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s; white-space: nowrap; }
-.tip.show { opacity: 1; transform: none; }
-.tip .tl { color: var(--muted); }
-
-/* ---- link-outs ---- */
+/* ---- consoles ---- */
 .links { display: flex; gap: 10px; flex-wrap: wrap; }
 .links a { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); text-decoration: none; transition: background .15s, border-color .15s; }
 .links a:hover { background: var(--glass-2); border-color: var(--line-2); }
@@ -94,95 +166,140 @@ specified in the approved spec, no tournament.
 .shell p { color: var(--muted); font-size: 14.5px; margin: 12px 0 24px; }
 .err { display: flex; align-items: center; gap: 10px; color: var(--danger); font-size: 13px; padding: 10px 0; }
 .empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
-.skel .card, .skel .kpi { position: relative; overflow: hidden; }
-.skel .card > *, .skel .kpi > * { visibility: hidden; }
-.skel .card::after, .skel .kpi::after {
+.skel .card { position: relative; overflow: hidden; }
+.skel .card > * { visibility: hidden; }
+.skel .card::after {
   content: ''; position: absolute; inset: 0;
   background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.045) 50%, transparent 70%);
   background-size: 220% 100%; animation: shimmer 1.4s linear infinite;
 }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -20% 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .skel .card::after, .skel .kpi::after { animation: none; }
+  .skel .card::after { animation: none; }
 }
 
-.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
-
-@media (max-width: 960px) {
-  .kpis { grid-template-columns: 1fr 1fr; }
-  .grid { grid-template-columns: 1fr; }
-  .duo { grid-template-columns: 1fr; }
+@media (max-width: 1080px) {
+  .sp4, .sp3, .sp2 { grid-column: span 3; }
+  .grid { grid-template-columns: repeat(6, 1fr); }
 }
-@media (max-width: 480px) {
+@media (max-width: 760px) {
+  .rail { display: none; }
+  .page { margin-left: 0; padding-top: 20px; }
+  .sp4, .sp3, .sp2 { grid-column: 1 / -1; }
   .card { padding: 20px 18px; }
-  .kpi { padding: 16px 18px 14px; }
+  .who .w-mail { display: none; }
+  .who { padding: 4px; border: 0; background: none; }
 }
 </style>
 </head>
 <body>
 
-<main class="wrap page" id="app">
-  <!-- sign-in shell (default until the API says admin) -->
-  <div class="shell" id="shell" hidden>
-    <h1>Ops</h1>
-    <p>This page is for the owner. Sign in with the admin Google account, then come back to <span style="font-family:var(--mono)">/admin</span>.</p>
-    <a class="btn btn-primary" href="/api/auth/google">Sign in with Google</a>
+<aside class="rail" aria-label="Sections">
+  <a class="r-logo" href="/" aria-label="Promote.dev home">P</a>
+  <nav>
+    <a class="ric on" href="#top" title="Overview" aria-label="Overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></a>
+    <a class="ric" href="#card-pipe" title="Pipelines" aria-label="Pipelines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 12 7.5 12 10 5.5 14 18.5 16.5 12 21 12"/></svg></a>
+    <a class="ric" href="#card-signups" title="Signups" aria-label="Signups"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c1.4-3.2 4-4.8 7.2-4.8s5.8 1.6 7.2 4.8"/></svg></a>
+    <a class="ric" href="#card-money" title="Money" aria-label="Money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5.5" width="18" height="13" rx="3"/><line x1="3" y1="10" x2="21" y2="10"/></svg></a>
+  </nav>
+  <div class="r-foot">
+    <a class="ric" href="/account" title="Account" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"/></svg></a>
   </div>
+</aside>
 
-  <div id="dash" hidden>
-    <div class="opsbar">
-      <div class="mark">Promote.dev <span class="dim">/ Ops</span></div>
-      <div class="stamp" id="stamp">loading…</div>
-      <button class="btn btn-ghost btn-sm" id="refresh">Refresh</button>
+<main class="page" id="top">
+  <div class="wrap">
+    <!-- sign-in shell (default until the API says admin) -->
+    <div class="shell" id="shell" hidden>
+      <h1>Ops</h1>
+      <p>This page is for the owner. Sign in with the admin Google account, then come back to <span style="font-family:var(--mono)">/admin</span>.</p>
+      <a class="btn btn-primary" href="/api/auth/google">Sign in with Google</a>
     </div>
 
-    <div class="kpis" id="kpis">
-      <div class="kpi money"><div class="k-label">MRR</div><div class="k-value" id="k-mrr">—</div><div class="k-sub" id="k-mrr-sub">&nbsp;</div></div>
-      <div class="kpi"><div class="k-label">Users</div><div class="k-value" id="k-users">—</div><div class="k-sub" id="k-users-sub">&nbsp;</div></div>
-      <div class="kpi"><div class="k-label">Posts today</div><div class="k-value" id="k-posts">—</div><div class="k-sub" id="k-posts-sub">&nbsp;</div></div>
-      <div class="kpi money"><div class="k-label">Spend · month</div><div class="k-value" id="k-spend">—</div><div class="k-sub" id="k-spend-sub">&nbsp;</div></div>
-    </div>
-
-    <div class="grid">
-      <div class="card" id="card-money">
-        <h2>Money <span class="h-meta" id="money-meta"></span></h2>
-        <div class="body" id="money-body"></div>
+    <div id="dash" hidden>
+      <div class="topbar">
+        <h1>Ops</h1>
+        <span class="stamp" id="stamp">loading…</span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="refresh">Refresh</button>
+        <div class="who"><span class="ava">A</span><span class="w-mail">ashpimmyt2@gmail.com</span></div>
       </div>
 
-      <div class="card" id="card-pipe">
-        <h2>Pipelines</h2>
-        <div class="body" id="pipe-body"></div>
-      </div>
+      <div class="grid">
+        <!-- revenue hero -->
+        <div class="card sp4" id="card-rev">
+          <div class="h-top">
+            <h2>Revenue</h2>
+            <div class="seg" id="seg" role="tablist" aria-label="Chart series">
+              <button class="on" data-s="generated">Generated</button>
+              <button data-s="published">Published</button>
+              <button data-s="spend">Spend</button>
+            </div>
+          </div>
+          <div class="h-num">
+            <span class="big" id="h-mrr">—</span>
+            <span class="delta" id="h-delta" hidden></span>
+            <span class="vs" id="h-vs"></span>
+          </div>
+          <div class="h-chart-lab"><span class="mlab" id="h-series-lab"></span><span class="tot" id="h-series-tot"></span></div>
+          <div class="chart" id="h-chart"></div>
+        </div>
 
-      <div class="card span2" id="card-activity">
-        <h2>Activity <span class="h-meta">last 30 days</span></h2>
-        <div class="body duo" id="activity-body"></div>
-      </div>
+        <!-- posting calendar -->
+        <div class="card sp2" id="card-cal">
+          <div class="cal-head"><h2 id="cal-title">—</h2><span class="mlab">posting days</span></div>
+          <div class="cal" id="cal-body"></div>
+          <div class="cal-stat">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5V13M10 19.5V8M16 19.5v-8.5M21 19.5H3.2"/></svg></span>
+            <div><div class="v" id="cal-spend">—</div><div class="s" id="cal-spend-sub">provider spend this month</div></div>
+          </div>
+        </div>
 
-      <div class="card" id="card-niches">
-        <h2>Hook pools <span class="h-meta" id="niche-meta"></span></h2>
-        <div class="body" id="niche-body"></div>
-      </div>
+        <!-- pipelines (AI-summary slot) -->
+        <div class="card sp2" id="card-pipe">
+          <h2>Pipelines <span class="h-meta" id="pipe-meta"></span></h2>
+          <div class="body">
+            <div class="mini" id="pipe-mini"></div>
+            <div class="mlab" style="margin-bottom:2px">Worker runs</div>
+            <div id="pipe-runs"></div>
+          </div>
+        </div>
 
-      <div class="card" id="card-spend">
-        <h2>Provider spend <span class="h-meta">estimated, logged calls</span></h2>
-        <div class="body" id="spend-body"></div>
-      </div>
+        <!-- provider spend donut -->
+        <div class="card sp2" id="card-spend">
+          <h2>Spending <span class="h-meta">month to date</span></h2>
+          <div class="body" id="spend-body"></div>
+        </div>
 
-      <div class="card span2" id="card-signups">
-        <h2>Signups <span class="h-meta" id="signups-meta"></span></h2>
-        <div class="body" id="signups-body"></div>
-      </div>
+        <!-- signups (invoices slot) -->
+        <div class="card sp2" id="card-signups">
+          <h2>Signups <span class="h-meta" id="signups-meta"></span></h2>
+          <div class="body" id="signups-body"></div>
+        </div>
 
-      <div class="card span2">
-        <h2>Consoles <span class="h-meta">live numbers the APIs don't expose</span></h2>
-        <div class="body links">
-          <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel usage</a>
-          <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">Stripe</a>
-          <a href="https://aistudio.google.com/usage" target="_blank" rel="noopener">Gemini billing</a>
-          <a href="https://dash.supadata.ai" target="_blank" rel="noopener">Supadata quota</a>
-          <a href="https://console.neon.tech" target="_blank" rel="noopener">Neon DB</a>
-          <a href="https://app.uploadpost.com" target="_blank" rel="noopener">Upload-post</a>
+        <!-- money -->
+        <div class="card sp3" id="card-money">
+          <h2>Money <span class="h-meta" id="money-meta"></span></h2>
+          <div class="body" id="money-body"></div>
+        </div>
+
+        <!-- hook pools -->
+        <div class="card sp3" id="card-niches">
+          <h2>Hook pools <span class="h-meta" id="niche-meta"></span></h2>
+          <div class="body" id="niche-body"></div>
+        </div>
+
+        <!-- consoles -->
+        <div class="card sp6">
+          <h2>Consoles <span class="h-meta">live numbers the APIs don't expose</span></h2>
+          <div class="body links">
+            <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel usage</a>
+            <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">Stripe</a>
+            <a href="https://aistudio.google.com/usage" target="_blank" rel="noopener">Gemini billing</a>
+            <a href="https://dash.supadata.ai" target="_blank" rel="noopener">Supadata quota</a>
+            <a href="https://console.neon.tech" target="_blank" rel="noopener">Neon DB</a>
+            <a href="https://app.uploadpost.com" target="_blank" rel="noopener">Upload-post</a>
+          </div>
         </div>
       </div>
     </div>
@@ -196,6 +313,8 @@ specified in the approved spec, no tournament.
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var tip = $('tip');
+  var payload = null;
+  var series = 'generated';
 
   // ---------- formatting ----------
   function money(cents) { return '$' + (cents / 100).toFixed(cents % 100 ? 2 : 0); }
@@ -214,7 +333,7 @@ specified in the approved spec, no tournament.
   function ago(iso) {
     if (!iso) return 'never';
     var s = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (s < -60) { // future: "in 9h"
+    if (s < -60) {
       var f = -s;
       if (f < 5400) return 'in ' + Math.round(f / 60) + 'm';
       if (f < 129600) return 'in ' + Math.round(f / 3600) + 'h';
@@ -229,64 +348,74 @@ specified in the approved spec, no tournament.
     var d = new Date(iso);
     return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   }
+  function isoOf(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
 
-  // ---------- chart (single-series bars, 30-day domain) ----------
+  // ---------- 30-day series helpers ----------
   function fillDays(rows, days, key) {
     var map = {};
-    (rows || []).forEach(function (r) { map[String(r.day).slice(0, 10)] = Number(r[key]) || 0; });
+    (rows || []).forEach(function (r) { map[String(r.day).slice(0, 10)] = (map[String(r.day).slice(0, 10)] || 0) + (Number(r[key]) || 0); });
     var out = [];
     var d = new Date(); d.setHours(0, 0, 0, 0);
     for (var i = days - 1; i >= 0; i--) {
       var day = new Date(d.getTime() - i * 86400000);
-      var iso = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0') + '-' + String(day.getDate()).padStart(2, '0');
-      out.push({ iso: iso, v: map[iso] || 0 });
+      out.push({ iso: isoOf(day), v: map[isoOf(day)] || 0 });
     }
     return out;
   }
 
+  // ---------- bar chart (single series, 30-day domain) ----------
   function barChart(data, opts) {
-    var W = 520, H = 150, padL = 34, padB = 18, padT = 12;
+    var W = 560, H = 190, padL = 38, padB = 18, padT = 20;
     var plotW = W - padL - 6, plotH = H - padT - padB;
     var max = Math.max.apply(null, data.map(function (d) { return d.v; }).concat([1]));
-    // nice ceiling
     var pow = Math.pow(10, Math.floor(Math.log10(max)));
     var niceMax = Math.ceil(max / pow) * pow;
     if (niceMax / max > 2) niceMax = niceMax / 2;
     var bw = plotW / data.length;
-    var barW = Math.max(2, bw - 2); // 2px gaps between fills
+    var barW = Math.min(24, Math.max(2, bw - 2));
+    var maxIdx = -1, maxV = 0;
+    data.forEach(function (d, i) { if (d.v > maxV) { maxV = d.v; maxIdx = i; } });
     var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(opts.label) + '">';
-    // gridlines + y labels (3 lines)
     for (var g = 1; g <= 2; g++) {
       var gy = padT + plotH - (plotH * g / 2);
       s += '<line class="gridline" x1="' + padL + '" x2="' + W + '" y1="' + gy + '" y2="' + gy + '"/>';
-      s += '<text class="axis" x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end">' + num(niceMax * g / 2) + '</text>';
+      s += '<text class="axis" x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end">' + esc(opts.tick(niceMax * g / 2)) + '</text>';
     }
     s += '<line x1="' + padL + '" x2="' + W + '" y1="' + (padT + plotH) + '" y2="' + (padT + plotH) + '" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
     data.forEach(function (d, i) {
       var h = niceMax ? Math.round(plotH * d.v / niceMax) : 0;
-      var x = padL + i * bw + 1;
+      var x = padL + i * bw + (bw - barW) / 2;
       var y = padT + plotH - h;
-      var r = Math.min(3, barW / 2, h);
-      s += '<path class="bar" data-i="' + i + '" fill="' + opts.color + '" opacity="' + (d.v ? '.82' : '.18') + '" d="'
+      var r = Math.min(4, barW / 2, h);
+      var op = d.v ? (i === data.length - 1 ? '1' : '.72') : '.15';
+      s += '<path class="bar" data-i="' + i + '" fill="' + opts.color + '" opacity="' + op + '" d="'
         + 'M' + x + ',' + (padT + plotH)
         + (h > 0
           ? ' V' + (y + r) + ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y + ' H' + (x + barW - r) + ' Q' + (x + barW) + ',' + y + ' ' + (x + barW) + ',' + (y + r) + ' V' + (padT + plotH)
           : ' V' + (padT + plotH - 1.5) + ' H' + (x + barW) + ' V' + (padT + plotH))
         + ' Z"/>';
     });
-    // x labels: first + last
+    if (maxV > 0 && maxIdx >= 0) {
+      var mh = Math.round(plotH * data[maxIdx].v / niceMax);
+      var mx = padL + maxIdx * bw + bw / 2;
+      var anchor = maxIdx < 3 ? 'start' : maxIdx > data.length - 4 ? 'end' : 'middle';
+      s += '<text class="peak" x="' + mx + '" y="' + (padT + plotH - mh - 6) + '" text-anchor="' + anchor + '">' + esc(opts.fmt(maxV)) + '</text>';
+    }
     s += '<text class="axis" x="' + padL + '" y="' + (H - 4) + '">' + dayLabel(data[0].iso) + '</text>';
     s += '<text class="axis" x="' + W + '" y="' + (H - 4) + '" text-anchor="end">' + dayLabel(data[data.length - 1].iso) + '</text>';
     s += '</svg>';
     return s;
   }
 
-  function wireTips(container, data, fmt) {
+  function wireTips(container, getData, getFmt) {
     container.addEventListener('mousemove', function (e) {
       var t = e.target.closest('.bar');
       if (!t) { tip.classList.remove('show'); return; }
-      var d = data[Number(t.getAttribute('data-i'))];
-      tip.innerHTML = '<span class="tl">' + esc(dayLabel(d.iso)) + '</span> &nbsp;' + esc(fmt(d.v));
+      var d = getData()[Number(t.getAttribute('data-i'))];
+      if (!d) return;
+      tip.innerHTML = '<span class="tl">' + esc(dayLabel(d.iso)) + '</span> &nbsp;' + esc(getFmt()(d.v));
       tip.classList.add('show');
       var x = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8);
       tip.style.left = x + 'px';
@@ -295,45 +424,195 @@ specified in the approved spec, no tournament.
     container.addEventListener('mouseleave', function () { tip.classList.remove('show'); });
   }
 
-  function chartBlock(title, data, opts, fmt) {
-    var wrapEl = document.createElement('div');
-    var total = data.reduce(function (a, d) { return a + d.v; }, 0);
-    wrapEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline">'
-      + '<span style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">' + esc(title) + '</span>'
-      + '<span style="font-family:var(--mono);font-size:12px;color:var(--ink-2)">' + esc(fmt(total)) + ' / 30d</span></div>'
-      + '<div class="chart">' + barChart(data, opts) + '</div>';
-    wireTips(wrapEl, data, fmt);
-    return wrapEl;
-  }
-
   // ---------- section renderers ----------
   function sectionErr(el, section, what) {
     el.innerHTML = '<div class="err"><span class="dot bad"></span>' + esc(what) + ' unavailable — ' + esc(section && section.error || 'unknown error') + '</div>';
   }
 
-  function renderKpis(p) {
-    var b = p.business, o = p.ops, c = p.costs, u = p.usage;
-    if (b.ok) {
-      $('k-mrr').textContent = money(b.mrrCents);
-      $('k-mrr-sub').innerHTML = '<b>' + money(b.monthRevenueCents) + '</b> collected this month';
-      $('k-users').textContent = num(b.users.total);
-      $('k-users-sub').innerHTML = '<b>+' + b.users.new7d + '</b> this week · <b>' + b.users.pro + '</b> pro';
-    } else { $('k-mrr').textContent = '—'; $('k-users').textContent = '—'; }
-    if (o.ok) {
-      $('k-posts').textContent = num(o.queue.posted_today);
-      var due = Number(o.queue.due) || 0;
-      $('k-posts-sub').innerHTML = due
-        ? '<b style="color:var(--danger)">' + due + ' overdue</b> · ' + o.queue.future + ' queued'
-        : '<b>' + o.queue.future + '</b> queued · next ' + (o.queue.next_at ? ago(o.queue.next_at) : '—');
-    } else { $('k-posts').textContent = '—'; }
-    if (c.ok) {
-      var mtd = (c.mtd || []).reduce(function (a, r) { return a + Number(r.cost_micros); }, 0);
-      $('k-spend').textContent = microsUsd(mtd);
-      var calls = (c.mtd || []).reduce(function (a, r) { return a + Number(r.calls); }, 0);
-      $('k-spend-sub').innerHTML = '<b>' + num(calls) + '</b> provider calls' + (u.ok ? ' · anon ' + u.anonToday.used + '/' + u.anonToday.cap : '');
-    } else { $('k-spend').textContent = '—'; }
+  // -- revenue hero --
+  var SERIES = {
+    generated: { lab: 'Posts generated · 30d', color: '#F5F5F6', fmt: function (v) { return num(v) + ' post' + (v === 1 ? '' : 's'); }, tick: num, tot: function (t) { return num(t) + ' / 30d'; } },
+    published: { lab: 'Published to Instagram · 30d', color: '#F5F5F6', fmt: function (v) { return num(v) + ' published'; }, tick: num, tot: function (t) { return num(t) + ' / 30d'; } },
+    spend: { lab: 'Provider spend · est $/day · 30d', color: '#FFDD00', fmt: function (v) { return '$' + v.toFixed(v >= 1 ? 2 : 3); }, tick: function (v) { return '$' + (v >= 1 ? v.toFixed(0) : v.toFixed(2)); }, tot: function (t) { return '$' + t.toFixed(2) + ' / 30d'; } }
+  };
+  var heroData = [];
+
+  function seriesData(p, key) {
+    if (key === 'spend') {
+      if (!p.costs.ok) return null;
+      return fillDays(p.costs.days, 30, 'cost_micros').map(function (d) { return { iso: d.iso, v: d.v / 1e6 }; });
+    }
+    if (!p.usage.ok) return null;
+    return fillDays(key === 'generated' ? p.usage.carouselsPerDay : p.usage.postsPerDay, 30, 'count');
   }
 
+  function drawHero(p) {
+    var b = p.business;
+    if (b.ok) {
+      $('h-mrr').textContent = money(b.mrrCents);
+      $('h-vs').textContent = 'MRR · ' + (b.users ? b.users.pro : 0) + ' pro of ' + (b.users ? num(b.users.total) : 0) + ' users';
+      var col = b.monthRevenueCents || 0;
+      $('h-delta').hidden = !col;
+      if (col) $('h-delta').textContent = '+' + money(col) + ' collected';
+    } else {
+      $('h-mrr').textContent = '—';
+      $('h-vs').textContent = 'Stripe unavailable';
+    }
+    var def = SERIES[series];
+    var data = seriesData(p, series);
+    $('h-series-lab').textContent = def.lab;
+    if (!data) {
+      $('h-chart').innerHTML = '<div class="empty">Series unavailable — ' + esc((series === 'spend' ? p.costs.error : p.usage.error) || 'unknown error') + '</div>';
+      $('h-series-tot').textContent = '';
+      heroData = [];
+      return;
+    }
+    heroData = data;
+    var total = data.reduce(function (a, d) { return a + d.v; }, 0);
+    $('h-series-tot').textContent = def.tot(total);
+    $('h-chart').innerHTML = barChart(data, { color: def.color, label: def.lab, fmt: def.fmt, tick: def.tick });
+  }
+
+  // -- calendar --
+  function renderCalendar(p) {
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
+    $('cal-title').textContent = now.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+    var pub = {};
+    if (p.usage.ok) (p.usage.postsPerDay || []).forEach(function (r) { pub[String(r.day).slice(0, 10)] = Number(r.count) || 0; });
+    var nextIso = p.ops.ok && p.ops.queue.next_at ? isoOf(new Date(p.ops.queue.next_at)) : null;
+    var todayIso = isoOf(now);
+    var first = (new Date(y, m, 1).getDay() + 6) % 7;
+    var dim = new Date(y, m + 1, 0).getDate();
+    var h = '';
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(function (w) { h += '<span class="c-w">' + w + '</span>'; });
+    for (var i = 0; i < first; i++) h += '<span></span>';
+    for (var d = 1; d <= dim; d++) {
+      var iso = isoOf(new Date(y, m, d));
+      var cls = 'c-d', n = pub[iso];
+      if (n) cls += ' pub';
+      if (iso === todayIso) cls += ' today';
+      if (nextIso && iso === nextIso && iso >= todayIso && !n) cls += ' next';
+      h += '<span class="' + cls + '"' + (n ? ' title="' + n + ' published"' : '') + '>' + d + '</span>';
+    }
+    $('cal-body').innerHTML = h;
+    if (p.costs.ok) {
+      var mtd = (p.costs.mtd || []).reduce(function (a, r) { return a + Number(r.cost_micros); }, 0);
+      var calls = (p.costs.mtd || []).reduce(function (a, r) { return a + Number(r.calls); }, 0);
+      $('cal-spend').textContent = microsUsd(mtd);
+      $('cal-spend-sub').textContent = num(calls) + ' provider calls this month';
+    } else {
+      $('cal-spend').textContent = '—';
+    }
+  }
+
+  // -- pipelines --
+  function renderPipe(p) {
+    var o = p.ops;
+    if (!o.ok) { $('pipe-mini').innerHTML = ''; return sectionErr($('pipe-runs'), o, 'Ops data'); }
+    var q = o.queue;
+    $('pipe-meta').textContent = 'db ' + (o.dbBytes / 1048576).toFixed(0) + ' MB';
+    var due = Number(q.due) || 0, failed = Number(q.failed) || 0;
+    var m = '<div class="m"><div class="mlab">Queued</div><div class="v">' + num(q.future) + '</div>'
+      + '<div class="s">next ' + (q.next_at ? esc(ago(q.next_at)) : '—') + '</div></div>';
+    m += due || failed
+      ? '<div class="m"><div class="mlab">Stuck</div><div class="v bad">' + (due + failed) + '</div><div class="s">' + (due ? due + ' overdue' : '') + (due && failed ? ' · ' : '') + (failed ? failed + ' failed' : '') + '</div></div>'
+      : '<div class="m"><div class="mlab">Posted today</div><div class="v">' + num(q.posted_today) + '</div><div class="s">' + num(p.usage.ok ? p.usage.totals.posted : 0) + ' all-time</div></div>';
+    $('pipe-mini').innerHTML = m;
+    var h = '';
+    if (!o.runs.length) h = '<div class="empty">No autopilot runs recorded yet.</div>';
+    o.runs.slice(0, 5).forEach(function (r) {
+      var ok = r.status === 'success' || r.status === 'ok';
+      var running = r.status === 'running';
+      h += '<div class="trow"><div style="display:flex;align-items:center;gap:10px;min-width:0">'
+        + '<span class="dot ' + (running ? 'run' : ok ? 'ok' : 'bad') + '"></span>'
+        + '<div><div class="t-main">' + esc(r.job) + ' <span style="color:var(--muted)">· ' + esc(r.trigger) + '</span></div>'
+        + '<div class="t-sub">' + ago(r.started_at) + (r.duration_ms ? ' · ' + (r.duration_ms / 1000).toFixed(1) + 's' : '') + '</div></div></div>'
+        + '<div class="t-val' + (ok || running ? '' : ' bad') + '">' + esc(r.status) + '</div></div>';
+    });
+    h += '<div class="trow"><div class="t-main" style="color:var(--muted)">Metrics refreshed</div><div class="t-val">' + ago(o.metricsFreshAt) + '</div></div>';
+    $('pipe-runs').innerHTML = h;
+  }
+
+  // -- spending donut --
+  var SLOT_COLORS = { 'gemini·image': '#FFDD00', 'gemini·text': '#F5F5F6', 'supadata·transcript': '#9C9FA6' };
+  var SLOT_NAMES = { 'gemini·image': 'Gemini image', 'gemini·text': 'Gemini text', 'supadata·transcript': 'Supadata' };
+
+  function renderSpend(p) {
+    var el = $('spend-body'), c = p.costs;
+    if (!c.ok) return sectionErr(el, c, 'Spend log');
+    var rows = (c.mtd || []).map(function (r) {
+      var key = r.provider + '·' + (r.op || '');
+      return { key: key, name: SLOT_NAMES[key] || (r.provider + ' ' + (r.op || '')), color: SLOT_COLORS[key] || 'rgba(255,255,255,.35)', v: Number(r.cost_micros), calls: Number(r.calls) };
+    });
+    var total = rows.reduce(function (a, r) { return a + r.v; }, 0);
+    var segs = rows.filter(function (r) { return r.v > 0; }).sort(function (a, b) { return b.v - a.v; });
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty">No provider calls logged yet — spend tracking starts with the next generation or mining run.</div>';
+      return;
+    }
+    var R = 52, SW = 15, C2 = 2 * Math.PI * R;
+    var s = '<svg class="dsvg" viewBox="0 0 140 140" role="img" aria-label="Month-to-date spend by provider">';
+    s += '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="' + SW + '"/>';
+    if (total > 0) {
+      var off = 0, gapFrac = segs.length > 1 ? 0.012 : 0;
+      segs.forEach(function (seg) {
+        var frac = seg.v / total;
+        var len = Math.max(0, frac - gapFrac) * C2;
+        s += '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + seg.color + '" stroke-width="' + SW + '"'
+          + ' stroke-dasharray="' + len + ' ' + (C2 - len) + '" stroke-dashoffset="' + (-(off + gapFrac / 2) * C2) + '"'
+          + ' transform="rotate(-90 70 70)"><title>' + esc(seg.name) + ' — ' + esc(microsUsd(seg.v)) + '</title></circle>';
+        off += frac;
+      });
+    }
+    s += '<text class="d-val" x="70" y="68" text-anchor="middle">' + esc(microsUsd(total)) + '</text>';
+    s += '<text class="d-lab" x="70" y="84" text-anchor="middle">TOTAL MTD</text></svg>';
+    var leg = '<div class="dleg">';
+    rows.sort(function (a, b) { return b.v - a.v || b.calls - a.calls; }).forEach(function (r) {
+      leg += '<div class="dl"><i style="background:' + r.color + '"></i>' + esc(r.name)
+        + '<span class="dv">' + (r.v > 0 ? esc(microsUsd(r.v)) : num(r.calls) + ' calls') + '</span></div>';
+    });
+    leg += '</div>';
+    var note = '';
+    if (total > 0 && segs.length) {
+      note = '<div class="dnote">' + esc(segs[0].name) + ' drives ' + Math.round(100 * segs[0].v / total) + '% of this month’s spend.</div>';
+    }
+    el.innerHTML = '<div class="donut-wrap">' + s + leg + '</div>' + note;
+  }
+
+  // -- signups --
+  function renderSignups(p) {
+    var el = $('signups-body'), b = p.business, u = p.usage;
+    if (!b.ok) return sectionErr(el, b, 'Signup data');
+    var h = '';
+    if (u.ok && u.anonToday && Number(u.anonToday.cap)) {
+      var used = Number(u.anonToday.used) || 0, cap = Number(u.anonToday.cap);
+      h += '<div class="meter-lab"><span class="mlab">Anon slots today</span><span class="mv">' + used + '/' + cap + '</span></div><div class="meter">';
+      var n = 24, fill = Math.round(n * Math.min(1, used / cap));
+      for (var i = 0; i < n; i++) h += '<i class="' + (i < fill ? 'f' : '') + '"></i>';
+      h += '</div>';
+    }
+    var rows = b.signups || [];
+    if (!rows.length) {
+      $('signups-meta').textContent = b.users ? num(b.users.total) + ' users' : '';
+      el.innerHTML = h + '<div class="empty">No accounts yet. Every Google sign-in lands here with its email.</div>';
+      return;
+    }
+    $('signups-meta').textContent = (b.users ? num(b.users.total) + ' users · +' + b.users.new7d + ' this week' : 'latest ' + rows.length);
+    rows.slice(0, 6).forEach(function (usr) {
+      var never = !Number(usr.carousels);
+      var stale = !never && usr.last_active_at && (Date.now() - new Date(usr.last_active_at).getTime()) > 7 * 86400000;
+      var status = usr.tier === 'pro' ? 'pro' : never ? 'follow up' : stale ? 'quiet' : 'active';
+      var bcls = status === 'pro' ? 'b-pro' : status === 'active' ? 'b-ok' : status === 'follow up' ? 'b-warn' : '';
+      var subject = encodeURIComponent('Your promote.dev posts');
+      h += '<div class="trow"><div><div class="t-main"><a href="mailto:' + esc(usr.email) + '?subject=' + subject + '" style="color:inherit;text-decoration:none">' + esc(usr.email) + '</a></div>'
+        + '<div class="t-sub">joined ' + ago(usr.created_at) + ' · ' + num(usr.carousels) + ' post' + (Number(usr.carousels) === 1 ? '' : 's')
+        + (usr.connected ? ' · IG linked' : '') + '</div></div>'
+        + '<span class="badge ' + bcls + '">' + status + '</span></div>';
+    });
+    el.innerHTML = h;
+  }
+
+  // -- money --
   function renderMoney(p) {
     var el = $('money-body'), b = p.business;
     if (!b.ok) return sectionErr(el, b, 'Stripe');
@@ -348,7 +627,7 @@ specified in the approved spec, no tournament.
         + '<div class="t-val money">' + money(s.amountCents) + '/mo</div></div>';
     });
     if (b.payments.length) {
-      h += '<div style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 2px">Recent payments</div>';
+      h += '<div class="mlab" style="margin:16px 0 2px">Recent payments</div>';
       b.payments.forEach(function (c) {
         h += '<div class="trow"><div><div class="t-main">' + esc(c.email || 'unknown') + '</div>'
           + '<div class="t-sub">' + dayLabel(c.created) + ' · ' + esc(c.status) + (c.refunded ? ' · refunded' : '') + '</div></div>'
@@ -358,40 +637,7 @@ specified in the approved spec, no tournament.
     el.innerHTML = h;
   }
 
-  function renderPipe(p) {
-    var el = $('pipe-body'), o = p.ops;
-    if (!o.ok) return sectionErr(el, o, 'Ops data');
-    var q = o.queue;
-    var h = '<div class="chips">'
-      + (Number(q.due) ? '<span class="chip bad">' + q.due + ' overdue</span>' : '')
-      + '<span class="chip"><b>' + q.future + '</b>&nbsp;queued</span>'
-      + (Number(q.failed) ? '<span class="chip bad">' + q.failed + ' failed</span>' : '')
-      + '<span class="chip"><b>' + num(p.usage.ok ? p.usage.totals.posted : 0) + '</b>&nbsp;posted all-time</span>'
-      + '<span class="chip">db&nbsp;<b>' + (o.dbBytes / 1048576).toFixed(0) + '&nbsp;MB</b></span>'
-      + '</div>';
-    h += '<div style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 2px">Worker runs</div>';
-    if (!o.runs.length) h += '<div class="empty">No autopilot runs recorded yet.</div>';
-    o.runs.slice(0, 8).forEach(function (r) {
-      var ok = r.status === 'success' || r.status === 'ok';
-      var running = r.status === 'running';
-      h += '<div class="trow"><div style="display:flex;align-items:center;gap:10px;min-width:0">'
-        + '<span class="dot ' + (running ? 'run' : ok ? 'ok' : 'bad') + '"></span>'
-        + '<div><div class="t-main">' + esc(r.job) + ' <span style="color:var(--muted)">· ' + esc(r.trigger) + '</span></div>'
-        + '<div class="t-sub">' + ago(r.started_at) + (r.duration_ms ? ' · ' + (r.duration_ms / 1000).toFixed(1) + 's' : '') + '</div></div></div>'
-        + '<div class="t-val' + (ok || running ? '' : ' bad') + '">' + esc(r.status) + '</div></div>';
-    });
-    h += '<div class="trow"><div class="t-main" style="color:var(--muted)">Post metrics refreshed</div><div class="t-val">' + ago(o.metricsFreshAt) + '</div></div>';
-    el.innerHTML = h;
-  }
-
-  function renderActivity(p) {
-    var el = $('activity-body');
-    if (!p.usage.ok) { el.style.display = 'block'; return sectionErr(el, p.usage, 'Usage data'); }
-    el.innerHTML = '';
-    el.appendChild(chartBlock('Posts generated', fillDays(p.usage.carouselsPerDay, 30, 'count'), { color: '#F5F5F6', label: 'Posts generated per day, last 30 days' }, function (v) { return num(v) + ' post' + (v === 1 ? '' : 's'); }));
-    el.appendChild(chartBlock('Published to Instagram', fillDays(p.usage.postsPerDay, 30, 'count'), { color: '#F5F5F6', label: 'Posts published per day, last 30 days' }, function (v) { return num(v) + ' published'; }));
-  }
-
+  // -- hook pools --
   function renderNiches(p) {
     var el = $('niche-body'), o = p.ops;
     if (!o.ok) return sectionErr(el, o, 'Niche data');
@@ -407,66 +653,13 @@ specified in the approved spec, no tournament.
     el.innerHTML = h || '<div class="empty">No active niches.</div>';
   }
 
-  function renderSignups(p) {
-    var el = $('signups-body'), b = p.business;
-    if (!b.ok) return sectionErr(el, b, 'Signup data');
-    var rows = b.signups || [];
-    if (!rows.length) {
-      $('signups-meta').textContent = '';
-      el.innerHTML = '<div class="empty">No accounts yet. Every Google sign-in lands here with its email.</div>';
-      return;
-    }
-    var idle = rows.filter(function (u) { return !Number(u.carousels); }).length;
-    $('signups-meta').textContent = 'latest ' + rows.length + (idle ? ' · ' + idle + ' never generated' : '');
-    var h = '';
-    rows.forEach(function (u) {
-      var never = !Number(u.carousels);
-      var stale = !never && u.last_active_at && (Date.now() - new Date(u.last_active_at).getTime()) > 7 * 86400000;
-      var status = u.tier === 'pro' ? 'pro' : never ? 'follow up' : stale ? 'gone quiet' : 'active';
-      var subject = encodeURIComponent('Your promote.dev posts');
-      h += '<div class="trow"><div><div class="t-main"><a href="mailto:' + esc(u.email) + '?subject=' + subject + '" style="color:inherit;text-decoration:none">' + esc(u.email) + '</a></div>'
-        + '<div class="t-sub">joined ' + ago(u.created_at) + ' · ' + num(u.carousels) + ' post' + (Number(u.carousels) === 1 ? '' : 's')
-        + (u.last_active_at ? ' · last ' + ago(u.last_active_at) : '')
-        + (u.connected ? ' · IG linked' : '') + '</div></div>'
-        + '<div class="t-val' + (status === 'pro' ? ' money' : (never || stale) ? ' bad' : '') + '">' + status + '</div></div>';
-    });
-    el.innerHTML = h;
-  }
-
-  function renderSpend(p) {
-    var el = $('spend-body'), c = p.costs;
-    if (!c.ok) return sectionErr(el, c, 'Spend log');
-    var byProv = {};
-    (c.days || []).forEach(function (r) {
-      (byProv[r.provider] = byProv[r.provider] || []).push(r);
-    });
-    el.innerHTML = '';
-    var mtdMap = {};
-    (c.mtd || []).forEach(function (r) { mtdMap[r.provider] = r; });
-
-    var gem = byProv.gemini || [];
-    el.appendChild(chartBlock(
-      'Gemini · est. $ per day' + (mtdMap.gemini ? ' · MTD ' + microsUsd(Number(mtdMap.gemini.cost_micros)) : ''),
-      fillDays(gem, 30, 'cost_micros').map(function (d) { return { iso: d.iso, v: d.v / 1e6 }; }),
-      { color: '#FFDD00', label: 'Estimated Gemini spend per day' },
-      function (v) { return '$' + v.toFixed(v >= 1 ? 2 : 3); }
-    ));
-
-    var sup = byProv.supadata || [];
-    el.appendChild(chartBlock(
-      'Supadata · transcripts per day' + (mtdMap.supadata ? ' · MTD ' + num(mtdMap.supadata.calls) : ''),
-      fillDays(sup, 30, 'calls'),
-      { color: '#F5F5F6', label: 'Supadata transcript credits per day' },
-      function (v) { return num(v) + ' credit' + (v === 1 ? '' : 's'); }
-    ));
-
-    if (!gem.length && !sup.length) {
-      el.insertAdjacentHTML('afterbegin', '<div class="empty">No provider calls logged yet — spend tracking starts with the next generation or mining run.</div>');
-    }
-  }
-
   // ---------- load ----------
   var timer = null;
+  function render(p) {
+    payload = p;
+    drawHero(p); renderCalendar(p); renderPipe(p); renderSpend(p); renderSignups(p); renderMoney(p); renderNiches(p);
+  }
+
   function load() {
     var dash = $('dash');
     fetch('/api/health?admin=1', { headers: { 'accept': 'application/json' } })
@@ -479,7 +672,7 @@ specified in the approved spec, no tournament.
         $('shell').hidden = true; dash.hidden = false;
         dash.classList.remove('skel');
         $('stamp').innerHTML = 'updated <b>' + new Date(p.generatedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) + '</b>';
-        renderKpis(p); renderMoney(p); renderPipe(p); renderActivity(p); renderNiches(p); renderSignups(p); renderSpend(p);
+        render(p);
         if (!timer) timer = setInterval(load, 60000);
       })
       .catch(function () {
@@ -487,6 +680,17 @@ specified in the approved spec, no tournament.
         $('stamp').innerHTML = '<span style="color:var(--danger)">refresh failed — retrying</span>';
       });
   }
+
+  $('seg').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || b.classList.contains('on')) return;
+    this.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    series = b.getAttribute('data-s');
+    if (payload) drawHero(payload);
+  });
+
+  wireTips($('h-chart'), function () { return heroData; }, function () { return SERIES[series].fmt; });
 
   $('refresh').addEventListener('click', function () {
     $('stamp').textContent = 'refreshing…';
