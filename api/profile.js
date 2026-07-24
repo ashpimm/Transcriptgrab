@@ -13,7 +13,7 @@ import {
 } from './_db.js';
 import { resolveActor, clientIp, hashIp } from './_anon.js';
 import { callGemini } from './_shared.js';
-import { APP_PROFILE_PROMPT, PICK_COLOR_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
+import { APP_PROFILE_PROMPT, AUDIENCE_NICHE_PROMPT } from './_prompts.js';
 import { mineNiche } from './_miner.js';
 import {
   NICHE_CLASSIFIER_VERSION, nicheCatalogueForPrompt,
@@ -396,6 +396,24 @@ export function extractProductIcon(html, pageUrl) {
   return '';
 }
 
+// A real, declared brand accent — never an invented one. Many sites set
+// <meta name="theme-color">; store listings don't, and that's fine (we fall
+// back to a neutral, not a guess). Gray/near-black/near-white declarations are
+// rejected: those are a chrome color, not a brand accent.
+function brandColorFromHtml(html) {
+  const raw = extractMeta(html, 'name', 'theme-color') || extractMeta(html, 'property', 'theme-color');
+  const hex = String(raw || '').trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return '';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const sat = max === 0 ? 0 : (max - min) / max;
+  if (sat < 0.15) return ''; // too gray to be a brand accent
+  return hex.toUpperCase();
+}
+
 function stripHtmlToText(html) {
   // Drop script/style/nav/header/footer blocks (closed pairs)
   let cleaned = html
@@ -677,15 +695,12 @@ export default async function handler(req, res) {
     // reuses that slot). A refused throttle returns the sign-in gate.
     if (!(await anonReserveGate())) return;
     // Every profile gets a brand color: it is the accent on every slide, and
-    // without one the renderer would have nothing but neutral grays.
-    if (!cleaned.color) {
-      try {
-        const picked = await callGemini(PICK_COLOR_PROMPT, JSON.stringify({ name: cleaned.name, what: cleaned.what }), 0.3);
-        if (/^#[0-9a-fA-F]{6}$/.test(picked?.color || '')) cleaned.color = picked.color.toUpperCase();
-      } catch (e) {
-        console.error('color pick failed:', e.message);
-      }
-    }
+    // without one the renderer would have nothing but neutral grays. But the
+    // color is the customer's, not ours to invent — the old LLM guess picked
+    // random hues (a black+white icon became purple). Use what they set or a
+    // real declared color; otherwise a neutral slate, which they can change to
+    // their true brand color on the profile after signing in.
+    if (!cleaned.color) cleaned.color = '#6D7480';
     // Niche rows are reusable source pools, not hidden client-controlled
     // product labels. Resolve against the active catalogue whenever the
     // product's buyer-defining fields change or an old classifier is present.
@@ -771,15 +786,31 @@ export default async function handler(req, res) {
     // left without source-backed choices. Unchanged v2 saves skip this work.
     if (audienceWasResolved && cleaned.audience_niche && process.env.YOUTUBE_API_KEY) {
       try {
+        // Only cold-start a niche that has essentially nothing. Any real
+        // content means the pool is usable now and the daily mine cron keeps it
+        // topped up — no need to burn transcript credits on every thin save.
         const pool = await getAutoHookPool(cleaned.audience_niche.slug, 5);
-        if (pool.length < 5) {
+        if (pool.length < 2) {
           const nicheRow = await getNicheBySlug(cleaned.audience_niche.slug);
           if (nicheRow && await claimNicheLightMine(nicheRow.id)) {
             // Hooks are transcript-gated now: maxTranscripts must cover the
             // extractions or a light mine inserts nothing.
-            await mineNiche(nicheRow, process.env.YOUTUBE_API_KEY, {
-              maxKeywords: 2, maxSeedChannels: 0, maxExtractions: 4, maxTranscripts: 6,
-            });
+            //
+            // This mine must NEVER hold the Save response hostage. On a cold
+            // niche — or when the transcript provider is throttled — it can run
+            // for most of maxDuration, which reads to the user as "Saving…"
+            // hanging forever. Its output isn't used in this response (the hook
+            // picker fetches the pool separately), so bound it: whatever lands
+            // in the window enriches the pool, the rest is abandoned. The 6h
+            // claim above prevents a re-mine storm, and curated hooks cover the
+            // first post regardless.
+            const LIGHT_MINE_BUDGET_MS = 6000;
+            await Promise.race([
+              mineNiche(nicheRow, process.env.YOUTUBE_API_KEY, {
+                maxKeywords: 2, maxSeedChannels: 0, maxExtractions: 4, maxTranscripts: 6,
+              }).catch((e) => console.error('light mine run failed:', e.message)),
+              new Promise((resolve) => setTimeout(resolve, LIGHT_MINE_BUDGET_MS)),
+            ]);
           }
         }
       } catch (e) {
@@ -815,7 +846,10 @@ export default async function handler(req, res) {
         icon_url: parsed.icon_url,
         icon_checked: true,
         facts: structured.facts,
-        color: structured.color,
+        // Only a real declared color, never the model's vibe-guess (which turned
+        // a black/white icon purple). No signal here just means the neutral
+        // fallback applies on save; the user can set their true color after.
+        color: brandColorFromHtml(page.html),
       });
       return res.status(200).json({ prefill, source: parsed.source });
     } catch (e) {

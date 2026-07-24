@@ -1455,34 +1455,53 @@ function runImport(url) {
   }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
     .then(function (res) {
       if (!finishImport()) return;
-      el('profile-form').classList.add('show');
       if (res.s === 403) {
         // Anon taste already used (this IP or the daily cap) — invite sign-in.
+        revealProfileForm();
         showMsg('You’ve used your free preview. Sign in free to keep creating.', false);
         goSignIn();
         return;
       }
       if (res.s === 200 && res.j.prefill) {
+        // A first-time visitor has no saved product yet. Everyone else is
+        // deliberately editing theirs and expects the review form back.
+        var firstSetup = !(ST.profile && ST.profile.what);
         fillForm(res.j.prefill);
         ST.pendingAppUrl = res.j.prefill.app_url || url;
         el('import-url').value = ST.pendingAppUrl;
         ST.pendingIconUrl = res.j.prefill.icon_url || '';
         ST.pendingIconChecked = true;
         ST.prefillFacts = res.j.prefill.facts || null;
-        showMsg('Here’s what we found. Check the details, then save your product.', true);
+        if (firstSetup) {
+          // Taste-first: don't gate a first post behind a review-and-approve
+          // form. Assume the imported profile, save it, and go straight to
+          // hooks. The saved summary stays editable via "Edit product".
+          showMsg('Setting up ' + (res.j.prefill.name || 'your product') + ' — matching hooks to it now…', true);
+          submitProfile();
+        } else {
+          revealProfileForm();
+          showMsg('Here’s what we found. Check the details, then save your product.', true);
+        }
       } else {
+        revealProfileForm();
         ST.pendingAppUrl = url;
         showMsg(res.j.error || 'Couldn’t read that page — fill the form in and save.', false);
       }
     })
     .catch(function () {
       if (!finishImport()) return;
-      el('profile-form').classList.add('show');
+      revealProfileForm();
       showMsg('Couldn’t read that page — fill the form in and save.', false);
     });
 }
 
-el('save-profile').addEventListener('click', function () {
+function revealProfileForm() {
+  el('profile-summary').style.display = 'none';
+  el('profile-setup').style.display = 'block';
+  el('profile-form').classList.add('show');
+}
+
+function submitProfile() {
   if (ST.importBusy || ST.profileSaveBusy) return;
   ST.profileSaveBusy = true;
   var enteredAppUrl = el('import-url').value.trim();
@@ -1537,16 +1556,21 @@ el('save-profile').addEventListener('click', function () {
       } else if (res.s === 401 || res.s === 403) {
         window.location.href = '/api/auth/google';
       } else {
+        // Auto-advance may have skipped the form; bring it back so the user
+        // can fix whatever the save rejected and retry.
+        revealProfileForm();
         showMsg(res.j.error || 'Could not save.', false);
         el('p-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     })
     .catch(function () {
       finishProfileSave();
+      revealProfileForm();
       showMsg('Network error — check your connection and try again.', false);
       el('p-msg').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-});
+}
+el('save-profile').addEventListener('click', submitProfile);
 
 // ============ HOOK PICKER ============
 function loadHooks() {

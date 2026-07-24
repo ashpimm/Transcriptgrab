@@ -11,7 +11,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/mine", "schedule": "0 6 * * *" },
+    { "path": "/api/mine", "schedule": "0 6 */3 * *" },
     { "path": "/api/autopilot-topup", "schedule": "0 17 * * *" },
     { "path": "/api/autopilot-topup-recovery", "schedule": "0 19 * * *" },
     { "path": "/api/autopilot", "schedule": "30 20 * * *" },
