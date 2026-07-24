@@ -190,3 +190,17 @@ test('supplied candidates: sorted best reach first', () => {
   ]);
   assert.equal(candidates[0].url, 'https://youtu.be/large');
 });
+
+test('speechless titles are deprioritized, spoken kept in reach order', async () => {
+  const { titleLooksSpoken, prioritizeSpoken } = await import('../scripts/local-mine.mjs');
+  assert.equal(titleLooksSpoken('5 meal prep mistakes to stop'), true);
+  assert.equal(titleLooksSpoken('Rainy cafe ASMR no talking'), false);
+  assert.equal(titleLooksSpoken('Ed Sheeran - Perfect (Lyrics)'), false);
+  assert.equal(titleLooksSpoken('Oddly Satisfying slime compilation'), false);
+  const ordered = prioritizeSpoken([
+    { url: 'a', title: 'ASMR cooking' },
+    { url: 'b', title: 'stop doing this in the gym' },
+    { url: 'c', title: 'budget tips you need' },
+  ]);
+  assert.deepEqual(ordered.map((c) => c.url), ['b', 'c', 'a']);
+});

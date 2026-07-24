@@ -107,6 +107,10 @@ export function parseCliOptions(args) {
     niche, tiktok, mode, apply,
     creator, urlsInline, urlsFile, limit,
     report: optionValue(args, '--report'),
+    // Optional pre-triage: a file of video URLs (one per line) — only
+    // discovered candidates on the list are transcribed. Lets an operator
+    // screen the discover output by title before spending transcription time.
+    pickFile: optionValue(args, '--pick-file'),
     baseUrl: (optionValue(args, '--base-url') || process.env.PROMOTE_BASE_URL || DEFAULT_BASE_URL)
       .replace(/\/+$/, ''),
   };
@@ -168,6 +172,23 @@ export function candidateFromInfo(info, platform) {
 
 export function wordCount(text) {
   return (String(text || '').match(/[\p{L}\p{N}]+/gu) || []).length;
+}
+
+// Titles that advertise speechless content. A hook is something a person
+// SAYS, so these get deprioritized before any transcription effort is spent.
+const SPEECHLESS_TITLE = /\basmr\b|\blyrics?\b|official (?:music )?video|\bno talking\b|oddly satisfying|\bsatisfying\b|\bslime\b|\bambience\b|\bambient\b|8d audio|\binstrumental\b/i;
+
+export function titleLooksSpoken(title) {
+  return !SPEECHLESS_TITLE.test(String(title || ''));
+}
+
+// Stable partition: likely-spoken candidates first, speechless-looking last,
+// reach order preserved within each group.
+export function prioritizeSpoken(candidates) {
+  return [
+    ...candidates.filter((c) => titleLooksSpoken(c.title)),
+    ...candidates.filter((c) => !titleLooksSpoken(c.title)),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -396,10 +417,17 @@ export async function main(args = process.argv.slice(2)) {
   const dry = !options.apply;
   const maxCandidates = 48; // server evaluates up to 30; headroom covers failures
 
-  const sourced = options.tiktok
+  let sourced = options.tiktok
     ? tiktokCandidates(options)
     : await youtubeCandidates(options, secret);
-  const pool = sourced.slice(0, maxCandidates);
+  if (options.pickFile) {
+    const picked = new Set(readFileSync(options.pickFile, 'utf8')
+      .split(/\r?\n/).map((u) => u.trim()).filter((u) => u && !u.startsWith('#')));
+    const before = sourced.length;
+    sourced = sourced.filter((c) => picked.has(c.url));
+    console.log(`Pick-file kept ${sourced.length} of ${before} candidates.`);
+  }
+  const pool = prioritizeSpoken(sourced).slice(0, maxCandidates);
   if (pool.length === 0) throw new Error('No candidates to transcribe.');
 
   console.log(`Transcribing ${pool.length} candidate(s) locally...`);
