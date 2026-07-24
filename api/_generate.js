@@ -2,7 +2,7 @@
 // endpoint (api/carousel.js) and the autopilot cron (api/autopilot.js).
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
-import { getAutoHookPool, getHooksByIds } from './_db.js';
+import { getAutoHookPool, getGlobalHookPool, getHooksByIds } from './_db.js';
 import { callGemini } from './_shared.js';
 import { CAROUSEL_COPY_PROMPT, HOOK_PICK_PROMPT } from './_prompts.js';
 import { NICHE_CLASSIFIER_VERSION } from './_niches.js';
@@ -247,7 +247,14 @@ async function pickHook(profile, hookId, excludeHookIds) {
     const found = (await getHooksByIds([hookId], nicheSlug))[0];
     if (found) return found;
   }
-  const pool = excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds);
+  // A brand-new audience niche starts empty (its mine runs async). Rather than
+  // dead-ending the user's very first post, fall back to the strongest proven
+  // hooks across ALL niches — the mechanism is what transfers, and the fit
+  // screen below still judges every candidate against this product.
+  let pool = excludeHooks(await getAutoHookPool(nicheSlug, 20), excludeHookIds);
+  if (pool.length === 0) {
+    pool = excludeHooks(await getGlobalHookPool(20), excludeHookIds);
+  }
   if (pool.length === 0) return null;
   // Screen even a one-hook pool. An empty verdict, malformed response, or
   // upstream failure stops generation; a random bad-fit hook is not a useful

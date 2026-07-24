@@ -518,6 +518,26 @@ export async function getAutoHookPool(nicheSlug, poolSize = 10) {
   `;
 }
 
+// Cross-niche fallback for a cold pool: the top proven hooks regardless of
+// niche. A brand-new audience niche starts empty (mining is async), and the
+// whole product premise is that a hook's MECHANISM transfers across subjects —
+// so until the niche has its own sources, borrow the strongest openers from
+// every niche and let the AI fit-screen judge transferability per product.
+export async function getGlobalHookPool(poolSize = 20) {
+  const sql = getSQL();
+  return sql`
+    SELECT h.*, n.slug AS niche_slug
+    FROM hooks h
+    JOIN niches n ON n.id = h.niche_id
+    WHERE n.active = TRUE
+      AND h.curated = FALSE
+      AND h.platform <> 'youtube_retired'
+      AND h.views >= 250000
+    ORDER BY h.views DESC, h.outlier_score DESC, h.last_verified DESC
+    LIMIT ${poolSize}
+  `;
+}
+
 export async function getHooksByIds(ids, nicheSlug = null) {
   if (!ids || ids.length === 0) return [];
   const sql = getSQL();
@@ -1013,9 +1033,18 @@ export async function reserveAnonSlot({ anonId, ipHash, cap = anonDailyCap() }) 
   });
   if (!verdict.allowed) return { allowed: false, reason: verdict.reason, slotId: null };
 
+  // Carry the anon's latest profile forward into the new slot. The profile
+  // rides on slots, and a failed plan releases its slot (so the failure never
+  // burns the taste) — without this copy, the released slot would take the
+  // saved profile with it and the next plan would demand the profile again,
+  // bouncing the user into a save → fail → save loop.
   const ins = await sql`
-    INSERT INTO anon_slots (anon_id, ip_hash, status)
-    VALUES (${anonId}, ${ipHash || ''}, 'reserved')
+    INSERT INTO anon_slots (anon_id, ip_hash, status, profile)
+    VALUES (${anonId}, ${ipHash || ''}, 'reserved', (
+      SELECT profile FROM anon_slots
+      WHERE anon_id = ${anonId} AND profile IS NOT NULL
+      ORDER BY created_at DESC LIMIT 1
+    ))
     RETURNING id
   `;
   return { allowed: true, reason: null, slotId: ins[0].id };
@@ -1215,6 +1244,113 @@ export async function getPostsForUser(userId, limit = 30) {
            error, retries, created_at
     FROM posts WHERE user_id = ${userId}
     ORDER BY scheduled_at DESC LIMIT ${limit}
+  `;
+}
+
+// ============================================
+// ANALYTICS ("Measure" loop)
+// ============================================
+let analyticsSchemaPromise;
+
+// Like ensureAutopilotReliabilitySchema: a deploy and its migration can't land
+// atomically on Vercel, so the endpoint bootstraps this small idempotent schema
+// before reading/writing. migrate-analytics.sql stays the source of truth.
+export async function ensureAnalyticsSchema() {
+  if (!analyticsSchemaPromise) {
+    analyticsSchemaPromise = (async () => {
+      const sql = getSQL();
+      await sql`
+        CREATE TABLE IF NOT EXISTS post_metrics (
+          post_id          INTEGER     NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          platform         VARCHAR(30) NOT NULL,
+          views            BIGINT      NOT NULL DEFAULT 0,
+          likes            BIGINT      NOT NULL DEFAULT 0,
+          comments         BIGINT      NOT NULL DEFAULT 0,
+          shares           BIGINT      NOT NULL DEFAULT 0,
+          saves            BIGINT      NOT NULL DEFAULT 0,
+          reach            BIGINT      NOT NULL DEFAULT 0,
+          impressions      BIGINT      NOT NULL DEFAULT 0,
+          post_url         TEXT        NOT NULL DEFAULT '',
+          platform_post_id TEXT        NOT NULL DEFAULT '',
+          raw              JSONB       NOT NULL DEFAULT '{}',
+          captured_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (post_id, platform)
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_post_metrics_post ON post_metrics(post_id)`;
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS metrics_synced_at TIMESTAMPTZ`;
+    })().catch((e) => {
+      analyticsSchemaPromise = null;
+      throw e;
+    });
+  }
+  return analyticsSchemaPromise;
+}
+
+// Upsert the latest snapshot for each platform of one post, then stamp the
+// post as synced (even with zero rows — a "we looked, nothing yet" is still a
+// reason not to re-hammer the provider on the next page load).
+export async function savePostMetrics(postId, rows) {
+  const sql = getSQL();
+  for (const row of rows || []) {
+    if (!row?.platform) continue;
+    const m = row.metrics || {};
+    await sql`
+      INSERT INTO post_metrics
+        (post_id, platform, views, likes, comments, shares, saves, reach, impressions, post_url, platform_post_id, raw, captured_at)
+      VALUES (
+        ${postId}, ${row.platform},
+        ${m.views || 0}, ${m.likes || 0}, ${m.comments || 0}, ${m.shares || 0},
+        ${m.saves || 0}, ${m.reach || 0}, ${m.impressions || 0},
+        ${row.postUrl || ''}, ${row.platformPostId || ''},
+        ${JSON.stringify(row.raw || {})}::jsonb, NOW()
+      )
+      ON CONFLICT (post_id, platform) DO UPDATE SET
+        views = EXCLUDED.views, likes = EXCLUDED.likes, comments = EXCLUDED.comments,
+        shares = EXCLUDED.shares, saves = EXCLUDED.saves, reach = EXCLUDED.reach,
+        impressions = EXCLUDED.impressions,
+        post_url = CASE WHEN EXCLUDED.post_url <> '' THEN EXCLUDED.post_url ELSE post_metrics.post_url END,
+        platform_post_id = CASE WHEN EXCLUDED.platform_post_id <> '' THEN EXCLUDED.platform_post_id ELSE post_metrics.platform_post_id END,
+        raw = EXCLUDED.raw, captured_at = NOW()
+    `;
+  }
+  await sql`UPDATE posts SET metrics_synced_at = NOW() WHERE id = ${postId}`;
+}
+
+// Posts + their latest per-platform metrics, newest first. Drives the account
+// history section. BIGINT metrics come back as strings from pg; callers coerce.
+export async function getPostsWithMetrics(userId, limit = 30) {
+  const sql = getSQL();
+  return sql`
+    SELECT p.id, p.scheduled_at, p.status, p.kind, p.style, p.accent,
+           p.slides, p.caption, p.platforms, p.error, p.metrics_synced_at,
+           COALESCE((
+             SELECT json_agg(json_build_object(
+               'platform', m.platform, 'views', m.views, 'likes', m.likes,
+               'comments', m.comments, 'shares', m.shares, 'saves', m.saves,
+               'reach', m.reach, 'impressions', m.impressions,
+               'post_url', m.post_url, 'platform_post_id', m.platform_post_id,
+               'captured_at', m.captured_at
+             ) ORDER BY m.platform)
+             FROM post_metrics m WHERE m.post_id = p.id
+           ), '[]'::json) AS metrics
+    FROM posts p
+    WHERE p.user_id = ${userId}
+    ORDER BY p.scheduled_at DESC
+    LIMIT ${limit}
+  `;
+}
+
+// Candidate posted rows for a metrics refresh. shouldSyncPost (pure) does the
+// final stale/age filtering in the endpoint so it stays unit-tested.
+export async function getPostsForMetricSync(userId, limit = 40) {
+  const sql = getSQL();
+  return sql`
+    SELECT id, scheduled_at, status, external_ids, platforms, metrics_synced_at
+    FROM posts
+    WHERE user_id = ${userId} AND status = 'posted'
+    ORDER BY scheduled_at DESC
+    LIMIT ${limit}
   `;
 }
 
