@@ -67,7 +67,7 @@
   var css = document.createElement('style');
   css.textContent =
     '.suite-nav{background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:1000;font-family:"Geist",-apple-system,sans-serif;}' +
-    '.suite-nav-inner{max-width:1160px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;gap:8px;position:relative;}' +
+    '.suite-nav-inner{padding:0 clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;height:64px;gap:8px;position:relative;}' +
     '.suite-nav-brand{font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#F5F5F6;text-decoration:none;flex-shrink:0;transition:opacity 0.2s;}' +
     '.suite-nav-brand::after{content:"_";color:#FFDD00;}' +
     '.suite-nav-brand:hover{opacity:.8;}' +
@@ -165,13 +165,9 @@
         '<a href="/#pricing" class="suite-nav-gopro">Upgrade</a>';
     }
 
-    var linksHtml =
-      '<a href="/create" class="suite-nav-link' + (path === '/create' ? ' active' : '') + '">Create</a>';
-
     nav.innerHTML =
       '<div class="suite-nav-inner">' +
         '<a href="' + brandHref + '" class="suite-nav-brand">Promote.dev</a>' +
-        '<div class="suite-nav-links">' + linksHtml + '</div>' +
         '<div class="suite-nav-right">' + rightHtml + '</div>' +
       '</div>';
 
