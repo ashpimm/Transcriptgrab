@@ -48,6 +48,7 @@
   ],
   "functions": {
     "api/autopilot.js": { "includeFiles": "{fonts/**,slide-render.mjs}", "maxDuration": 60 },
-    "api/carousel.js": { "includeFiles": "{fonts/**,slide-render.mjs}", "maxDuration": 60 }
+    "api/carousel.js": { "includeFiles": "{fonts/**,slide-render.mjs}", "maxDuration": 60 },
+    "api/social.js": { "maxDuration": 60 }
   }
 }

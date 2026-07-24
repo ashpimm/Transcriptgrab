@@ -101,6 +101,22 @@ export async function getUploadStatus(requestId) {
   return call(`/uploadposts/status?request_id=${encodeURIComponent(requestId)}`, { method: 'GET' });
 }
 
+// Performance for one published post, keyed by the request_id we published
+// under. Returns the raw provider payload; normalizePostAnalytics (in
+// _analytics.js) turns it into per-platform metric rows.
+export async function getPostAnalytics(requestId, platform) {
+  const q = platform ? `?platform=${encodeURIComponent(platform)}` : '';
+  return call(`/uploadposts/post-analytics/${encodeURIComponent(requestId)}${q}`, { method: 'GET' });
+}
+
+// Profile-level analytics (followers, reach, profile views...) for the header
+// strip. `platforms` is an array of linked platform names.
+export async function getProfileAnalytics(username, platforms = []) {
+  const list = platforms.filter(Boolean).join(',');
+  const q = list ? `?platforms=${encodeURIComponent(list)}` : '';
+  return call(`/analytics/${encodeURIComponent(username)}${q}`, { method: 'GET' });
+}
+
 const SUCCESS_STATES = new Set(['completed', 'complete', 'success', 'succeeded', 'publish_success', 'posted']);
 const FAILED_STATES = new Set(['failed', 'failure', 'error', 'publish_failed', 'cancelled', 'canceled']);
 const PENDING_STATES = new Set(['queued', 'pending', 'processing', 'in_progress', 'retryable', 'submitted', 'running']);
