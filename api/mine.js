@@ -1,9 +1,13 @@
 // api/mine.js — Niche research pipeline (cron + admin trigger).
 //
-// GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1][&fresh=1]
+// GET /api/mine?secret=$ADMIN_SECRET[&niche=slug][&dry=1][&fresh=1][&phase=discover]
 // dry=1 re-evaluates both new and saved candidates and makes no database writes.
 // fresh=1 atomically replaces one explicit niche's mined rows with accepted
 // results from the current policy; historical rows are retained but hidden.
+// phase=discover returns the outlier candidate list only (no transcripts, no
+// writes) for scripts/local-mine.mjs, which attaches transcripts locally.
+// POST /api/mine (admin) accepts those candidates back:
+//   { niche, dry?, fresh?, candidates: [{url,title,views,followers,platform,transcript}] }
 // Also runs via Vercel cron (Bearer CRON_SECRET), one niche per run
 // (the one mined longest ago).
 //
@@ -13,7 +17,9 @@
 // Pipeline body lives in ./_miner.js so profile-save can also call it.
 
 import { getNicheBySlug, getStalestNiches, reconcileNicheCatalogue } from './_db.js';
-import { mineNiche } from './_miner.js';
+import {
+  mineNiche, discoverCandidates, mineFromCandidates, parseSuppliedCandidates,
+} from './_miner.js';
 import { adminSecretOk, cronAuthOk } from './_shared.js';
 import { LEGACY_NICHE_SLUGS } from './_niches.js';
 
@@ -54,6 +60,42 @@ export default async function handler(req, res) {
     }
   }
 
+  // POST /api/mine — supplied-candidate mine, used by scripts/local-mine.mjs.
+  // The caller fetched transcripts on their own machine (yt-dlp captions /
+  // local Whisper — free, home IP); extraction, quality gates, and all
+  // database writes stay server-side. Secrets never leave Vercel.
+  if (req.method === 'POST') {
+    if (!adminSecretOk(req)) return res.status(401).json({ error: 'ADMIN_SECRET required' });
+    const slug = String(body?.niche || '');
+    if (!slug) return res.status(400).json({ error: 'niche is required' });
+    if (LEGACY_NICHE_SLUGS.includes(slug)) {
+      return res.status(410).json({
+        error: 'That legacy niche is retired. Run action=repair-niches, then mine its canonical replacement.',
+      });
+    }
+    try {
+      const niche = await getNicheBySlug(slug);
+      if (!niche) return res.status(404).json({ error: 'No active niche found' });
+      const dry = body?.dry === true || body?.dry === '1' || body?.dry === 1;
+      const fresh = body?.fresh === true || body?.fresh === '1' || body?.fresh === 1;
+      const parsed = parseSuppliedCandidates(body?.candidates);
+      if (parsed.candidates.length === 0) {
+        return res.status(400).json({ error: 'No usable candidates', errors: parsed.errors });
+      }
+      const result = await mineFromCandidates(niche, parsed.candidates, {
+        dry,
+        fresh,
+        transcriptPauseMs: 0,
+        errors: parsed.errors,
+        ...(fresh ? { maxExtractions: 18, maxTranscripts: 30 } : {}),
+      });
+      return res.status(fresh && !dry && result.applied === false ? 409 : 200).json(result);
+    } catch (e) {
+      console.error('mine POST error:', e);
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!cronAuthOk(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -80,6 +122,24 @@ export default async function handler(req, res) {
       }
       const niche = await getNicheBySlug(req.query.niche);
       if (!niche) return res.status(404).json({ error: 'No active niche found' });
+
+      // phase=discover: return the outlier candidate list only (steps 1-3),
+      // so the local mining script can attach transcripts and POST them back.
+      if (req.query.phase === 'discover') {
+        if (!adminSecretOk(req)) {
+          return res.status(403).json({ error: 'phase=discover requires ADMIN_SECRET' });
+        }
+        const discovery = await discoverCandidates(niche, apiKey);
+        return res.status(200).json({
+          niche: niche.slug,
+          scanned: discovery.scanned,
+          discoveryFailures: discovery.discoveryFailures,
+          outlierCount: discovery.outliers.length,
+          outliers: discovery.outliers.slice(0, 40),
+          errors: discovery.errors,
+        });
+      }
+
       const result = await mineNiche(niche, apiKey, {
         dry,
         fresh,

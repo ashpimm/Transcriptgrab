@@ -128,14 +128,85 @@ export function excludeCrossNicheRows(rows, allExistingUrls, currentNicheUrls) {
   };
 }
 
-export async function mineNiche(niche, apiKey, opts = {}) {
-  const {
-    maxKeywords = 6, maxSeedChannels = 3,
-    maxExtractions = 12, maxTranscripts = 18, dry = false, fresh = false,
-  } = opts;
+export const VALID_PLATFORMS = ['youtube', 'tiktok'];
+export const MAX_SUPPLIED_CANDIDATES = 60;
+
+// Transcript failures that reflect the video (or the caller's payload), not a
+// broken upstream service — these must not count toward upstreamFailures and
+// block a fresh rebuild.
+const NON_UPSTREAM_TRANSCRIPT_ERRORS = new Set([
+  'No captions available.',
+  'No transcript supplied.',
+]);
+
+const SUPPLIED_URL_HOSTS = /^(?:www\.|m\.|vm\.|vt\.)?(?:youtube\.com|youtu\.be|tiktok\.com)$/;
+
+// Sanitize candidates supplied by the local mining script (POST /api/mine).
+// Reach and outlier score are re-derived server-side, never trusted.
+export function parseSuppliedCandidates(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { candidates: [], errors: ['candidates must be a non-empty array'] };
+  }
+  if (raw.length > MAX_SUPPLIED_CANDIDATES) {
+    return { candidates: [], errors: [`too many candidates (max ${MAX_SUPPLIED_CANDIDATES})`] };
+  }
+
+  const errors = [];
+  const candidates = [];
+  const seenUrls = new Set();
+  for (const [index, item] of raw.entries()) {
+    const label = `candidate ${index}`;
+    const url = typeof item?.url === 'string' ? item.url.trim() : '';
+    let host = '';
+    try { host = new URL(url).hostname.toLowerCase(); } catch { /* rejected below */ }
+    if (!url.startsWith('https://') || !SUPPLIED_URL_HOSTS.test(host)) {
+      errors.push(`${label}: url must be a YouTube or TikTok https URL`);
+      continue;
+    }
+    if (seenUrls.has(url)) {
+      errors.push(`${label}: duplicate url ${url}`);
+      continue;
+    }
+    const title = typeof item?.title === 'string' ? item.title.trim() : '';
+    if (!title) {
+      errors.push(`${label}: missing title`);
+      continue;
+    }
+    const views = Math.floor(Number(item?.views));
+    if (!Number.isFinite(views) || views < 0) {
+      errors.push(`${label}: views must be a non-negative number`);
+      continue;
+    }
+    if (!isHighReachCandidate(views)) {
+      errors.push(`${label}: below reach threshold (${views} views): ${url}`);
+      continue;
+    }
+    const rawFollowers = Math.floor(Number(item?.followers));
+    const followers = Number.isFinite(rawFollowers) && rawFollowers > 0 ? rawFollowers : 0;
+    seenUrls.add(url);
+    candidates.push({
+      url,
+      title: title.substring(0, 500),
+      views,
+      followers,
+      platform: VALID_PLATFORMS.includes(item?.platform) ? item.platform : 'youtube',
+      score: computeOutlierScore(views, followers),
+      transcript: typeof item?.transcript === 'string' ? item.transcript : '',
+    });
+  }
+  candidates.sort(compareCandidateReach);
+  return { candidates, errors };
+}
+
+// Steps 1-3 of the pipeline: discovery, stats, reach filter. Split out so the
+// local mining script can fetch this candidate list, attach transcripts on the
+// user's machine (home IP — free caption/Whisper access clouds don't get), and
+// POST them back for extraction.
+export async function discoverCandidates(niche, apiKey, {
+  maxKeywords = 6, maxSeedChannels = 3,
+} = {}) {
   const errors = [];
   let discoveryFailures = 0;
-  let upstreamFailures = 0;
 
   // 1. Gather candidate videos
   const candidates = new Map(); // videoId -> {videoId, title, channelId}
@@ -192,6 +263,25 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   }
   outliers.sort(compareCandidateReach);
 
+  return { scanned: videoIds.length, outliers, discoveryFailures, errors };
+}
+
+// Steps 4-8: refresh split, transcript gate, extraction, validation, write.
+// Transcripts come from opts.transcriptProvider (Supadata via mineNiche) or,
+// when absent, from a `transcript` field already attached to each candidate
+// (the local mining path).
+export async function mineFromCandidates(niche, outliers, opts = {}) {
+  const {
+    maxExtractions = 12, maxTranscripts = 18, dry = false, fresh = false,
+    scanned = outliers.length,
+    discoveryFailures = 0,
+    transcriptProvider = null,
+    transcriptPauseMs = 300,
+    errors: priorErrors = [],
+  } = opts;
+  const errors = [...priorErrors];
+  let upstreamFailures = 0;
+
   // 4. Split into refresh (already known) vs new. Dry and fresh rebuilds
   // deliberately recheck both groups under the current extraction policy.
   const existing = await getExistingHookUrls(outliers.map((o) => o.url));
@@ -207,24 +297,30 @@ export async function mineNiche(niche, apiKey, opts = {}) {
   // 5. Transcript gate: a hook is something a person SAYS — no transcript, no
   // hook. Title-only extraction shipped SEO titles as "hooks" (a 5-second
   // silent short's title is not a hook). Walk candidates best-score-first,
-  // keep only those with real spoken words, cap the Supadata spend.
+  // keep only those with real spoken words, cap the transcript spend.
+  const getTranscript = transcriptProvider || (async (candidate) => {
+    if (!String(candidate.transcript || '').trim()) throw new Error('No transcript supplied.');
+    return candidate.transcript;
+  });
   const transcriptReady = [];
   let transcriptAttempts = 0;
   let transcriptFailures = 0;
   const transcriptCandidates = researchPool.slice(0, maxTranscripts);
   // Keep the burst small and paced. Supadata's rate limit 429s a wide fan-out;
   // fetchTranscript already retries a single 429 with backoff, and pausing
-  // between batches keeps the whole pass under the per-second ceiling.
+  // between batches keeps the whole pass under the per-second ceiling. The
+  // attached-transcript path passes transcriptPauseMs: 0 — nothing remote.
   const TRANSCRIPT_CONCURRENCY = 2;
-  const TRANSCRIPT_BATCH_PAUSE_MS = 300;
   for (let start = 0; start < transcriptCandidates.length; start += TRANSCRIPT_CONCURRENCY) {
     if (transcriptReady.length >= maxExtractions) break;
-    if (start > 0) await new Promise((resolve) => setTimeout(resolve, TRANSCRIPT_BATCH_PAUSE_MS));
+    if (start > 0 && transcriptPauseMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, transcriptPauseMs));
+    }
     const batch = transcriptCandidates.slice(start, start + TRANSCRIPT_CONCURRENCY);
     transcriptAttempts += batch.length;
     const batchResults = await Promise.all(batch.map(async (candidate) => {
       try {
-        const text = (await fetchTranscript(candidate.url)).text.substring(0, 2000);
+        const text = String(await getTranscript(candidate)).substring(0, 2000);
         return { candidate, text, error: null };
       } catch (error) {
         return { candidate, text: '', error };
@@ -233,7 +329,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     for (const result of batchResults) {
       if (result.error) {
         transcriptFailures++;
-        if (result.error.message !== 'No captions available.') upstreamFailures++;
+        if (!NON_UPSTREAM_TRANSCRIPT_ERRORS.has(result.error.message)) upstreamFailures++;
         errors.push(`transcript ${result.candidate.url}: ${result.error.message}`);
       } else if (
         transcriptReady.length < maxExtractions &&
@@ -295,7 +391,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
       hookVerbatim: String(ex.hook_verbatim || '').substring(0, 500),
       topic: String(ex.topic || '').substring(0, 300),
       format: VALID_FORMATS.includes(ex.format) ? ex.format : 'talking_head',
-      platform: 'youtube',
+      platform: VALID_PLATFORMS.includes(src.platform) ? src.platform : 'youtube',
       videoUrl: src.url,
       videoTitle: src.title.substring(0, 500),
       views: src.views,
@@ -331,7 +427,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     const wouldRetire = [...currentMined].filter((url) => !acceptedUrls.has(url));
     return {
       dry: true, fresh, niche: niche.slug,
-      scanned: videoIds.length, outliers: outliers.length,
+      scanned, outliers: outliers.length,
       transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
       accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
       currentMined: currentMined.size, finalMined: rows.length,
@@ -350,7 +446,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     if (!freshReadiness.canApply) {
       return {
         fresh: true, applied: false, niche: niche.slug,
-        scanned: videoIds.length, outliers: outliers.length,
+        scanned, outliers: outliers.length,
         transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
         accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
         currentMined: currentMined.size, finalMined: currentMined.size,
@@ -367,7 +463,7 @@ export async function mineNiche(niche, apiKey, opts = {}) {
     const replaced = await replaceMinedHooksForNiche(niche.id, rows);
     return {
       fresh: true, applied: true, niche: niche.slug,
-      scanned: videoIds.length, outliers: outliers.length,
+      scanned, outliers: outliers.length,
       transcriptAttempts, transcriptEligible: transcriptReady.length, transcriptFailures,
       accepted: rows.length, rejected: Math.max(0, transcriptReady.length - rows.length),
       currentMined: currentMined.size, finalMined: rows.length,
@@ -380,7 +476,21 @@ export async function mineNiche(niche, apiKey, opts = {}) {
 
   return {
     niche: niche.slug,
-    scanned: videoIds.length, outliers: outliers.length,
+    scanned, outliers: outliers.length,
     inserted: written.inserted, refreshed: written.refreshed, errors,
   };
+}
+
+// Full pipeline: discover on YouTube, fetch transcripts via Supadata, extract.
+// The cron and profile-save entry point; behavior unchanged by the split.
+export async function mineNiche(niche, apiKey, opts = {}) {
+  const { maxKeywords = 6, maxSeedChannels = 3, ...mineOpts } = opts;
+  const discovery = await discoverCandidates(niche, apiKey, { maxKeywords, maxSeedChannels });
+  return mineFromCandidates(niche, discovery.outliers, {
+    ...mineOpts,
+    scanned: discovery.scanned,
+    discoveryFailures: discovery.discoveryFailures,
+    errors: discovery.errors,
+    transcriptProvider: async (candidate) => (await fetchTranscript(candidate.url)).text,
+  });
 }
