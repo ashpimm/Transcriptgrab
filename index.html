@@ -114,7 +114,10 @@
   pointer-events: none;
   background:
     linear-gradient(90deg, rgba(7,7,8,.72), rgba(7,7,8,.12) 34%, rgba(7,7,8,.12) 66%, rgba(7,7,8,.72)),
-    linear-gradient(180deg, rgba(7,7,8,.18), rgba(7,7,8,.06) 58%, #070708 100%);
+    /* Dissolve the net into the TRUE page black (#000), not #070708, so the
+       field has no grey seam against the body. Solid black arrives ~88% so the
+       card below overlaps a clean band, not visible net lines. */
+    linear-gradient(180deg, rgba(7,7,8,.18), rgba(7,7,8,.04) 50%, rgba(0,0,0,.85) 88%, #000 100%);
 }
 .hero > :not(.vanta-canvas) { position: relative; z-index: 2; }
 .hero .vanta-canvas {
@@ -153,8 +156,23 @@
 .hero-proof { animation-delay: .36s; }
 
 /* ---------- demo slide strip ---------- */
-.demo { max-width: min(1480px, 100% - 48px); margin: 0 auto; padding: clamp(12px, 2vw, 24px) 0 0; scroll-margin-top: 84px; }
-.demo-frame { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(180deg, #0C0D10, #101114); padding: clamp(22px, 4vw, 44px); overflow: hidden; }
+/* Lift the card up into the base of the hero field so the net appears to
+   birth it — kills the dead gap and layers it above the dissolve. */
+.demo { position: relative; z-index: 3; max-width: min(1480px, 100% - 48px); margin: clamp(-76px, -6vw, -44px) auto 0; padding: 0; scroll-margin-top: 100px; }
+.demo-frame { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(180deg, #0C0D10, #101114); padding: clamp(22px, 4vw, 44px); overflow: hidden; box-shadow: 0 48px 120px -48px rgba(0,0,0,.95), 0 10px 34px -14px rgba(0,0,0,.65); }
+/* input → output row: the whole promise in one line. The real link that went
+   in, then the finished post (the slides below) that came out. Mono because the
+   URL is data; the yellow arrow is the one signal — it marks the generation. */
+.demo-io { display: flex; align-items: center; justify-content: center; gap: 14px 18px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.demo-io .io-k { font-family: var(--mono); font-size: var(--t-meta); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.demo-io .io-url { font-family: var(--mono); font-size: var(--t-support); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; white-space: nowrap; }
+.demo-io .io-step { display: inline-flex; align-items: center; gap: 10px; }
+.demo-io .io-arrow { font-family: var(--mono); font-size: 20px; line-height: 1; color: var(--signal); }
+.demo-io .io-out { color: var(--ink-2); font-size: var(--t-support); font-weight: 450; }
+@media (max-width: 520px) {
+  .demo-io { gap: 8px 12px; }
+  .demo-io .io-arrow { transform: rotate(90deg); }
+}
 .demo-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
 /* Frame furniture is prose, so it is set in the sans. Only the measured thing
    inside it — the view count in .score-chip — stays monospaced. */
@@ -383,7 +401,7 @@
   <p class="sub">Paste your product link. Promote.dev finds hook patterns from high-reach videos in your buyers' niche, then builds the slides, caption, and hashtags — ready to download or publish for you every day.</p>
   <form class="pastebar" id="hero-paste">
     <input type="url" id="hero-url" placeholder="Paste your app or product link" aria-label="Your product's URL — an App Store, Play Store, or product page link">
-    <button class="btn btn-signal" type="submit">Create my 3 free posts</button>
+    <button class="btn btn-signal" type="submit">Create my first free post</button>
   </form>
   <div class="fine">Try free · no signup · no card · no camera</div>
   <div class="hero-proof">
@@ -396,6 +414,11 @@
 <!-- ============ DEMO ============ -->
 <section class="demo" id="real-output">
   <div class="demo-frame">
+    <div class="demo-io" aria-label="One product link goes in; the finished post comes out below">
+      <span class="io-step"><span class="io-k">In</span><code class="io-url">apps.apple.com/hud-plus</code></span>
+      <span class="io-arrow" aria-hidden="true">&rarr;</span>
+      <span class="io-step"><span class="io-k">Out</span><span class="io-out">the finished post &mdash; slides, caption, hashtags</span></span>
+    </div>
     <div class="demo-label">
       <span class="stat demo-output">
         <strong>Created by Promote.dev</strong>
