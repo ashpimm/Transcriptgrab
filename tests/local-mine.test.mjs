@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  parseCliOptions, json3ToText, vttToText, pickCaptionTrack, candidateFromInfo, wordCount,
+  parseCliOptions, json3ToText, vttToText, pickCaptionFile, candidateFromInfo, wordCount,
 } from '../scripts/local-mine.mjs';
 import {
   parseSuppliedCandidates, MAX_SUPPLIED_CANDIDATES, VALID_PLATFORMS,
@@ -90,31 +90,11 @@ test('vttToText strips cues, tags, and rolling duplicates', () => {
   assert.equal(vttToText(raw), 'stop doing crunches if you want abs');
 });
 
-test('pickCaptionTrack prefers real subs over auto, json3 over vtt', () => {
-  const info = {
-    subtitles: {
-      en: [
-        { ext: 'vtt', url: 'https://x/sub.vtt' },
-        { ext: 'json3', url: 'https://x/sub.json3' },
-      ],
-    },
-    automatic_captions: {
-      en: [{ ext: 'json3', url: 'https://x/auto.json3' }],
-    },
-  };
-  assert.deepEqual(pickCaptionTrack(info), { url: 'https://x/sub.json3', ext: 'json3', lang: 'en' });
-});
-
-test('pickCaptionTrack falls back to auto-captions and en variants', () => {
-  const info = {
-    subtitles: {},
-    automatic_captions: {
-      'en-orig': [{ ext: 'vtt', url: 'https://x/auto.vtt' }],
-    },
-  };
-  assert.deepEqual(pickCaptionTrack(info), { url: 'https://x/auto.vtt', ext: 'vtt', lang: 'en-orig' });
-  assert.equal(pickCaptionTrack({}), null);
-  assert.equal(pickCaptionTrack({ automatic_captions: { fr: [{ ext: 'vtt', url: 'x' }] } }), null);
+test('pickCaptionFile prefers json3 over vtt and matches only its stem', () => {
+  const files = ['caps-a1.en.vtt', 'caps-a1.en.json3', 'caps-a2.en.vtt', 'clip-a1.m4a', 'caps-a1.txt'];
+  assert.equal(pickCaptionFile(files, 'caps-a1'), 'caps-a1.en.json3');
+  assert.equal(pickCaptionFile(files, 'caps-a2'), 'caps-a2.en.vtt');
+  assert.equal(pickCaptionFile(files, 'caps-a3'), null);
 });
 
 test('candidateFromInfo maps yt-dlp fields', () => {

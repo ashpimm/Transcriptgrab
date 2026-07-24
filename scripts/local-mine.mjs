@@ -146,21 +146,10 @@ export function vttToText(raw) {
   return deduped.join(' ').replace(/\s+/g, ' ').trim();
 }
 
-// Pick the best English caption track from a yt-dlp -J info dump.
-// Prefers real subtitles over auto-captions, json3 over vtt.
-export function pickCaptionTrack(info) {
-  for (const pool of [info?.subtitles, info?.automatic_captions]) {
-    if (!pool || typeof pool !== 'object') continue;
-    const preferred = ['en', 'en-US', 'en-GB', 'en-orig'];
-    const lang = preferred.find((l) => Array.isArray(pool[l]) && pool[l].length > 0) ||
-      Object.keys(pool).find((l) => l.startsWith('en') && Array.isArray(pool[l]) && pool[l].length > 0);
-    if (!lang) continue;
-    const tracks = pool[lang];
-    const track = tracks.find((t) => t?.ext === 'json3' && t?.url) ||
-      tracks.find((t) => t?.ext === 'vtt' && t?.url);
-    if (track) return { url: track.url, ext: track.ext, lang };
-  }
-  return null;
+// Pick the best downloaded caption file for a stem: json3 preferred over vtt.
+export function pickCaptionFile(files, stem) {
+  const captions = files.filter((f) => f.startsWith(`${stem}.`) && /\.(json3|vtt)$/.test(f));
+  return captions.find((f) => f.endsWith('.json3')) || captions.find((f) => f.endsWith('.vtt')) || null;
 }
 
 // yt-dlp -J info dump -> POST candidate shape (transcript attached later).
@@ -204,11 +193,33 @@ function ytDlpJson(url) {
   return JSON.parse(runCommand(YTDLP_CMD, ['-J', '--no-playlist', '--skip-download', url]));
 }
 
-async function fetchCaptionText(track) {
-  const res = await fetch(track.url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-  if (!res.ok) throw new Error(`caption fetch failed (${res.status})`);
-  const raw = await res.text();
-  return track.ext === 'json3' ? json3ToText(raw) : vttToText(raw);
+// Download the caption file with yt-dlp itself — it carries the right client
+// headers and retry behavior; fetching the raw timedtext URLs ourselves gets
+// 429'd by YouTube within a few requests.
+function downloadCaptionText(url, stem) {
+  mkdirSync(WORK_DIR, { recursive: true });
+  try {
+    runCommand(YTDLP_CMD, [
+      '--skip-download', '--no-playlist',
+      '--write-subs', '--write-auto-subs',
+      // Exact tracks only — a wildcard like "en.*" also matches every
+      // auto-TRANSLATED variant (en-de, en-fr, ...) and the resulting burst of
+      // ~50 caption downloads per video gets the IP 429'd immediately.
+      '--sub-langs', 'en,en-orig,en-US,en-GB',
+      '--sub-format', 'json3/vtt',
+      '--retries', '3', '--sleep-requests', '0.5',
+      '-o', join(WORK_DIR, `${stem}.%(ext)s`),
+      url,
+    ]);
+    const file = pickCaptionFile(readdirSync(WORK_DIR), stem);
+    if (!file) return '';
+    const raw = readFileSync(join(WORK_DIR, file), 'utf8');
+    return file.endsWith('.json3') ? json3ToText(raw) : vttToText(raw);
+  } finally {
+    for (const file of readdirSync(WORK_DIR)) {
+      if (file.startsWith(`${stem}.`)) rmSync(join(WORK_DIR, file), { force: true });
+    }
+  }
 }
 
 let whisperUnavailable = false;
@@ -247,26 +258,17 @@ function whisperTranscribe(url, id) {
   }
 }
 
-// Captions first (free, instant), Whisper as fallback. Returns '' on failure.
+// Captions first (free, near-instant), Whisper as fallback. Returns '' on failure.
 export async function transcriptFor(candidate, index) {
   const id = `${Date.now().toString(36)}-${index}`;
-  let info = null;
   try {
-    info = ytDlpJson(candidate.url);
-  } catch (error) {
-    console.log(`    metadata failed: ${error.message}`);
-  }
-  const track = info ? pickCaptionTrack(info) : null;
-  if (track) {
-    try {
-      const text = await fetchCaptionText(track);
-      if (wordCount(text) >= MIN_TRANSCRIPT_WORDS) {
-        console.log(`    captions ok (${track.lang}/${track.ext})`);
-        return text;
-      }
-    } catch (error) {
-      console.log(`    captions failed: ${error.message}`);
+    const text = downloadCaptionText(candidate.url, `caps-${id}`);
+    if (wordCount(text) >= MIN_TRANSCRIPT_WORDS) {
+      console.log('    captions ok');
+      return text;
     }
+  } catch (error) {
+    console.log(`    captions failed: ${error.message}`);
   }
   try {
     const text = whisperTranscribe(candidate.url, id);
@@ -375,6 +377,8 @@ export async function main(args = process.argv.slice(2)) {
   const candidates = [];
   let failures = 0;
   for (const [index, candidate] of pool.entries()) {
+    // Gentle pacing between videos keeps YouTube's per-IP throttle away.
+    if (index > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log(`  [${index + 1}/${pool.length}] ${candidate.url}`);
     const transcript = await transcriptFor(candidate, index);
     if (transcript) candidates.push({ ...candidate, transcript });
