@@ -144,15 +144,15 @@
 .hero-proof { animation-delay: .36s; }
 
 /* ---------- demo slide strip ---------- */
-.demo { padding: clamp(12px, 2vw, 24px) 0 0; scroll-margin-top: 84px; }
+.demo { max-width: min(1480px, 100% - 48px); margin: 0 auto; padding: clamp(12px, 2vw, 24px) 0 0; scroll-margin-top: 84px; }
 .demo-frame { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(180deg, #0C0D10, #101114); padding: clamp(22px, 4vw, 44px); overflow: hidden; }
 .demo-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
 .demo-label .stat { font-size: 12.5px; display: inline-flex; align-items: center; gap: 8px; }
 .demo-label strong { color: var(--ink-2); font-weight: 600; }
 .demo-source-context { color: var(--ink-2); font-size: 12px; line-height: 1.35; text-underline-offset: 3px; }
-.slide-strip { display: flex; gap: 14px; justify-content: center; }
+.slide-strip { display: flex; gap: 18px; justify-content: center; }
 .mini-slide {
-  margin: 0; aspect-ratio: 4 / 5; width: clamp(112px, 14vw, 176px); flex-shrink: 0;
+  margin: 0; aspect-ratio: 4 / 5; flex: 1 1 0; min-width: 0; max-width: 208px;
   border-radius: 14px; overflow: hidden; background: #17181C;
   border: 1px solid var(--line);
   transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s;
@@ -166,7 +166,7 @@
 .slide-strip .mini-slide:nth-child(5) { transform: translateY(10px) rotate(-1.2deg); }
 .slide-strip .mini-slide:nth-child(6) { transform: rotate(-.6deg); }
 .slide-strip .mini-slide:nth-child(n):hover { transform: translateY(-6px) rotate(0deg); box-shadow: 0 20px 50px -18px rgba(0,0,0,.8); }
-@media (max-width: 760px) { .slide-strip { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 10px; scrollbar-width: none; } .slide-strip::-webkit-scrollbar { display: none; } }
+@media (max-width: 760px) { .slide-strip { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 10px; scrollbar-width: none; } .slide-strip::-webkit-scrollbar { display: none; } .mini-slide { flex: 0 0 auto; width: clamp(150px, 42vw, 220px); max-width: none; } }
 .demo-post { margin-top: 26px; border: 1px solid var(--line); border-radius: 16px; background: var(--glass); padding: 18px 20px; max-width: 720px; margin-left: auto; margin-right: auto; }
 .demo-post .dp-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 .demo-post p { font-size: 14px; color: var(--ink-2); line-height: 1.55; }
@@ -360,7 +360,7 @@
 </header>
 
 <!-- ============ DEMO ============ -->
-<section class="demo wrap" id="real-output">
+<section class="demo" id="real-output">
   <div class="demo-frame">
     <div class="demo-label">
       <span class="stat demo-output">
