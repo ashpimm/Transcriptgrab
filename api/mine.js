@@ -86,6 +86,10 @@ export default async function handler(req, res) {
         dry,
         fresh,
         transcriptPauseMs: 0,
+        // Transcripts arrive pre-fetched, so nearly all of maxDuration is
+        // still available — give the batched extraction real headroom instead
+        // of the 20s default that a slow Gemini day blows through.
+        extractionTimeoutMs: 40_000,
         errors: parsed.errors,
         ...(fresh ? { maxExtractions: 18, maxTranscripts: 30 } : {}),
       });

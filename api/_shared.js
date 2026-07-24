@@ -106,7 +106,7 @@ export async function callGeminiImage(prompt) {
  * Call Gemini Flash Lite and return parsed JSON.
  * Truncates input text to 120k chars, sends prompt + text to Gemini.
  */
-export async function callGemini(prompt, text, temperature = 0.7) {
+export async function callGemini(prompt, text, temperature = 0.7, { timeoutMs = GEMINI_TEXT_TIMEOUT_MS } = {}) {
   if (!GEMINI_KEY) throw new Error('AI service is not available.');
 
   let input = text.trim();
@@ -119,7 +119,7 @@ export async function callGemini(prompt, text, temperature = 0.7) {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(GEMINI_TEXT_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt + '\n\nTranscript:\n' + input }] }],
         generationConfig: { temperature, responseMimeType: 'application/json' },

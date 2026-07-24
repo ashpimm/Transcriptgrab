@@ -277,6 +277,7 @@ export async function mineFromCandidates(niche, outliers, opts = {}) {
     discoveryFailures = 0,
     transcriptProvider = null,
     transcriptPauseMs = 300,
+    extractionTimeoutMs,
     errors: priorErrors = [],
   } = opts;
   const errors = [...priorErrors];
@@ -352,7 +353,10 @@ export async function mineFromCandidates(niche, outliers, opts = {}) {
       })),
     };
     try {
-      const result = await callGemini(HOOK_EXTRACTION_PROMPT, JSON.stringify(payload), 0.1);
+      const result = await callGemini(
+        HOOK_EXTRACTION_PROMPT, JSON.stringify(payload), 0.1,
+        extractionTimeoutMs ? { timeoutMs: extractionTimeoutMs } : {},
+      );
       if (Array.isArray(result)) extracted = result;
       else {
         upstreamFailures++;
