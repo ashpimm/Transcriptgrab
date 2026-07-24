@@ -5,7 +5,12 @@
    accent (#FFDD00, "highlighter") is reserved for receipts and generation
    actions — it marks proof, like a highlighter over the line that worked.
    Errors/danger use --danger (red), never the brand signal.
-   Type: Geist (everything) / Geist Mono (data, receipts). */
+   Type: Archivo (everything) / JetBrains Mono (data, receipts only).
+   Archivo is variable on both weight (400–800) and width (75–125%): the
+   hero rides the width axis, product UI stays at 100%. Mono is reserved
+   for measured things — view counts, prices, dates, IDs, statuses — never
+   as a costume for "technical". Slides keep Geist (see api/_render.js):
+   that's the customer's artwork, not our chrome. */
 
 :root {
   /* canvas & surfaces */
@@ -33,8 +38,21 @@
   --danger-soft: rgba(255,90,90,.12);
   --danger-line: rgba(255,90,90,.30);
 
-  --font: 'Geist', -apple-system, 'Segoe UI', sans-serif;
-  --mono: 'Geist Mono', ui-monospace, monospace;
+  /* Arial/Helvetica lead the fallback: both are narrow grotesques with a
+     large x-height, so a swap from the fallback to Archivo barely reflows. */
+  --font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* type roles — named for the job, not the value. Anything that repeats
+     across surfaces should reach for a role instead of a fresh number. */
+  --t-display: clamp(38px, 6.4vw, 82px);  /* one per page, hero only */
+  --t-title: clamp(30px, 4.5vw, 52px);    /* section headline */
+  --t-lede: clamp(16px, 1.5vw, 18px);     /* the sentence under a headline */
+  --t-heading: 19px;                      /* card + step titles */
+  --t-body: 16px;                         /* prose floor. Do not go under. */
+  --t-support: 14.5px;                    /* dense UI copy, hints, controls */
+  --t-label: 13px;                        /* control + inline labels */
+  --t-meta: 11.5px;                       /* mono receipts, micro labels */
   --radius: 24px;              /* cards */
   --radius-s: 14px;            /* inner elements, form fields */
   --nav-h: 64px;
@@ -70,14 +88,16 @@ h1, h2, h3 { text-wrap: balance; }
 .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
 .section { padding: clamp(88px, 12vw, 150px) 0; }
 .section-head { max-width: 720px; margin: 0 auto clamp(40px, 6vw, 64px); text-align: center; }
-.section-head h2 { font-size: clamp(30px, 4.5vw, 52px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; }
-.section-head p { color: var(--muted); font-size: 17px; margin: 16px auto 0; max-width: 56ch; }
+.section-head h2 { font-size: var(--t-title); font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; }
+/* the lede sits a step above body in colour so headline → lede → body reads
+   as three levels, not two. 450 is the light-on-black weight correction. */
+.section-head p { color: var(--ink-2); font-size: var(--t-lede); font-weight: 450; line-height: 1.55; margin: 16px auto 0; max-width: 56ch; }
 
 /* one kicker, hero only — not section grammar */
 .kicker {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--mono); font-size: 12px; font-weight: 500;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
 }
 .kicker::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--signal); }
 
@@ -167,11 +187,14 @@ h1, h2, h3 { text-wrap: balance; }
 .hook-card .hook-verbatim { font-size: 13px; color: var(--muted); line-height: 1.5; }
 .hook-card .hook-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
 
-/* receipts — on hook cards they're the proof, so they read louder than chrome */
-.stat { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+/* receipts — on hook cards they're the proof, so they read louder than chrome.
+   Every figure is tabular: view counts and dates stacked in a column should
+   line up on the digit, and a count must not reflow as it ticks. */
+.stat { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hook-card .stat { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
 .score-chip {
   font-family: var(--mono); font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   background: var(--signal); color: #000;
   padding: 4px 10px; border-radius: 999px; white-space: nowrap;
 }

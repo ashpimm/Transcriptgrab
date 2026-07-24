@@ -90,7 +90,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hooklab.css">
 <style>
 /* ---------- hero ---------- */
@@ -123,13 +123,22 @@
   pointer-events: none !important;
 }
 .hero.vanta-ready .vanta-canvas { opacity: .68; }
-.hero h1 { font-size: clamp(38px, 6.4vw, 82px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.03; max-width: 15ch; margin: 20px auto 0; }
-.hero .sub { color: var(--muted); font-size: clamp(15px, 2vw, 18px); max-width: 52ch; margin: 22px auto 0; }
-.hero .pastebar { margin: 36px auto 0; }
-.hero .fine { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 14px; }
+/* The only place the width axis is used. Archivo pushed to 106% at 800 turns
+   the headline into a poster line instead of a large paragraph; product UI
+   stays at the default width so nothing else inherits the effect. */
+.hero h1 {
+  font-size: var(--t-display); font-weight: 800; font-stretch: 106%;
+  letter-spacing: -0.035em; line-height: 1.01;
+  max-width: 20ch; margin: 20px auto 0;
+}
+/* ch is measured on the face's own zero, and Archivo's is narrow: the old
+   52ch/15ch caps were tuned to a wider font and now cost an extra line each. */
+.hero .sub { color: var(--ink-2); font-weight: 450; font-size: var(--t-lede); line-height: 1.55; max-width: 58ch; margin: 24px auto 0; text-wrap: balance; }
+.hero .pastebar { margin: 36px auto 0; max-width: 600px; }
+.hero .fine { font-family: var(--mono); font-size: var(--t-meta); letter-spacing: .04em; color: var(--muted); margin-top: 14px; }
 .hero-proof {
   display: flex; align-items: center; justify-content: center; gap: 10px 18px; flex-wrap: wrap;
-  margin-top: 22px; color: var(--muted); font-size: 13px;
+  margin-top: 22px; color: var(--muted); font-size: var(--t-label);
 }
 .hero-proof strong { color: var(--ink-2); font-weight: 600; }
 .hero-proof a { color: var(--ink); text-underline-offset: 4px; }
@@ -147,9 +156,15 @@
 .demo { max-width: min(1480px, 100% - 48px); margin: 0 auto; padding: clamp(12px, 2vw, 24px) 0 0; scroll-margin-top: 84px; }
 .demo-frame { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(180deg, #0C0D10, #101114); padding: clamp(22px, 4vw, 44px); overflow: hidden; }
 .demo-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-.demo-label .stat { font-size: 12.5px; display: inline-flex; align-items: center; gap: 8px; }
+/* Frame furniture is prose, so it is set in the sans. Only the measured thing
+   inside it — the view count in .score-chip — stays monospaced. */
+.demo-label .stat {
+  font-family: var(--font); font-size: var(--t-label); font-weight: 450;
+  display: inline-flex; align-items: center; gap: 8px;
+}
 .demo-label strong { color: var(--ink-2); font-weight: 600; }
-.demo-source-context { color: var(--ink-2); font-size: 12px; line-height: 1.35; text-underline-offset: 3px; }
+.demo-source-label { color: var(--muted); }
+.demo-source-context { color: var(--ink-2); font-size: var(--t-label); line-height: 1.35; text-underline-offset: 3px; }
 .slide-strip { display: flex; gap: 18px; justify-content: center; }
 .mini-slide {
   margin: 0; aspect-ratio: 4 / 5; flex: 1 1 0; min-width: 0; max-width: 208px;
@@ -168,16 +183,20 @@
 .slide-strip .mini-slide:nth-child(n):hover { transform: translateY(-6px) rotate(0deg); box-shadow: 0 20px 50px -18px rgba(0,0,0,.8); }
 @media (max-width: 760px) { .slide-strip { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 10px; scrollbar-width: none; } .slide-strip::-webkit-scrollbar { display: none; } .mini-slide { flex: 0 0 auto; width: clamp(150px, 42vw, 220px); max-width: none; } }
 .demo-post { margin-top: 26px; border: 1px solid var(--line); border-radius: 16px; background: var(--glass); padding: 18px 20px; max-width: 720px; margin-left: auto; margin-right: auto; }
-.demo-post .dp-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-.demo-post p { font-size: 14px; color: var(--ink-2); line-height: 1.55; }
-.demo-post .dp-tags { margin-top: 10px; font-size: 13px; color: var(--muted); word-spacing: 4px; }
+.demo-post .dp-label { font-size: var(--t-meta); font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+/* A real caption, so it is set like one: body size, comfortable leading, and
+   capped near 68ch even though the card is wider. */
+.demo-post p { font-size: var(--t-body); color: var(--ink-2); font-weight: 450; line-height: 1.6; max-width: 68ch; }
+.demo-post .dp-tags { margin-top: 12px; font-size: var(--t-support); color: var(--muted); word-spacing: 3px; line-height: 1.5; }
 
 /* ---------- proof method ---------- */
 .proof-method { padding-top: clamp(76px, 9vw, 112px); }
 .proof-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px 48px; border-top: 1px solid var(--line); padding-top: 30px; }
-.proof-point .proof-number { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--signal); margin-bottom: 12px; }
-.proof-point h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-.proof-point p { color: var(--muted); font-size: 14px; max-width: 34ch; }
+/* 01 / 02 / 03 stay because the screen → deconstruct → rebuild order is the
+   claim. Mono here is enumeration, not decoration. */
+.proof-point .proof-number { font-family: var(--mono); font-size: var(--t-label); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--signal); margin-bottom: 12px; }
+.proof-point h3 { font-size: var(--t-heading); font-weight: 700; letter-spacing: -0.015em; line-height: 1.25; margin-bottom: 10px; }
+.proof-point p { color: var(--muted); font-weight: 450; font-size: var(--t-body); line-height: 1.6; max-width: 36ch; }
 @media (max-width: 760px) {
   .proof-points { grid-template-columns: 1fr; gap: 28px; }
 }
@@ -189,7 +208,8 @@
   counter-increment: step; content: counter(step);
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; border-radius: 999px; background: var(--glass-2);
-  font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
+  font-family: var(--mono); font-size: var(--t-label); font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--ink);
   margin-bottom: 18px;
 }
 /* hairline joining the number chips */
@@ -197,8 +217,14 @@
   content: ''; position: absolute; top: 17px; left: 48px; right: -18px;
   height: 1px; background: var(--line);
 }
-.step h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 8px; }
-.step p { color: var(--muted); font-size: 14.5px; max-width: 34ch; }
+.step h3 { font-size: var(--t-heading); font-weight: 700; letter-spacing: -0.015em; line-height: 1.25; margin-bottom: 10px; }
+/* Only while these sit side by side: reserving a second line keeps a heading
+   that wraps from pushing its paragraph out of line with its neighbours.
+   Stacked, that reserved line is just a hole. */
+@media (min-width: 761px) {
+  .proof-point h3, .step h3 { min-height: 2.5em; }
+}
+.step p { color: var(--muted); font-weight: 450; font-size: var(--t-body); line-height: 1.6; max-width: 36ch; }
 @media (max-width: 760px) {
   .steps { grid-template-columns: 1fr; gap: 30px; }
   .step::after { display: none; }
@@ -208,12 +234,14 @@
 .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: stretch; max-width: 980px; margin: 0 auto; }
 .plan { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 30px; display: flex; flex-direction: column; }
 .plan.featured { border-color: rgba(255,255,255,.4); background: linear-gradient(180deg, #17181C, #101114); }
-.plan .name { font-weight: 700; font-size: 16px; }
-.plan .price { font-size: 44px; font-weight: 800; letter-spacing: -0.04em; margin: 14px 0 2px; }
-.plan .price small { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
-.plan .for { color: var(--muted); font-size: 13.5px; margin-bottom: 22px; }
-.plan ul { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-.plan li { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
+/* the plan name is a category label, not a headline — demoting it lets the
+   price be the one thing the eye lands on inside the card */
+.plan .name { font-size: var(--t-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.plan .price { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; line-height: 1; margin: 14px 0 6px; }
+.plan .price small { font-size: var(--t-support); font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.plan .for { color: var(--muted); font-size: var(--t-support); line-height: 1.5; margin-bottom: 22px; }
+.plan ul { list-style: none; display: flex; flex-direction: column; gap: 11px; margin-bottom: 28px; }
+.plan li { font-size: var(--t-body); font-weight: 450; line-height: 1.45; color: var(--ink-2); padding-left: 22px; position: relative; }
 .plan li::before { content: '✓'; position: absolute; left: 0; color: var(--ink); font-weight: 700; }
 .plan li.no { color: var(--muted); }
 .plan li.no::before { content: '—'; color: var(--muted); }
@@ -222,11 +250,11 @@
 /* ---------- faq ---------- */
 .faq { max-width: 680px; margin: 0 auto; }
 .faq details { border-bottom: 1px solid var(--line); }
-.faq summary { cursor: pointer; padding: 20px 4px; font-weight: 600; font-size: 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.faq summary { cursor: pointer; padding: 20px 4px; font-weight: 600; font-size: var(--t-body); letter-spacing: -0.01em; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: '+'; font-weight: 400; font-size: 22px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
 .faq details[open] summary::after { transform: rotate(45deg); }
-.faq .a { padding: 0 4px 22px; color: var(--muted); font-size: 14.5px; max-width: 62ch; }
+.faq .a { padding: 0 4px 22px; color: var(--muted); font-weight: 450; font-size: var(--t-body); line-height: 1.62; max-width: 65ch; }
 .faq details[open] .a { animation: rise .35s cubic-bezier(.22,1,.36,1) backwards; }
 
 /* ---------- final cta ---------- */
@@ -253,10 +281,14 @@
     text-wrap: balance;
   }
   .hero .kicker::before { display: none; }
-  .hero h1 { max-width: 10ch; margin-top: 18px; font-size: 44px; line-height: 1.04; letter-spacing: 0; }
+  /* drop back to the default width on narrow screens — an expanded face
+     costs characters per line exactly where there are none to spare */
+  .hero h1 { max-width: 11ch; margin-top: 18px; font-size: 44px; font-stretch: 100%; line-height: 1.04; letter-spacing: -0.02em; }
   .hero .sub { margin-top: 20px; font-size: 17px; line-height: 1.55; }
   .hero .pastebar { margin-top: 28px; }
-  .hero .fine { margin-top: 12px; font-size: 13px; }
+  /* JetBrains Mono is wider than the face this line was sized against, and
+     at 390px it ran the full column width with no air either side */
+  .hero .fine { margin-top: 12px; font-size: 12px; letter-spacing: .02em; }
   .hero-proof { flex-direction: column; gap: 6px; margin-top: 18px; font-size: 14px; }
 
   .demo { padding-top: 8px; scroll-margin-top: 116px; }
@@ -276,7 +308,8 @@
   }
   .demo-output strong {
     color: var(--muted);
-    font-size: 10.5px;
+    font-size: var(--t-meta);
+    font-weight: 600;
     letter-spacing: .07em;
     text-transform: uppercase;
   }
@@ -295,7 +328,8 @@
   }
   .demo-source-label {
     grid-column: 1 / -1;
-    font-size: 10.5px;
+    font-size: var(--t-meta);
+    font-weight: 600;
     letter-spacing: .07em;
     text-transform: uppercase;
   }
@@ -348,7 +382,7 @@
   <h1>Turn your app into posts people stop for.</h1>
   <p class="sub">Paste your product link. Promote.dev finds hook patterns from high-reach videos in your buyers' niche, then builds the slides, caption, and hashtags — ready to download or publish for you every day.</p>
   <form class="pastebar" id="hero-paste">
-    <input type="url" id="hero-url" placeholder="Paste your App Store, Play Store, or product link" aria-label="Your product's URL">
+    <input type="url" id="hero-url" placeholder="Paste your app or product link" aria-label="Your product's URL — an App Store, Play Store, or product page link">
     <button class="btn btn-signal" type="submit">Create my 3 free posts</button>
   </form>
   <div class="fine">Try free · no signup · no card · no camera</div>
@@ -438,7 +472,7 @@
       <h2>Try the complete workflow before you pay.</h2>
       <p>Create and download three complete posts. No card required.</p>
     </div>
-    <div class="plans" style="max-width:680px">
+    <div class="plans" style="max-width:760px">
       <div class="plan" data-reveal>
         <div class="name">Free</div>
         <div class="price">$0</div>
@@ -465,7 +499,7 @@
           <li>Cancel anytime</li>
         </ul>
         <a class="btn btn-primary" href="/api/checkout?plan=autopilot">Create 30 posts a month</a>
-        <div style="font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:center;margin-top:12px;">no contract · cancel from your account</div>
+        <div style="font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.03em;color:var(--muted);text-align:center;margin-top:12px;">no contract · cancel from your account</div>
       </div>
     </div>
   </div>
@@ -518,7 +552,7 @@
 <section class="final wrap" data-reveal>
   <h2>Your next customer can’t choose an app they never see.</h2>
   <a class="btn btn-signal" href="/create">Create my first free post</a>
-  <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:14px;">no card · no filming · complete post included</div>
+  <div style="font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.04em;color:var(--muted);margin-top:14px;">no card · no filming · complete post included</div>
 </section>
 
 <footer class="footer">

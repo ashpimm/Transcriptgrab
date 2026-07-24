@@ -155,12 +155,12 @@
     '.tg-modal-card{background:#101114;border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:40px 36px;max-width:420px;width:100%;position:relative;z-index:1101;animation:tgSlideUp 0.3s cubic-bezier(.22,1,.36,1);box-shadow:0 30px 90px rgba(0,0,0,0.8);}' +
     '.tg-modal-title{font-size:24px;font-weight:700;letter-spacing:-0.02em;color:#F5F5F6;margin-bottom:8px;line-height:1.2;}' +
     '.tg-modal-subtitle{font-size:14px;color:#9C9FA6;line-height:1.55;}' +
-    '.tg-modal-cta{display:flex;width:100%;padding:15px;background:#F5F5F6;color:#000;border:none;border-radius:999px;font-family:"Geist",sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;margin-top:20px;transition:all 0.2s;align-items:center;justify-content:center;}' +
+    '.tg-modal-cta{display:flex;width:100%;padding:15px;background:#F5F5F6;color:#000;border:none;border-radius:999px;font-family:var(--font,"Archivo","Helvetica Neue",Arial,sans-serif);font-size:15px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;margin-top:20px;transition:all 0.2s;align-items:center;justify-content:center;}' +
     '.tg-modal-cta:hover{background:#fff;transform:translateY(-1px);}' +
     '.tg-google-btn{background:#17191D;color:#F5F5F6;border:1px solid rgba(255,255,255,0.15);}' +
     '.tg-google-btn:hover{background:#1D2025;border-color:rgba(255,255,255,0.3);}' +
     '.tg-modal-plans{display:flex;flex-direction:column;gap:10px;margin-top:20px;}' +
-    '.tg-modal-plan-btn{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:16px 20px;background:#17191D;border:1px solid rgba(255,255,255,0.1);border-radius:16px;cursor:pointer;transition:all 0.2s;font-family:"Geist",sans-serif;color:#F5F5F6;text-align:left;}' +
+    '.tg-modal-plan-btn{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:16px 20px;background:#17191D;border:1px solid rgba(255,255,255,0.1);border-radius:16px;cursor:pointer;transition:all 0.2s;font-family:var(--font,"Archivo","Helvetica Neue",Arial,sans-serif);color:#F5F5F6;text-align:left;}' +
     '.tg-modal-plan-btn:hover{border-color:rgba(255,255,255,0.35);background:#1D2025;}' +
     '.tg-modal-plan-btn:disabled{opacity:0.5;cursor:not-allowed;}' +
     '.tg-plan-pro{background:#F5F5F6;border-color:#F5F5F6;color:#000;}' +
@@ -168,9 +168,9 @@
     '.tg-plan-price{font-size:20px;font-weight:800;letter-spacing:-0.03em;flex-shrink:0;}' +
     '.tg-plan-price small{font-size:13px;font-weight:500;opacity:0.6;}' +
     '.tg-plan-desc{font-size:13px;font-weight:500;opacity:0.75;}' +
-    '.tg-modal-dismiss{display:block;width:100%;background:none;border:none;padding:14px;font-family:"Geist",sans-serif;font-size:13px;font-weight:500;color:#9C9FA6;cursor:pointer;text-align:center;transition:color 0.2s;margin-top:4px;}' +
+    '.tg-modal-dismiss{display:block;width:100%;background:none;border:none;padding:14px;font-family:var(--font,"Archivo","Helvetica Neue",Arial,sans-serif);font-size:13px;font-weight:500;color:#9C9FA6;cursor:pointer;text-align:center;transition:color 0.2s;margin-top:4px;}' +
     '.tg-modal-dismiss:hover{color:#F5F5F6;}' +
-    '.tg-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#F5F5F6;color:#000;padding:12px 28px;border-radius:999px;font-family:"Geist",sans-serif;font-size:14px;font-weight:600;z-index:1200;opacity:0;transition:all 0.3s ease;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,0.6);}' +
+    '.tg-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#F5F5F6;color:#000;padding:12px 28px;border-radius:999px;font-family:var(--font,"Archivo","Helvetica Neue",Arial,sans-serif);font-size:14px;font-weight:600;z-index:1200;opacity:0;transition:all 0.3s ease;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,0.6);}' +
     '.tg-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}' +
     '@keyframes tgFadeIn{from{opacity:0}to{opacity:1}}' +
     '@keyframes tgSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}';
