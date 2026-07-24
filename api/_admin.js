@@ -74,8 +74,21 @@ async function businessSection() {
   monthStart.setUTCHours(0, 0, 0, 0);
   const monthStartUnix = Math.floor(monthStart.getTime() / 1000);
 
-  const [users, subsRes, chargesRes, monthChargesRes] = await Promise.all([
+  // Newest accounts with their activity — the founder follow-up list: who
+  // signed up, whether they ever generated, and when they were last active.
+  const signupsP = sql`
+    SELECT u.email, u.created_at, u.tier,
+           (u.upload_post_username IS NOT NULL) AS connected,
+           (SELECT COUNT(*)::int FROM carousels c WHERE c.user_id = u.id) AS carousels,
+           (SELECT MAX(c.created_at) FROM carousels c WHERE c.user_id = u.id) AS last_active_at
+    FROM users u
+    ORDER BY u.created_at DESC
+    LIMIT 30
+  `;
+
+  const [users, signups, subsRes, chargesRes, monthChargesRes] = await Promise.all([
     usersP,
+    signupsP,
     stripe ? stripe.subscriptions.list({ status: 'active', limit: 100, expand: ['data.customer'] }) : null,
     stripe ? stripe.charges.list({ limit: 10 }) : null,
     stripe ? stripe.charges.list({ created: { gte: monthStartUnix }, limit: 100 }) : null,
@@ -114,6 +127,7 @@ async function businessSection() {
 
   return {
     users: users[0],
+    signups,
     stripe: !!stripe,
     mrrCents,
     subs,

@@ -169,6 +169,11 @@ specified in the approved spec, no tournament.
         <div class="body" id="spend-body"></div>
       </div>
 
+      <div class="card span2" id="card-signups">
+        <h2>Signups <span class="h-meta" id="signups-meta"></span></h2>
+        <div class="body" id="signups-body"></div>
+      </div>
+
       <div class="card span2">
         <h2>Consoles <span class="h-meta">live numbers the APIs don't expose</span></h2>
         <div class="body links">
@@ -402,6 +407,32 @@ specified in the approved spec, no tournament.
     el.innerHTML = h || '<div class="empty">No active niches.</div>';
   }
 
+  function renderSignups(p) {
+    var el = $('signups-body'), b = p.business;
+    if (!b.ok) return sectionErr(el, b, 'Signup data');
+    var rows = b.signups || [];
+    if (!rows.length) {
+      $('signups-meta').textContent = '';
+      el.innerHTML = '<div class="empty">No accounts yet. Every Google sign-in lands here with its email.</div>';
+      return;
+    }
+    var idle = rows.filter(function (u) { return !Number(u.carousels); }).length;
+    $('signups-meta').textContent = 'latest ' + rows.length + (idle ? ' · ' + idle + ' never generated' : '');
+    var h = '';
+    rows.forEach(function (u) {
+      var never = !Number(u.carousels);
+      var stale = !never && u.last_active_at && (Date.now() - new Date(u.last_active_at).getTime()) > 7 * 86400000;
+      var status = u.tier === 'pro' ? 'pro' : never ? 'follow up' : stale ? 'gone quiet' : 'active';
+      var subject = encodeURIComponent('Your promote.dev posts');
+      h += '<div class="trow"><div><div class="t-main"><a href="mailto:' + esc(u.email) + '?subject=' + subject + '" style="color:inherit;text-decoration:none">' + esc(u.email) + '</a></div>'
+        + '<div class="t-sub">joined ' + ago(u.created_at) + ' · ' + num(u.carousels) + ' post' + (Number(u.carousels) === 1 ? '' : 's')
+        + (u.last_active_at ? ' · last ' + ago(u.last_active_at) : '')
+        + (u.connected ? ' · IG linked' : '') + '</div></div>'
+        + '<div class="t-val' + (status === 'pro' ? ' money' : (never || stale) ? ' bad' : '') + '">' + status + '</div></div>';
+    });
+    el.innerHTML = h;
+  }
+
   function renderSpend(p) {
     var el = $('spend-body'), c = p.costs;
     if (!c.ok) return sectionErr(el, c, 'Spend log');
@@ -448,7 +479,7 @@ specified in the approved spec, no tournament.
         $('shell').hidden = true; dash.hidden = false;
         dash.classList.remove('skel');
         $('stamp').innerHTML = 'updated <b>' + new Date(p.generatedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) + '</b>';
-        renderKpis(p); renderMoney(p); renderPipe(p); renderActivity(p); renderNiches(p); renderSpend(p);
+        renderKpis(p); renderMoney(p); renderPipe(p); renderActivity(p); renderNiches(p); renderSignups(p); renderSpend(p);
         if (!timer) timer = setInterval(load, 60000);
       })
       .catch(function () {
