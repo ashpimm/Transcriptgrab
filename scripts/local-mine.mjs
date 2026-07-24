@@ -222,6 +222,28 @@ function downloadCaptionText(url, stem) {
   }
 }
 
+// Transcripts never change for a given video — cache them on disk so a rerun
+// (retry after a server hiccup, dry-run then apply) skips the slow local work.
+const CACHE_FILE = join(WORK_DIR, 'transcript-cache.json');
+let transcriptCache = null;
+
+function cacheLoad() {
+  if (transcriptCache) return transcriptCache;
+  try {
+    transcriptCache = JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+  } catch {
+    transcriptCache = {};
+  }
+  return transcriptCache;
+}
+
+function cachePut(url, text) {
+  const cache = cacheLoad();
+  cache[url] = text;
+  mkdirSync(WORK_DIR, { recursive: true });
+  writeFileSync(CACHE_FILE, JSON.stringify(cache), 'utf8');
+}
+
 let whisperUnavailable = false;
 
 function whisperTranscribe(url, id) {
@@ -260,11 +282,17 @@ function whisperTranscribe(url, id) {
 
 // Captions first (free, near-instant), Whisper as fallback. Returns '' on failure.
 export async function transcriptFor(candidate, index) {
+  const cached = cacheLoad()[candidate.url];
+  if (typeof cached === 'string' && wordCount(cached) >= MIN_TRANSCRIPT_WORDS) {
+    console.log('    cached');
+    return cached;
+  }
   const id = `${Date.now().toString(36)}-${index}`;
   try {
     const text = downloadCaptionText(candidate.url, `caps-${id}`);
     if (wordCount(text) >= MIN_TRANSCRIPT_WORDS) {
       console.log('    captions ok');
+      cachePut(candidate.url, text);
       return text;
     }
   } catch (error) {
@@ -274,6 +302,7 @@ export async function transcriptFor(candidate, index) {
     const text = whisperTranscribe(candidate.url, id);
     if (wordCount(text) >= MIN_TRANSCRIPT_WORDS) {
       console.log('    whisper ok');
+      cachePut(candidate.url, text);
       return text;
     }
     console.log('    whisper transcript too short');
