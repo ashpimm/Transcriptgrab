@@ -342,29 +342,38 @@ export async function mineFromCandidates(niche, outliers, opts = {}) {
     }
   }
 
-  // 6. Gemini extraction (one batched call)
-  let extracted = [];
+  // 6. Gemini extraction — chunked and parallel. A single 18-video call can
+  // outrun even a generous timeout on a slow Gemini day (seen live); three
+  // 6-video calls each finish fast, and one failed chunk costs 6 candidates
+  // instead of the whole extraction. Indexes are global, so remapping is free.
+  const EXTRACTION_CHUNK_SIZE = 6;
+  const extracted = [];
   if (transcriptReady.length > 0) {
-    const payload = {
-      niche: niche.name,
-      videos: transcriptReady.map((o, i) => ({
-        i, title: o.title, views: o.views, followers: o.followers,
+    const chunks = [];
+    for (let start = 0; start < transcriptReady.length; start += EXTRACTION_CHUNK_SIZE) {
+      chunks.push(transcriptReady.slice(start, start + EXTRACTION_CHUNK_SIZE).map((o, offset) => ({
+        i: start + offset, title: o.title, views: o.views, followers: o.followers,
         ...(o.transcript ? { transcript: o.transcript } : {}),
-      })),
-    };
-    try {
-      const result = await callGemini(
-        HOOK_EXTRACTION_PROMPT, JSON.stringify(payload), 0.1,
-        extractionTimeoutMs ? { timeoutMs: extractionTimeoutMs } : {},
-      );
-      if (Array.isArray(result)) extracted = result;
-      else {
-        upstreamFailures++;
-        errors.push('extraction returned non-array');
+      })));
+    }
+    const chunkResults = await Promise.all(chunks.map(async (videos) => {
+      try {
+        const result = await callGemini(
+          HOOK_EXTRACTION_PROMPT, JSON.stringify({ niche: niche.name, videos }), 0.1,
+          extractionTimeoutMs ? { timeoutMs: extractionTimeoutMs } : {},
+        );
+        return Array.isArray(result) ? { result } : { error: 'extraction returned non-array' };
+      } catch (e) {
+        return { error: `extraction: ${e.message}` };
       }
-    } catch (e) {
-      upstreamFailures++;
-      errors.push(`extraction: ${e.message}`);
+    }));
+    for (const chunk of chunkResults) {
+      if (chunk.error) {
+        upstreamFailures++;
+        errors.push(chunk.error);
+      } else {
+        extracted.push(...chunk.result);
+      }
     }
   }
 
