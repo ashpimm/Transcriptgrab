@@ -7,7 +7,9 @@ const EFFECTS = ['zoomInSlow', 'slideLeftSlow', 'zoomOutSlow', 'slideRightSlow']
 // credit balance. The rate is an estimate held as integer micros-USD — override
 // SHOTSTACK_MICROS_PER_MIN once the real burn is known: divide the credit spent
 // by the reels rendered to get $/reel, then $/reel ÷ reel-minutes = $/min.
-const SHOTSTACK_MICROS_PER_MIN = Number(process.env.SHOTSTACK_MICROS_PER_MIN) || 200_000;
+// Measured 2026-07-25: 1 reel (6 slides, 46.5s = 0.775 min) burned $0.77 of
+// credit → $0.994/min. Held at $1.00/min ($0.775 est/reel, matches observed).
+const SHOTSTACK_MICROS_PER_MIN = Number(process.env.SHOTSTACK_MICROS_PER_MIN) || 1_000_000;
 
 // Sum of every scene length — the rendered output duration Shotstack bills for.
 function reelTotalSeconds(count) {
