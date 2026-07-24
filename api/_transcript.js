@@ -4,6 +4,8 @@
 // Fetches a plain-text transcript for a video URL via Supadata.
 // Used by the mining pipeline to enrich hook extraction.
 
+import { logUsage } from './_db.js';
+
 const SUPADATA_KEY = process.env.SUPADATA_API_KEY || '';
 const TRANSCRIPT_REQUEST_TIMEOUT_MS = 12_000;
 const TRANSCRIPT_MAX_ATTEMPTS = 3;
@@ -73,6 +75,8 @@ export async function fetchTranscript(videoUrl, {
       .join(' ');
 
     if (!text) throw new Error('No captions available.');
+    // Best-effort credit log (Supadata bills per transcript); not awaited.
+    logUsage({ provider: 'supadata', op: 'transcript' });
     return { text };
   }
 

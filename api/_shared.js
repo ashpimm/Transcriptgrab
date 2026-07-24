@@ -1,8 +1,24 @@
 // api/_shared.js — Shared helpers for all AI API endpoints.
 // Vercel ignores _-prefixed files in api/ as endpoints.
 
+import { logUsage } from './_db.js';
+
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_TEXT_TIMEOUT_MS = 20_000;
+
+// Published Gemini prices, kept as integer micros-USD so cost math never
+// touches floats: gemini-2.5-flash $0.30/1M input + $2.50/1M output tokens
+// (= 0.3 / 2.5 micros per token); gemini-2.5-flash-image $0.039 per image.
+const GEMINI_TEXT_IN_MICROS_PER_TOKEN = 0.3;
+const GEMINI_TEXT_OUT_MICROS_PER_TOKEN = 2.5;
+export const GEMINI_IMAGE_COST_MICROS = 39_000;
+
+export function geminiTextCostMicros(inTokens, outTokens) {
+  return Math.round(
+    (inTokens || 0) * GEMINI_TEXT_IN_MICROS_PER_TOKEN +
+    (outTokens || 0) * GEMINI_TEXT_OUT_MICROS_PER_TOKEN
+  );
+}
 
 /**
  * Set CORS headers and handle OPTIONS preflight.
@@ -81,6 +97,8 @@ export async function callGeminiImage(prompt) {
   const parts = data.candidates?.[0]?.content?.parts || [];
   const imgPart = parts.find((p) => p.inlineData?.data);
   if (!imgPart) throw new Error('Image generation returned no image.');
+  // Best-effort spend log; deliberately not awaited.
+  logUsage({ provider: 'gemini', op: 'image', estCostMicros: GEMINI_IMAGE_COST_MICROS });
   return imgPart.inlineData.data;
 }
 
@@ -119,6 +137,15 @@ export async function callGemini(prompt, text, temperature = 0.7) {
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) throw new Error('Empty response from AI service.');
+
+  const usage = data.usageMetadata || {};
+  logUsage({
+    provider: 'gemini',
+    op: 'text',
+    inTokens: usage.promptTokenCount || 0,
+    outTokens: usage.candidatesTokenCount || 0,
+    estCostMicros: geminiTextCostMicros(usage.promptTokenCount, usage.candidatesTokenCount),
+  });
 
   try {
     return JSON.parse(content);

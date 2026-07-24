@@ -41,6 +41,8 @@
     { "source": "/api/autopilot-topup", "destination": "/api/autopilot?mode=topup&scheduledTrigger=primary" },
     { "source": "/api/autopilot-topup-recovery", "destination": "/api/autopilot?mode=topup&scheduledTrigger=recovery" },
     { "source": "/api/health", "destination": "/api/health" },
+    { "source": "/api/admin", "destination": "/api/health?admin=1" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/create", "destination": "/create.html" },
     { "source": "/account", "destination": "/account.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

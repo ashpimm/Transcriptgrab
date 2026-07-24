@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+THESIS: the whole business on one black sheet of receipts — money, activity,
+pipelines, spend — readable in ten seconds from a phone; refuses the SaaS
+admin template of colored widget cards and decorative rings.
+OWN-WORLD: hooklab v3 — pure black, glassy dark cards radius 24, Archivo +
+JetBrains Mono for every measured value; the one highlighter yellow marks
+money only (MRR, revenue, spend), green/blue/red dots carry worker state.
+STORY: the owner opens it, sees MRR and today's posts instantly, scans down
+for anything red, closes it.
+FIRST VIEWPORT: slim ops bar, then four stat tiles (MRR yellow-marked),
+then money and pipeline cards side by side.
+FORM: single scrolling sheet, KPI strip over two-column card grid; precisely
+specified in the approved spec, no tournament.
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ops — Promote.dev</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='11' y='47' font-family='Arial,sans-serif' font-weight='700' font-size='44' fill='%23F5F5F6'>P</text><rect x='41' y='41' width='13' height='6' rx='2' fill='%23FFDD00'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hooklab.css">
+<style>
+.page { padding: 34px 0 90px; }
+
+/* ---- ops bar ---- */
+.opsbar { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; flex-wrap: wrap; }
+.opsbar .mark { font-weight: 800; letter-spacing: -.02em; font-size: 19px; }
+.opsbar .mark .dim { color: var(--muted); font-weight: 600; }
+.opsbar .stamp { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-left: auto; }
+.opsbar .stamp b { color: var(--ink-2); font-weight: 500; }
+
+/* ---- stat tiles ---- */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px 18px; min-width: 0; }
+.kpi .k-label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.kpi .k-value { font-family: var(--mono); font-size: clamp(26px, 3vw, 34px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.kpi .k-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.kpi .k-sub b { color: var(--ink-2); font-weight: 600; }
+/* money values wear the highlighter — receipts grammar */
+.kpi.money .k-value { color: var(--signal); }
+
+/* ---- card grid ---- */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.grid > .span2 { grid-column: 1 / -1; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 26px; min-width: 0; }
+.card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+.card h2 .h-meta { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
+.card .body { margin-top: 16px; }
+
+/* ---- generic rows / tables ---- */
+.trow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; min-width: 0; }
+.trow:last-child { border-bottom: none; }
+.trow .t-main { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trow .t-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 1px; }
+.trow .t-val { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.trow .t-val.money { color: var(--signal); }
+.trow .t-val.bad { color: var(--danger); }
+
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.dot.ok { background: #36c98f; box-shadow: 0 0 0 3px rgba(54,201,143,.12); }
+.dot.run { background: #7eb6ff; box-shadow: 0 0 0 3px rgba(126,182,255,.12); }
+.dot.bad { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+.chip b { color: var(--ink); }
+.chip.bad { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-line); }
+
+/* ---- charts ---- */
+.chart { margin-top: 14px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .bar { transition: opacity .12s; cursor: default; }
+.chart .bar:hover { opacity: 1 !important; }
+.axis { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.gridline { stroke: rgba(255,255,255,.07); stroke-width: 1; }
+.tip { position: fixed; z-index: var(--z-toast); pointer-events: none; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 7px 11px; font-family: var(--mono); font-size: 11.5px; color: var(--ink); opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s; white-space: nowrap; }
+.tip.show { opacity: 1; transform: none; }
+.tip .tl { color: var(--muted); }
+
+/* ---- link-outs ---- */
+.links { display: flex; gap: 10px; flex-wrap: wrap; }
+.links a { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); text-decoration: none; transition: background .15s, border-color .15s; }
+.links a:hover { background: var(--glass-2); border-color: var(--line-2); }
+.links a::after { content: '↗'; font-size: 11px; color: var(--muted); }
+
+/* ---- states ---- */
+.shell { max-width: 420px; margin: 18vh auto 0; text-align: center; }
+.shell h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.shell p { color: var(--muted); font-size: 14.5px; margin: 12px 0 24px; }
+.err { display: flex; align-items: center; gap: 10px; color: var(--danger); font-size: 13px; padding: 10px 0; }
+.empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+.skel .card, .skel .kpi { position: relative; overflow: hidden; }
+.skel .card > *, .skel .kpi > * { visibility: hidden; }
+.skel .card::after, .skel .kpi::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.045) 50%, transparent 70%);
+  background-size: 220% 100%; animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -20% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel .card::after, .skel .kpi::after { animation: none; }
+}
+
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+
+@media (max-width: 960px) {
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .grid { grid-template-columns: 1fr; }
+  .duo { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .card { padding: 20px 18px; }
+  .kpi { padding: 16px 18px 14px; }
+}
+</style>
+</head>
+<body>
+
+<main class="wrap page" id="app">
+  <!-- sign-in shell (default until the API says admin) -->
+  <div class="shell" id="shell" hidden>
+    <h1>Ops</h1>
+    <p>This page is for the owner. Sign in with the admin Google account, then come back to <span style="font-family:var(--mono)">/admin</span>.</p>
+    <a class="btn btn-primary" href="/api/auth/google">Sign in with Google</a>
+  </div>
+
+  <div id="dash" hidden>
+    <div class="opsbar">
+      <div class="mark">Promote.dev <span class="dim">/ Ops</span></div>
+      <div class="stamp" id="stamp">loading…</div>
+      <button class="btn btn-ghost btn-sm" id="refresh">Refresh</button>
+    </div>
+
+    <div class="kpis" id="kpis">
+      <div class="kpi money"><div class="k-label">MRR</div><div class="k-value" id="k-mrr">—</div><div class="k-sub" id="k-mrr-sub">&nbsp;</div></div>
+      <div class="kpi"><div class="k-label">Users</div><div class="k-value" id="k-users">—</div><div class="k-sub" id="k-users-sub">&nbsp;</div></div>
+      <div class="kpi"><div class="k-label">Posts today</div><div class="k-value" id="k-posts">—</div><div class="k-sub" id="k-posts-sub">&nbsp;</div></div>
+      <div class="kpi money"><div class="k-label">Spend · month</div><div class="k-value" id="k-spend">—</div><div class="k-sub" id="k-spend-sub">&nbsp;</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card" id="card-money">
+        <h2>Money <span class="h-meta" id="money-meta"></span></h2>
+        <div class="body" id="money-body"></div>
+      </div>
+
+      <div class="card" id="card-pipe">
+        <h2>Pipelines</h2>
+        <div class="body" id="pipe-body"></div>
+      </div>
+
+      <div class="card span2" id="card-activity">
+        <h2>Activity <span class="h-meta">last 30 days</span></h2>
+        <div class="body duo" id="activity-body"></div>
+      </div>
+
+      <div class="card" id="card-niches">
+        <h2>Hook pools <span class="h-meta" id="niche-meta"></span></h2>
+        <div class="body" id="niche-body"></div>
+      </div>
+
+      <div class="card" id="card-spend">
+        <h2>Provider spend <span class="h-meta">estimated, logged calls</span></h2>
+        <div class="body" id="spend-body"></div>
+      </div>
+
+      <div class="card span2">
+        <h2>Consoles <span class="h-meta">live numbers the APIs don't expose</span></h2>
+        <div class="body links">
+          <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel usage</a>
+          <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">Stripe</a>
+          <a href="https://aistudio.google.com/usage" target="_blank" rel="noopener">Gemini billing</a>
+          <a href="https://dash.supadata.ai" target="_blank" rel="noopener">Supadata quota</a>
+          <a href="https://console.neon.tech" target="_blank" rel="noopener">Neon DB</a>
+          <a href="https://app.uploadpost.com" target="_blank" rel="noopener">Upload-post</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var tip = $('tip');
+
+  // ---------- formatting ----------
+  function money(cents) { return '$' + (cents / 100).toFixed(cents % 100 ? 2 : 0); }
+  function microsUsd(m) {
+    var d = m / 1e6;
+    if (!d) return '$0';
+    return d >= 100 ? '$' + Math.round(d) : d >= 1 ? '$' + d.toFixed(2) : '$' + d.toFixed(3);
+  }
+  function num(n) {
+    n = Number(n) || 0;
+    if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1e4) return Math.round(n / 1e3) + 'K';
+    return n.toLocaleString('en-US');
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function ago(iso) {
+    if (!iso) return 'never';
+    var s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < -60) { // future: "in 9h"
+      var f = -s;
+      if (f < 5400) return 'in ' + Math.round(f / 60) + 'm';
+      if (f < 129600) return 'in ' + Math.round(f / 3600) + 'h';
+      return 'in ' + Math.round(f / 86400) + 'd';
+    }
+    if (s < 90) return 'just now';
+    if (s < 5400) return Math.round(s / 60) + 'm ago';
+    if (s < 129600) return Math.round(s / 3600) + 'h ago';
+    return Math.round(s / 86400) + 'd ago';
+  }
+  function dayLabel(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+
+  // ---------- chart (single-series bars, 30-day domain) ----------
+  function fillDays(rows, days, key) {
+    var map = {};
+    (rows || []).forEach(function (r) { map[String(r.day).slice(0, 10)] = Number(r[key]) || 0; });
+    var out = [];
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    for (var i = days - 1; i >= 0; i--) {
+      var day = new Date(d.getTime() - i * 86400000);
+      var iso = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0') + '-' + String(day.getDate()).padStart(2, '0');
+      out.push({ iso: iso, v: map[iso] || 0 });
+    }
+    return out;
+  }
+
+  function barChart(data, opts) {
+    var W = 520, H = 150, padL = 34, padB = 18, padT = 12;
+    var plotW = W - padL - 6, plotH = H - padT - padB;
+    var max = Math.max.apply(null, data.map(function (d) { return d.v; }).concat([1]));
+    // nice ceiling
+    var pow = Math.pow(10, Math.floor(Math.log10(max)));
+    var niceMax = Math.ceil(max / pow) * pow;
+    if (niceMax / max > 2) niceMax = niceMax / 2;
+    var bw = plotW / data.length;
+    var barW = Math.max(2, bw - 2); // 2px gaps between fills
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(opts.label) + '">';
+    // gridlines + y labels (3 lines)
+    for (var g = 1; g <= 2; g++) {
+      var gy = padT + plotH - (plotH * g / 2);
+      s += '<line class="gridline" x1="' + padL + '" x2="' + W + '" y1="' + gy + '" y2="' + gy + '"/>';
+      s += '<text class="axis" x="' + (padL - 6) + '" y="' + (gy + 3) + '" text-anchor="end">' + num(niceMax * g / 2) + '</text>';
+    }
+    s += '<line x1="' + padL + '" x2="' + W + '" y1="' + (padT + plotH) + '" y2="' + (padT + plotH) + '" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
+    data.forEach(function (d, i) {
+      var h = niceMax ? Math.round(plotH * d.v / niceMax) : 0;
+      var x = padL + i * bw + 1;
+      var y = padT + plotH - h;
+      var r = Math.min(3, barW / 2, h);
+      s += '<path class="bar" data-i="' + i + '" fill="' + opts.color + '" opacity="' + (d.v ? '.82' : '.18') + '" d="'
+        + 'M' + x + ',' + (padT + plotH)
+        + (h > 0
+          ? ' V' + (y + r) + ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y + ' H' + (x + barW - r) + ' Q' + (x + barW) + ',' + y + ' ' + (x + barW) + ',' + (y + r) + ' V' + (padT + plotH)
+          : ' V' + (padT + plotH - 1.5) + ' H' + (x + barW) + ' V' + (padT + plotH))
+        + ' Z"/>';
+    });
+    // x labels: first + last
+    s += '<text class="axis" x="' + padL + '" y="' + (H - 4) + '">' + dayLabel(data[0].iso) + '</text>';
+    s += '<text class="axis" x="' + W + '" y="' + (H - 4) + '" text-anchor="end">' + dayLabel(data[data.length - 1].iso) + '</text>';
+    s += '</svg>';
+    return s;
+  }
+
+  function wireTips(container, data, fmt) {
+    container.addEventListener('mousemove', function (e) {
+      var t = e.target.closest('.bar');
+      if (!t) { tip.classList.remove('show'); return; }
+      var d = data[Number(t.getAttribute('data-i'))];
+      tip.innerHTML = '<span class="tl">' + esc(dayLabel(d.iso)) + '</span> &nbsp;' + esc(fmt(d.v));
+      tip.classList.add('show');
+      var x = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8);
+      tip.style.left = x + 'px';
+      tip.style.top = (e.clientY - 34) + 'px';
+    });
+    container.addEventListener('mouseleave', function () { tip.classList.remove('show'); });
+  }
+
+  function chartBlock(title, data, opts, fmt) {
+    var wrapEl = document.createElement('div');
+    var total = data.reduce(function (a, d) { return a + d.v; }, 0);
+    wrapEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline">'
+      + '<span style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">' + esc(title) + '</span>'
+      + '<span style="font-family:var(--mono);font-size:12px;color:var(--ink-2)">' + esc(fmt(total)) + ' / 30d</span></div>'
+      + '<div class="chart">' + barChart(data, opts) + '</div>';
+    wireTips(wrapEl, data, fmt);
+    return wrapEl;
+  }
+
+  // ---------- section renderers ----------
+  function sectionErr(el, section, what) {
+    el.innerHTML = '<div class="err"><span class="dot bad"></span>' + esc(what) + ' unavailable — ' + esc(section && section.error || 'unknown error') + '</div>';
+  }
+
+  function renderKpis(p) {
+    var b = p.business, o = p.ops, c = p.costs, u = p.usage;
+    if (b.ok) {
+      $('k-mrr').textContent = money(b.mrrCents);
+      $('k-mrr-sub').innerHTML = '<b>' + money(b.monthRevenueCents) + '</b> collected this month';
+      $('k-users').textContent = num(b.users.total);
+      $('k-users-sub').innerHTML = '<b>+' + b.users.new7d + '</b> this week · <b>' + b.users.pro + '</b> pro';
+    } else { $('k-mrr').textContent = '—'; $('k-users').textContent = '—'; }
+    if (o.ok) {
+      $('k-posts').textContent = num(o.queue.posted_today);
+      var due = Number(o.queue.due) || 0;
+      $('k-posts-sub').innerHTML = due
+        ? '<b style="color:var(--danger)">' + due + ' overdue</b> · ' + o.queue.future + ' queued'
+        : '<b>' + o.queue.future + '</b> queued · next ' + (o.queue.next_at ? ago(o.queue.next_at) : '—');
+    } else { $('k-posts').textContent = '—'; }
+    if (c.ok) {
+      var mtd = (c.mtd || []).reduce(function (a, r) { return a + Number(r.cost_micros); }, 0);
+      $('k-spend').textContent = microsUsd(mtd);
+      var calls = (c.mtd || []).reduce(function (a, r) { return a + Number(r.calls); }, 0);
+      $('k-spend-sub').innerHTML = '<b>' + num(calls) + '</b> provider calls' + (u.ok ? ' · anon ' + u.anonToday.used + '/' + u.anonToday.cap : '');
+    } else { $('k-spend').textContent = '—'; }
+  }
+
+  function renderMoney(p) {
+    var el = $('money-body'), b = p.business;
+    if (!b.ok) return sectionErr(el, b, 'Stripe');
+    $('money-meta').textContent = b.subs.length + ' active sub' + (b.subs.length === 1 ? '' : 's');
+    var h = '';
+    if (!b.subs.length && !b.payments.length) {
+      h = '<div class="empty">No subscriptions or payments yet. First one lands here.</div>';
+    }
+    b.subs.forEach(function (s) {
+      h += '<div class="trow"><div><div class="t-main">' + esc(s.email || 'unknown') + '</div>'
+        + '<div class="t-sub">since ' + (s.since ? dayLabel(s.since) : '—') + (s.cancelAtPeriodEnd ? ' · <span style="color:var(--danger)">cancels at period end</span>' : '') + '</div></div>'
+        + '<div class="t-val money">' + money(s.amountCents) + '/mo</div></div>';
+    });
+    if (b.payments.length) {
+      h += '<div style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 2px">Recent payments</div>';
+      b.payments.forEach(function (c) {
+        h += '<div class="trow"><div><div class="t-main">' + esc(c.email || 'unknown') + '</div>'
+          + '<div class="t-sub">' + dayLabel(c.created) + ' · ' + esc(c.status) + (c.refunded ? ' · refunded' : '') + '</div></div>'
+          + '<div class="t-val ' + (c.refunded || c.status !== 'succeeded' ? 'bad' : 'money') + '">' + money(c.amountCents) + '</div></div>';
+      });
+    }
+    el.innerHTML = h;
+  }
+
+  function renderPipe(p) {
+    var el = $('pipe-body'), o = p.ops;
+    if (!o.ok) return sectionErr(el, o, 'Ops data');
+    var q = o.queue;
+    var h = '<div class="chips">'
+      + (Number(q.due) ? '<span class="chip bad">' + q.due + ' overdue</span>' : '')
+      + '<span class="chip"><b>' + q.future + '</b>&nbsp;queued</span>'
+      + (Number(q.failed) ? '<span class="chip bad">' + q.failed + ' failed</span>' : '')
+      + '<span class="chip"><b>' + num(p.usage.ok ? p.usage.totals.posted : 0) + '</b>&nbsp;posted all-time</span>'
+      + '<span class="chip">db&nbsp;<b>' + (o.dbBytes / 1048576).toFixed(0) + '&nbsp;MB</b></span>'
+      + '</div>';
+    h += '<div style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 2px">Worker runs</div>';
+    if (!o.runs.length) h += '<div class="empty">No autopilot runs recorded yet.</div>';
+    o.runs.slice(0, 8).forEach(function (r) {
+      var ok = r.status === 'success' || r.status === 'ok';
+      var running = r.status === 'running';
+      h += '<div class="trow"><div style="display:flex;align-items:center;gap:10px;min-width:0">'
+        + '<span class="dot ' + (running ? 'run' : ok ? 'ok' : 'bad') + '"></span>'
+        + '<div><div class="t-main">' + esc(r.job) + ' <span style="color:var(--muted)">· ' + esc(r.trigger) + '</span></div>'
+        + '<div class="t-sub">' + ago(r.started_at) + (r.duration_ms ? ' · ' + (r.duration_ms / 1000).toFixed(1) + 's' : '') + '</div></div></div>'
+        + '<div class="t-val' + (ok || running ? '' : ' bad') + '">' + esc(r.status) + '</div></div>';
+    });
+    h += '<div class="trow"><div class="t-main" style="color:var(--muted)">Post metrics refreshed</div><div class="t-val">' + ago(o.metricsFreshAt) + '</div></div>';
+    el.innerHTML = h;
+  }
+
+  function renderActivity(p) {
+    var el = $('activity-body');
+    if (!p.usage.ok) { el.style.display = 'block'; return sectionErr(el, p.usage, 'Usage data'); }
+    el.innerHTML = '';
+    el.appendChild(chartBlock('Posts generated', fillDays(p.usage.carouselsPerDay, 30, 'count'), { color: '#F5F5F6', label: 'Posts generated per day, last 30 days' }, function (v) { return num(v) + ' post' + (v === 1 ? '' : 's'); }));
+    el.appendChild(chartBlock('Published to Instagram', fillDays(p.usage.postsPerDay, 30, 'count'), { color: '#F5F5F6', label: 'Posts published per day, last 30 days' }, function (v) { return num(v) + ' published'; }));
+  }
+
+  function renderNiches(p) {
+    var el = $('niche-body'), o = p.ops;
+    if (!o.ok) return sectionErr(el, o, 'Niche data');
+    var total = o.niches.reduce(function (a, n) { return a + Number(n.hooks); }, 0);
+    $('niche-meta').textContent = num(total) + ' hooks';
+    var h = '';
+    o.niches.forEach(function (n) {
+      var empty = !Number(n.hooks);
+      h += '<div class="trow"><div><div class="t-main">' + esc(n.name) + '</div>'
+        + '<div class="t-sub">mined ' + ago(n.last_mined_at) + '</div></div>'
+        + '<div class="t-val' + (empty ? ' bad' : '') + '">' + (empty ? 'empty' : num(n.hooks)) + '</div></div>';
+    });
+    el.innerHTML = h || '<div class="empty">No active niches.</div>';
+  }
+
+  function renderSpend(p) {
+    var el = $('spend-body'), c = p.costs;
+    if (!c.ok) return sectionErr(el, c, 'Spend log');
+    var byProv = {};
+    (c.days || []).forEach(function (r) {
+      (byProv[r.provider] = byProv[r.provider] || []).push(r);
+    });
+    el.innerHTML = '';
+    var mtdMap = {};
+    (c.mtd || []).forEach(function (r) { mtdMap[r.provider] = r; });
+
+    var gem = byProv.gemini || [];
+    el.appendChild(chartBlock(
+      'Gemini · est. $ per day' + (mtdMap.gemini ? ' · MTD ' + microsUsd(Number(mtdMap.gemini.cost_micros)) : ''),
+      fillDays(gem, 30, 'cost_micros').map(function (d) { return { iso: d.iso, v: d.v / 1e6 }; }),
+      { color: '#FFDD00', label: 'Estimated Gemini spend per day' },
+      function (v) { return '$' + v.toFixed(v >= 1 ? 2 : 3); }
+    ));
+
+    var sup = byProv.supadata || [];
+    el.appendChild(chartBlock(
+      'Supadata · transcripts per day' + (mtdMap.supadata ? ' · MTD ' + num(mtdMap.supadata.calls) : ''),
+      fillDays(sup, 30, 'calls'),
+      { color: '#F5F5F6', label: 'Supadata transcript credits per day' },
+      function (v) { return num(v) + ' credit' + (v === 1 ? '' : 's'); }
+    ));
+
+    if (!gem.length && !sup.length) {
+      el.insertAdjacentHTML('afterbegin', '<div class="empty">No provider calls logged yet — spend tracking starts with the next generation or mining run.</div>');
+    }
+  }
+
+  // ---------- load ----------
+  var timer = null;
+  function load() {
+    var dash = $('dash');
+    fetch('/api/health?admin=1', { headers: { 'accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (p) {
+        if (!p || !p.admin) {
+          $('shell').hidden = false; dash.hidden = true;
+          return;
+        }
+        $('shell').hidden = true; dash.hidden = false;
+        dash.classList.remove('skel');
+        $('stamp').innerHTML = 'updated <b>' + new Date(p.generatedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) + '</b>';
+        renderKpis(p); renderMoney(p); renderPipe(p); renderActivity(p); renderNiches(p); renderSpend(p);
+        if (!timer) timer = setInterval(load, 60000);
+      })
+      .catch(function () {
+        if (dash.hidden) { $('shell').hidden = false; return; }
+        $('stamp').innerHTML = '<span style="color:var(--danger)">refresh failed — retrying</span>';
+      });
+  }
+
+  $('refresh').addEventListener('click', function () {
+    $('stamp').textContent = 'refreshing…';
+    load();
+  });
+
+  // skeleton while first load runs
+  $('dash').hidden = false;
+  $('dash').classList.add('skel');
+  load();
+})();
+</script>
+</body>
+</html>

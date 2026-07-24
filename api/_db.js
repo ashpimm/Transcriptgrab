@@ -1661,4 +1661,53 @@ export async function addCredits(userId, n) {
   await sql`UPDATE users SET credits = COALESCE(credits, 0) + ${n}, updated_at = NOW() WHERE id = ${userId}`;
 }
 
+// ============================================
+// ADMIN: PROVIDER USAGE / COST LOG
+// ============================================
+// Every Gemini call funnels through _shared.js and every Supadata call through
+// _transcript.js, so those two choke points log here. Costs are stored in USD
+// micros (1_000_000 = $1) to keep the math integer.
+
+let usageSchemaPromise;
+
+export async function ensureUsageSchema() {
+  if (!usageSchemaPromise) {
+    usageSchemaPromise = (async () => {
+      const sql = getSQL();
+      await sql`
+        CREATE TABLE IF NOT EXISTS api_usage (
+          id BIGSERIAL PRIMARY KEY,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          provider TEXT NOT NULL,
+          op TEXT NOT NULL,
+          units NUMERIC NOT NULL DEFAULT 1,
+          in_tokens INTEGER,
+          out_tokens INTEGER,
+          est_cost_micros BIGINT NOT NULL DEFAULT 0
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS api_usage_created_idx ON api_usage (created_at)`;
+    })().catch((e) => {
+      usageSchemaPromise = null;
+      throw e;
+    });
+  }
+  return usageSchemaPromise;
+}
+
+// Best-effort: called without await from hot paths mid-request, so it must
+// never throw and never slow the caller down.
+export async function logUsage({ provider, op, units = 1, inTokens = null, outTokens = null, estCostMicros = 0 }) {
+  try {
+    await ensureUsageSchema();
+    const sql = getSQL();
+    await sql`
+      INSERT INTO api_usage (provider, op, units, in_tokens, out_tokens, est_cost_micros)
+      VALUES (${provider}, ${op}, ${units}, ${inTokens}, ${outTokens}, ${Math.round(estCostMicros)})
+    `;
+  } catch (error) {
+    console.error('usage log failed:', String(error?.message || error).substring(0, 200));
+  }
+}
+
 export { getSQL };
