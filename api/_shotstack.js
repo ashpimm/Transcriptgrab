@@ -1,5 +1,24 @@
+import { logUsage } from './_db.js';
+
 const ACTIVE_STATES = new Set(['queued', 'fetching', 'preprocessing', 'rendering', 'saving']);
 const EFFECTS = ['zoomInSlow', 'slideLeftSlow', 'zoomOutSlow', 'slideRightSlow'];
+
+// Shotstack pay-as-you-go bills per rendered minute, drawn from the account
+// credit balance. The rate is an estimate held as integer micros-USD — override
+// SHOTSTACK_MICROS_PER_MIN once the real burn is known: divide the credit spent
+// by the reels rendered to get $/reel, then $/reel ÷ reel-minutes = $/min.
+const SHOTSTACK_MICROS_PER_MIN = Number(process.env.SHOTSTACK_MICROS_PER_MIN) || 200_000;
+
+// Sum of every scene length — the rendered output duration Shotstack bills for.
+function reelTotalSeconds(count) {
+  let total = 0;
+  for (let i = 0; i < count; i++) total += reelSceneLength(i, count);
+  return total;
+}
+
+function reelCostMicros(count) {
+  return Math.round((reelTotalSeconds(count) / 60) * SHOTSTACK_MICROS_PER_MIN);
+}
 
 function config() {
   const apiKey = process.env.SHOTSTACK_API_KEY || '';
@@ -78,6 +97,8 @@ export async function submitReel(assetUrls) {
   const data = await call('/render', { method: 'POST', body: JSON.stringify(buildReelEdit(assetUrls)) });
   const id = data?.response?.id;
   if (!id) throw new Error('Shotstack returned no render id.');
+  // Best-effort spend log; deliberately not awaited (mirrors the Gemini calls).
+  logUsage({ provider: 'shotstack', op: 'reel', units: 1, estCostMicros: reelCostMicros(assetUrls.length) });
   return { id };
 }
 

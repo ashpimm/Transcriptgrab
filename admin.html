@@ -25,6 +25,16 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hooklab.css">
 <style>
+/* ops-page palette — sampled from the approved reference screenshot:
+   canvas #111113, cards one tone up at #1A1A1D, inset tiles #232327.
+   Admin only; the rest of the product stays pure-black hooklab. */
+:root {
+  --bg: #111113;
+  --surface: #1A1A1D;
+  --surface-2: #232327;
+  --line: rgba(255,255,255,.08);
+}
+
 /* ---- shell: rail + page ---- */
 .rail {
   position: fixed; inset: 0 auto 0 0; width: 68px; z-index: var(--z-sticky);
@@ -57,7 +67,11 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
 
 /* ---- grid ---- */
 .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; align-items: start; }
-.sp2 { grid-column: span 2; } .sp3 { grid-column: span 3; } .sp4 { grid-column: span 4; } .sp6 { grid-column: 1 / -1; }
+.sp2 { grid-column: span 2; } .sp4 { grid-column: span 4; }
+/* lower section: three independent stacks — cards flow, seams stay aligned */
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.col .card { width: 100%; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; min-width: 0; }
 .card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
 .card h2 .h-meta { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
@@ -118,15 +132,17 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
 .mini .m .s { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
 /* ---- donut ---- */
-.donut-wrap { display: flex; align-items: center; gap: 18px; }
-.donut-wrap .dsvg { width: 148px; flex: 0 0 auto; }
+.donut-c { display: grid; place-items: center; padding: 6px 0 2px; }
+.donut-c .dsvg { width: 158px; }
 .d-val { font-family: var(--mono); font-size: 19px; font-weight: 700; fill: var(--ink); }
 .d-lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em; fill: var(--muted); }
-.dleg { flex: 1; min-width: 0; }
-.dleg .dl { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; color: var(--ink-2); }
+.dleg { margin-top: 8px; }
+.dleg .dl { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink); }
+.dleg .dl:last-child { border-bottom: none; }
 .dleg .dl i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
-.dleg .dl .dv { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.dnote { margin-top: 14px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 10px 13px; font-size: 12px; color: var(--ink-2); }
+.dleg .dl .ds { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.dleg .dl .dv { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dnote { margin-top: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 10px 13px; font-size: 12px; color: var(--ink-2); }
 
 /* ---- signups ---- */
 .meter-lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
@@ -155,10 +171,17 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
 .dot.bad { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
 /* ---- consoles ---- */
-.links { display: flex; gap: 10px; flex-wrap: wrap; }
-.links a { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); text-decoration: none; transition: background .15s, border-color .15s; }
-.links a:hover { background: var(--glass-2); border-color: var(--line-2); }
-.links a::after { content: '↗'; font-size: 11px; color: var(--muted); }
+.crow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); text-decoration: none; min-width: 0; transition: transform .15s cubic-bezier(.23,1,.32,1); }
+.crow:last-child { border-bottom: none; }
+.crow:hover { transform: translateX(3px); }
+.crow:hover .c-name { color: var(--ink); }
+.crow .c-name { font-size: 13px; font-weight: 600; color: var(--ink-2); transition: color .15s; }
+.crow .c-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.crow .c-arr { font-size: 12px; color: var(--muted); flex: 0 0 auto; }
+
+/* ---- pipelines footer ---- */
+.pfoot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pfoot b { color: var(--ink-2); font-weight: 500; }
 
 /* ---- states ---- */
 .shell { max-width: 420px; margin: 18vh auto 0; text-align: center; }
@@ -179,13 +202,14 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
 }
 
 @media (max-width: 1080px) {
-  .sp4, .sp3, .sp2 { grid-column: span 3; }
-  .grid { grid-template-columns: repeat(6, 1fr); }
+  .sp4, .sp2 { grid-column: span 3; }
+  .cols { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 760px) {
   .rail { display: none; }
   .page { margin-left: 0; padding-top: 20px; }
-  .sp4, .sp3, .sp2 { grid-column: 1 / -1; }
+  .sp4, .sp2 { grid-column: 1 / -1; }
+  .cols { grid-template-columns: 1fr; }
   .card { padding: 20px 18px; }
   .who .w-mail { display: none; }
   .who { padding: 4px; border: 0; background: none; }
@@ -255,50 +279,61 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
           </div>
         </div>
 
-        <!-- pipelines (AI-summary slot) -->
-        <div class="card sp2" id="card-pipe">
-          <h2>Pipelines <span class="h-meta" id="pipe-meta"></span></h2>
-          <div class="body">
-            <div class="mini" id="pipe-mini"></div>
-            <div class="mlab" style="margin-bottom:2px">Worker runs</div>
-            <div id="pipe-runs"></div>
+      </div>
+
+      <div class="cols">
+        <div class="col">
+          <!-- pipelines (AI-summary slot) -->
+          <div class="card" id="card-pipe">
+            <h2>Pipelines</h2>
+            <div class="body">
+              <div class="mini" id="pipe-mini"></div>
+              <div class="mlab" style="margin-bottom:2px">Worker runs · today</div>
+              <div id="pipe-runs"></div>
+              <div class="pfoot" id="pipe-foot"></div>
+            </div>
+          </div>
+
+          <!-- money -->
+          <div class="card" id="card-money">
+            <h2>Money <span class="h-meta" id="money-meta"></span></h2>
+            <div class="body" id="money-body"></div>
           </div>
         </div>
 
-        <!-- provider spend donut -->
-        <div class="card sp2" id="card-spend">
-          <h2>Spending <span class="h-meta">month to date</span></h2>
-          <div class="body" id="spend-body"></div>
+        <div class="col">
+          <!-- provider spend donut -->
+          <div class="card" id="card-spend">
+            <h2>Spending <span class="h-meta">month to date</span></h2>
+            <div class="body" id="spend-body"></div>
+          </div>
+
+          <!-- hook pools -->
+          <div class="card" id="card-niches">
+            <h2>Hook pools <span class="h-meta" id="niche-meta"></span></h2>
+            <div class="body" id="niche-body"></div>
+          </div>
         </div>
 
-        <!-- signups (invoices slot) -->
-        <div class="card sp2" id="card-signups">
-          <h2>Signups <span class="h-meta" id="signups-meta"></span></h2>
-          <div class="body" id="signups-body"></div>
-        </div>
+        <div class="col">
+          <!-- signups (invoices slot) -->
+          <div class="card" id="card-signups">
+            <h2>Signups <span class="h-meta" id="signups-meta"></span></h2>
+            <div class="body" id="signups-body"></div>
+          </div>
 
-        <!-- money -->
-        <div class="card sp3" id="card-money">
-          <h2>Money <span class="h-meta" id="money-meta"></span></h2>
-          <div class="body" id="money-body"></div>
-        </div>
-
-        <!-- hook pools -->
-        <div class="card sp3" id="card-niches">
-          <h2>Hook pools <span class="h-meta" id="niche-meta"></span></h2>
-          <div class="body" id="niche-body"></div>
-        </div>
-
-        <!-- consoles -->
-        <div class="card sp6">
-          <h2>Consoles <span class="h-meta">live numbers the APIs don't expose</span></h2>
-          <div class="body links">
-            <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel usage</a>
-            <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">Stripe</a>
-            <a href="https://aistudio.google.com/usage" target="_blank" rel="noopener">Gemini billing</a>
-            <a href="https://dash.supadata.ai" target="_blank" rel="noopener">Supadata quota</a>
-            <a href="https://console.neon.tech" target="_blank" rel="noopener">Neon DB</a>
-            <a href="https://app.uploadpost.com" target="_blank" rel="noopener">Upload-post</a>
+          <!-- consoles -->
+          <div class="card" id="card-consoles">
+            <h2>Consoles <span class="h-meta">live numbers</span></h2>
+            <div class="body">
+              <a class="crow" href="https://vercel.com/dashboard" target="_blank" rel="noopener"><span><span class="c-name">Vercel</span><span class="c-sub" style="display:block">function usage · bandwidth</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://dashboard.stripe.com" target="_blank" rel="noopener"><span><span class="c-name">Stripe</span><span class="c-sub" style="display:block">payouts · disputes</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://aistudio.google.com/usage" target="_blank" rel="noopener"><span><span class="c-name">Gemini billing</span><span class="c-sub" style="display:block">real spend vs estimate</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://dashboard.shotstack.io" target="_blank" rel="noopener"><span><span class="c-name">Shotstack</span><span class="c-sub" style="display:block">reel render credit</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://dash.supadata.ai" target="_blank" rel="noopener"><span><span class="c-name">Supadata</span><span class="c-sub" style="display:block">credit quota</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://console.neon.tech" target="_blank" rel="noopener"><span><span class="c-name">Neon</span><span class="c-sub" style="display:block">db storage · compute</span></span><span class="c-arr">↗</span></a>
+              <a class="crow" href="https://app.uploadpost.com" target="_blank" rel="noopener"><span><span class="c-name">Upload-post</span><span class="c-sub" style="display:block">IG connection health</span></span><span class="c-arr">↗</span></a>
+            </div>
           </div>
         </div>
       </div>
@@ -508,9 +543,8 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
   // -- pipelines --
   function renderPipe(p) {
     var o = p.ops;
-    if (!o.ok) { $('pipe-mini').innerHTML = ''; return sectionErr($('pipe-runs'), o, 'Ops data'); }
+    if (!o.ok) { $('pipe-mini').innerHTML = ''; $('pipe-foot').innerHTML = ''; return sectionErr($('pipe-runs'), o, 'Ops data'); }
     var q = o.queue;
-    $('pipe-meta').textContent = 'db ' + (o.dbBytes / 1048576).toFixed(0) + ' MB';
     var due = Number(q.due) || 0, failed = Number(q.failed) || 0;
     var m = '<div class="m"><div class="mlab">Queued</div><div class="v">' + num(q.future) + '</div>'
       + '<div class="s">next ' + (q.next_at ? esc(ago(q.next_at)) : '—') + '</div></div>';
@@ -519,8 +553,10 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
       : '<div class="m"><div class="mlab">Posted today</div><div class="v">' + num(q.posted_today) + '</div><div class="s">' + num(p.usage.ok ? p.usage.totals.posted : 0) + ' all-time</div></div>';
     $('pipe-mini').innerHTML = m;
     var h = '';
-    if (!o.runs.length) h = '<div class="empty">No autopilot runs recorded yet.</div>';
-    o.runs.slice(0, 5).forEach(function (r) {
+    var startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    var todayRuns = o.runs.filter(function (r) { return new Date(r.started_at) >= startOfToday; });
+    if (!todayRuns.length) h = '<div class="empty">No worker runs today yet.</div>';
+    todayRuns.slice(0, 8).forEach(function (r) {
       var ok = r.status === 'success' || r.status === 'ok';
       var running = r.status === 'running';
       h += '<div class="trow"><div style="display:flex;align-items:center;gap:10px;min-width:0">'
@@ -529,8 +565,8 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
         + '<div class="t-sub">' + ago(r.started_at) + (r.duration_ms ? ' · ' + (r.duration_ms / 1000).toFixed(1) + 's' : '') + '</div></div></div>'
         + '<div class="t-val' + (ok || running ? '' : ' bad') + '">' + esc(r.status) + '</div></div>';
     });
-    h += '<div class="trow"><div class="t-main" style="color:var(--muted)">Metrics refreshed</div><div class="t-val">' + ago(o.metricsFreshAt) + '</div></div>';
     $('pipe-runs').innerHTML = h;
+    $('pipe-foot').innerHTML = '<span>metrics <b>' + esc(ago(o.metricsFreshAt)) + '</b></span><span>db <b>' + (o.dbBytes / 1048576).toFixed(0) + ' MB</b></span>';
   }
 
   // -- spending donut --
@@ -568,15 +604,17 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
     s += '<text class="d-lab" x="70" y="84" text-anchor="middle">TOTAL MTD</text></svg>';
     var leg = '<div class="dleg">';
     rows.sort(function (a, b) { return b.v - a.v || b.calls - a.calls; }).forEach(function (r) {
-      leg += '<div class="dl"><i style="background:' + r.color + '"></i>' + esc(r.name)
-        + '<span class="dv">' + (r.v > 0 ? esc(microsUsd(r.v)) : num(r.calls) + ' calls') + '</span></div>';
+      var share = total > 0 && r.v > 0 ? Math.round(100 * r.v / total) + '%' : null;
+      leg += '<div class="dl"><i style="background:' + r.color + '"></i><span>' + esc(r.name)
+        + '<span class="ds" style="display:block">' + num(r.calls) + ' calls' + (share ? ' · ' + share : '') + '</span></span>'
+        + '<span class="dv">' + (r.v > 0 ? esc(microsUsd(r.v)) : '$0') + '</span></div>';
     });
     leg += '</div>';
     var note = '';
     if (total > 0 && segs.length) {
       note = '<div class="dnote">' + esc(segs[0].name) + ' drives ' + Math.round(100 * segs[0].v / total) + '% of this month’s spend.</div>';
     }
-    el.innerHTML = '<div class="donut-wrap">' + s + leg + '</div>' + note;
+    el.innerHTML = '<div class="donut-c">' + s + '</div>' + leg + note;
   }
 
   // -- signups --
@@ -587,7 +625,7 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
     if (u.ok && u.anonToday && Number(u.anonToday.cap)) {
       var used = Number(u.anonToday.used) || 0, cap = Number(u.anonToday.cap);
       h += '<div class="meter-lab"><span class="mlab">Anon slots today</span><span class="mv">' + used + '/' + cap + '</span></div><div class="meter">';
-      var n = 24, fill = Math.round(n * Math.min(1, used / cap));
+      var n = cap <= 40 ? cap : 40, fill = Math.round(n * Math.min(1, used / cap));
       for (var i = 0; i < n; i++) h += '<i class="' + (i < fill ? 'f' : '') + '"></i>';
       h += '</div>';
     }
@@ -598,7 +636,7 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
       return;
     }
     $('signups-meta').textContent = (b.users ? num(b.users.total) + ' users · +' + b.users.new7d + ' this week' : 'latest ' + rows.length);
-    rows.slice(0, 6).forEach(function (usr) {
+    rows.slice(0, 5).forEach(function (usr) {
       var never = !Number(usr.carousels);
       var stale = !never && usr.last_active_at && (Date.now() - new Date(usr.last_active_at).getTime()) > 7 * 86400000;
       var status = usr.tier === 'pro' ? 'pro' : never ? 'follow up' : stale ? 'quiet' : 'active';
@@ -644,12 +682,19 @@ AI-summary slot → Pipelines, Invoices slot → Signups.
     var total = o.niches.reduce(function (a, n) { return a + Number(n.hooks); }, 0);
     $('niche-meta').textContent = num(total) + ' hooks';
     var h = '';
-    o.niches.forEach(function (n) {
+    // problems first: empty pools, then thinnest — the owner scans for what needs mining
+    var ordered = o.niches.slice().sort(function (a, b) { return Number(a.hooks) - Number(b.hooks); });
+    ordered.slice(0, 10).forEach(function (n) {
       var empty = !Number(n.hooks);
       h += '<div class="trow"><div><div class="t-main">' + esc(n.name) + '</div>'
         + '<div class="t-sub">mined ' + ago(n.last_mined_at) + '</div></div>'
         + '<div class="t-val' + (empty ? ' bad' : '') + '">' + (empty ? 'empty' : num(n.hooks)) + '</div></div>';
     });
+    var rest = ordered.slice(10);
+    if (rest.length) {
+      var restHooks = rest.reduce(function (a, n) { return a + Number(n.hooks); }, 0);
+      h += '<div class="trow"><div class="t-main" style="color:var(--muted)">+' + rest.length + ' healthier pools</div><div class="t-val">' + num(restHooks) + '</div></div>';
+    }
     el.innerHTML = h || '<div class="empty">No active niches.</div>';
   }
 
