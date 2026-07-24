@@ -394,7 +394,7 @@ export async function main(args = process.argv.slice(2)) {
 
   const fresh = options.mode === 'fresh';
   const dry = !options.apply;
-  const maxCandidates = fresh ? 30 : 18;
+  const maxCandidates = 48; // server evaluates up to 30; headroom covers failures
 
   const sourced = options.tiktok
     ? tiktokCandidates(options)

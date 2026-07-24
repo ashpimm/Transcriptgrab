@@ -91,7 +91,11 @@ export default async function handler(req, res) {
         // of the 20s default that a slow Gemini day blows through.
         extractionTimeoutMs: 40_000,
         errors: parsed.errors,
-        ...(fresh ? { maxExtractions: 18, maxTranscripts: 30 } : {}),
+        // Transcripts cost the caller nothing (local yt-dlp/Whisper), so
+        // evaluate a wider pool than the Supadata-priced GET path does —
+        // speech-poor niches (music-recipe shorts etc.) need the depth.
+        maxExtractions: 30,
+        maxTranscripts: 48,
       });
       return res.status(fresh && !dry && result.applied === false ? 409 : 200).json(result);
     } catch (e) {
